@@ -1,0 +1,8 @@
+{
+  "name": "Remix KDT-89 | Quà 20/10 Cho Anh Em Thợ \u0026 Đối Tác",
+  "description": "Landing page chương trình ưu đãi quà tặng 20/10 thiết thực dành riêng cho anh em thợ, kỹ thuật viên và đại lý đối tác của CÔNG TY TNHH KDT-89.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

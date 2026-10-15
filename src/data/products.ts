@@ -31,20 +31,20 @@ export interface ComboItem {
   recommendFor: string;
 }
 
-export const HERO_IMAGE = '/src/assets/images/hero_family_gift_1791983319829.jpg';
-export const COMBO_MOM_IMAGE = '/src/assets/images/combo_rice_cooker_gift_1791983319681.jpg';
-export const COMBO_KITCHEN_IMAGE = '/src/assets/images/combo_warm_kitchen_induction_1791983321206.jpg';
-export const COMBO_COOL_IMAGE = '/src/assets/images/combo_cool_air_conditioner_1791983322621.jpg';
-export const IMG_SMART_TV_LIVING_ROOM = '/src/assets/images/smart_tv_living_room_1792035624606.jpg';
-export const IMG_SMART_TV_PRODUCT = '/src/assets/images/casper_smart_tv_product_1792035644185.jpg';
+export const HERO_IMAGE = '/images/hero_family_gift_1791983319829.jpg';
+export const COMBO_MOM_IMAGE = '/images/combo_rice_cooker_gift_1791983319681.jpg';
+export const COMBO_KITCHEN_IMAGE = '/images/combo_warm_kitchen_induction_1791983321206.jpg';
+export const COMBO_COOL_IMAGE = '/images/combo_cool_air_conditioner_1791983322621.jpg';
+export const IMG_SMART_TV_LIVING_ROOM = '/images/smart_tv_living_room_1792035624606.jpg';
+export const IMG_SMART_TV_PRODUCT = '/images/casper_smart_tv_product_1792035644185.jpg';
 
 // Dedicated exact product model photos
-export const IMG_CUCKOO_CR1021_WHITE = '/src/assets/images/cuckoo_cr1021_white_1792031605550.jpg';
-export const IMG_CUCKOO_CR1021_RED = '/src/assets/images/cuckoo_cr1021_red_exact_1792031661964.jpg';
-export const IMG_CUCKOO_CR0671 = '/src/assets/images/cuckoo_cr0671_rice_cooker_1792031606808.jpg';
-export const IMG_SANAKY_INFRARED = '/src/assets/images/sanaky_infrared_stove_1791984756980.jpg';
-export const IMG_LADOMAX_INDUCTION = '/src/assets/images/ladomax_induction_stove_1791984757414.jpg';
-export const IMG_FERROLI_IC4200BN = '/src/assets/images/combo_warm_kitchen_induction_1791983321206.jpg';
+export const IMG_CUCKOO_CR1021_WHITE = '/images/cuckoo_cr1021_white_1792031605550.jpg';
+export const IMG_CUCKOO_CR1021_RED = '/images/cuckoo_cr1021_red_exact_1792031661964.jpg';
+export const IMG_CUCKOO_CR0671 = '/images/cuckoo_cr0671_rice_cooker_1791984756731.jpg';
+export const IMG_SANAKY_INFRARED = '/images/sanaky_infrared_stove_1791984756980.jpg';
+export const IMG_LADOMAX_INDUCTION = '/images/ladomax_induction_stove_1791984757414.jpg';
+export const IMG_FERROLI_IC4200BN = '/images/combo_warm_kitchen_induction_1791983321206.jpg';
 
 export const BUDGET_TIERS = [
   { id: 'all', label: 'Tất cả ngân sách', range: 'Mọi mức giá' },

@@ -4,28 +4,38 @@ interface KDTLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   variant?: 'full' | 'icon';
+  customLogo?: string;
 }
 
 export const KDTLogo: React.FC<KDTLogoProps> = ({
   className = '',
   size = 'md',
   variant = 'full',
+  customLogo,
 }) => {
   const iconSize = size === 'sm' ? 32 : size === 'lg' ? 48 : 40;
 
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
-      {/* Exact SVG recreation of the KDT emblem from the uploaded logo image:
-          - Orange KDT bold letters in center
-          - Grey dynamic elliptical swoosh rings wrapping around top-right and bottom-left */}
-      <svg
-        width={iconSize}
-        height={iconSize}
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0 drop-shadow-xs"
-      >
+      {customLogo ? (
+        <img
+          src={customLogo}
+          alt="KDT-89 Logo"
+          style={{ height: `${iconSize}px` }}
+          className="w-auto max-w-[140px] object-contain shrink-0 rounded-md"
+        />
+      ) : (
+        /* Exact SVG recreation of the KDT emblem from the uploaded logo image:
+            - Orange KDT bold letters in center
+            - Grey dynamic elliptical swoosh rings wrapping around top-right and bottom-left */
+        <svg
+          width={iconSize}
+          height={iconSize}
+          viewBox="0 0 120 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="shrink-0 drop-shadow-xs"
+        >
         {/* Top-right metallic grey orbital swoosh arcs */}
         <path
           d="M 50 38 C 65 20, 85 18, 98 25 C 93 18, 75 16, 56 32 Z"
@@ -67,6 +77,7 @@ export const KDTLogo: React.FC<KDTLogoProps> = ({
           <path d="M 78 43 L 100 43 L 96 50 L 89 50 L 80 77 L 72 77 L 81 50 L 78 50 Z" />
         </g>
       </svg>
+      )}
 
       {variant === 'full' && (
         <div className="flex flex-col text-left">

@@ -16,7 +16,7 @@ import { RegistrationSection } from './components/RegistrationSection';
 import { Footer } from './components/Footer';
 import { MobileStickyCTA } from './components/MobileStickyCTA';
 import { ConsultationModal } from './components/ConsultationModal';
-import { ImageUpdateModal } from './components/ImageUpdateModal';
+import { ImageUpdateModal, SPECIAL_SITE_ITEMS } from './components/ImageUpdateModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { ProductVisibilityModal } from './components/ProductVisibilityModal';
 import { PRODUCTS, ComboItem, ProductItem } from './data/products';
@@ -110,7 +110,7 @@ export default function App() {
 
   // Image updater modal state
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
-  const [targetImageProduct, setTargetImageProduct] = useState<ProductItem | null>(null);
+  const [targetImageProduct, setTargetImageProduct] = useState<any>(null);
 
   const handleSaveCustomImage = (productId: string, imageDataUrl: string) => {
     setCustomImages((prev) => {
@@ -137,8 +137,20 @@ export default function App() {
     });
   };
 
-  const handleOpenImageUpdater = (product?: ProductItem) => {
-    setTargetImageProduct(product || PRODUCTS[0]);
+  const handleOpenImageUpdater = (target?: ProductItem | string) => {
+    if (typeof target === 'string') {
+      const special = SPECIAL_SITE_ITEMS.find((s) => s.id === target);
+      if (special) {
+        setTargetImageProduct(special);
+      } else {
+        const prod = PRODUCTS.find((p) => p.id === target);
+        setTargetImageProduct(prod || PRODUCTS[0]);
+      }
+    } else if (target) {
+      setTargetImageProduct(target);
+    } else {
+      setTargetImageProduct(PRODUCTS[0]);
+    }
     setIsImageModalOpen(true);
   };
 
@@ -243,12 +255,13 @@ export default function App() {
       {/* 1. Header with Top Bar Contract */}
       <Header
         onOpenConsultation={() => handleOpenConsultation()}
-        onOpenImageUpdater={() => handleOpenImageUpdater()}
+        onOpenImageUpdater={handleOpenImageUpdater}
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
         hiddenCount={hiddenProductIds.length}
         isAdmin={isAdmin}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
         onLogoutAdmin={handleAdminLogout}
+        customLogo={customImages['site-logo']}
       />
 
       <main className="flex-1">
@@ -256,8 +269,9 @@ export default function App() {
         <Hero
           onOpenConsultation={handleOpenConsultation}
           onExploreProducts={handleExploreProducts}
-          onOpenImageUpdater={() => handleOpenImageUpdater()}
+          onOpenImageUpdater={handleOpenImageUpdater}
           isAdmin={isAdmin}
+          customHeroImage={customImages['site-hero-image']}
         />
 
         {/* 3. Suggested Combos (Now including Combo Sum Vầy Tivi) */}
@@ -298,12 +312,13 @@ export default function App() {
       <Footer
         isAdmin={isAdmin}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+        customLogo={customImages['site-logo']}
       />
 
       {/* 10. Mobile Sticky Action Bar */}
       <MobileStickyCTA
         onOpenConsultation={() => handleOpenConsultation()}
-        onOpenImageUpdater={() => handleOpenImageUpdater()}
+        onOpenImageUpdater={handleOpenImageUpdater}
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
         hiddenCount={hiddenProductIds.length}
         selectedCount={selectedProductIds.length}

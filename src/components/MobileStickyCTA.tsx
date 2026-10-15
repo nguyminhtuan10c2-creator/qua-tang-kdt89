@@ -56,12 +56,12 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
         )}
 
         <a
-          href="tel:[Điền số điện thoại]"
-          className="flex flex-col items-center justify-center min-w-[48px] h-11 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 transition-colors shrink-0"
-          title="Gọi Hotline KDT-89"
+          href={`tel:${COMPANY_INFO.hotline}`}
+          className="flex flex-col items-center justify-center min-w-[58px] h-11 px-1 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 transition-colors shrink-0"
+          title={`Gọi Hotline KDT-89: ${COMPANY_INFO.hotlineDisplay}`}
         >
-          <Phone className="w-4 h-4 text-rose-600" />
-          <span className="text-[10px] font-semibold mt-0.5">Hotline</span>
+          <Phone className="w-4 h-4 text-rose-600 animate-pulse" />
+          <span className="text-[9px] font-bold mt-0.5 text-rose-700 whitespace-nowrap">0397.017.013</span>
         </a>
 
         <button

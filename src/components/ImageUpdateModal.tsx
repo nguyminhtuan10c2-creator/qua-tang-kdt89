@@ -17,6 +17,7 @@ import {
   PRODUCTS,
   ProductItem,
   CATEGORIES,
+  HERO_IMAGE,
   IMG_CUCKOO_CR1021_WHITE,
   IMG_CUCKOO_CR1021_RED,
   IMG_CUCKOO_CR0671,
@@ -27,10 +28,44 @@ import {
   IMG_SMART_TV_LIVING_ROOM,
 } from '../data/products';
 
+export interface CustomizableItem {
+  id: string;
+  name: string;
+  modelCode?: string;
+  category: string;
+  categoryLabel: string;
+  stockStatus?: string;
+  imageUrl?: string;
+  isSpecial?: boolean;
+}
+
+export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
+  {
+    id: 'site-hero-image',
+    name: '🌟 Ảnh bìa chính đầu trang (Hero Banner 20/10)',
+    modelCode: 'HERO-BANNER',
+    category: 'site_branding',
+    categoryLabel: 'Ảnh bìa đầu trang',
+    stockStatus: 'Hiển thị ngay đầu trang khi mở web',
+    imageUrl: HERO_IMAGE,
+    isSpecial: true,
+  },
+  {
+    id: 'site-logo',
+    name: '🏷️ Logo thương hiệu KDT-89',
+    modelCode: 'LOGO-KDT89',
+    category: 'site_branding',
+    categoryLabel: 'Logo thương hiệu',
+    stockStatus: 'Hiển thị trên thanh Header trên cùng & chân trang Footer',
+    imageUrl: '',
+    isSpecial: true,
+  },
+];
+
 interface ImageUpdateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetProduct?: ProductItem | null;
+  targetProduct?: ProductItem | CustomizableItem | { id: string } | null;
   customImages: Record<string, string>;
   onSaveImage: (productId: string, imageDataUrl: string) => void;
   onResetImage: (productId: string) => void;
@@ -116,10 +151,26 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentProduct = PRODUCTS.find((p) => p.id === selectedProductId) || PRODUCTS[0];
+  const ALL_ITEMS: CustomizableItem[] = useMemo(() => {
+    return [
+      ...SPECIAL_SITE_ITEMS,
+      ...PRODUCTS.map((p) => ({
+        id: p.id,
+        name: p.name,
+        modelCode: p.modelCode,
+        category: p.category,
+        categoryLabel: p.categoryLabel,
+        stockStatus: p.stockStatus,
+        imageUrl: p.imageUrl,
+        isSpecial: false,
+      })),
+    ];
+  }, []);
+
+  const currentProduct = ALL_ITEMS.find((p) => p.id === selectedProductId) || ALL_ITEMS[0];
   const activeDisplayImage = previewImage || customImages[currentProduct.id] || currentProduct.imageUrl;
 
-  const filteredProductList = PRODUCTS.filter((p) => {
+  const filteredProductList = ALL_ITEMS.filter((p) => {
     const matchCat = filterCat === 'all' || p.category === filterCat;
     const matchSearch =
       searchFilter.trim() === '' ||
@@ -408,11 +459,11 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
             )}
           </div>
 
-          {/* Section 3: All 26 products visual browser */}
+          {/* Section 3: All customizable items visual browser */}
           <div className="pt-2 border-t border-neutral-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-700">
-                3. Bấm để chuyển sang đổi ảnh sản phẩm khác ({PRODUCTS.length} món):
+                3. Bấm để chuyển sang đổi ảnh sản phẩm, Logo hoặc Ảnh bìa ({ALL_ITEMS.length} mục):
               </span>
 
               {/* Quick Search in modal */}
@@ -421,7 +472,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
                   type="text"
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  placeholder="Lọc tên/mã..."
+                  placeholder="Lọc tên/mã/logo..."
                   className="w-full pl-7 pr-3 py-1.5 rounded-lg border border-neutral-300 text-xs outline-none focus:border-amber-500"
                 />
                 <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2 top-2" />
@@ -439,7 +490,18 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
                     : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700'
                 }`}
               >
-                Tất cả ({PRODUCTS.length})
+                Tất cả ({ALL_ITEMS.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterCat('site_branding')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+                  filterCat === 'site_branding'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold'
+                }`}
+              >
+                🌟 Logo & Ảnh bìa ({SPECIAL_SITE_ITEMS.length})
               </button>
               {CATEGORIES.map((cat) => (
                 <button

@@ -5,8 +5,9 @@ import { HERO_IMAGE, COMPANY_INFO } from '../data/products';
 interface HeroProps {
   onOpenConsultation: (prefillNote?: string) => void;
   onExploreProducts: () => void;
-  onOpenImageUpdater?: () => void;
+  onOpenImageUpdater?: (targetId?: string) => void;
   isAdmin?: boolean;
+  customHeroImage?: string;
 }
 
 export const Hero: React.FC<HeroProps> = ({
@@ -14,6 +15,7 @@ export const Hero: React.FC<HeroProps> = ({
   onExploreProducts,
   onOpenImageUpdater,
   isAdmin = false,
+  customHeroImage,
 }) => {
   return (
     <section id="hero" className="relative pt-6 pb-12 sm:pt-10 sm:pb-16 bg-gradient-to-b from-rose-50/70 via-stone-50/50 to-neutral-50 overflow-hidden">
@@ -66,20 +68,29 @@ export const Hero: React.FC<HeroProps> = ({
                   </div>
                   <div>
                     <div className="text-xs sm:text-sm font-bold text-amber-950">
-                      👑 Quyền Admin: Cập nhật hình ảnh sản phẩm
+                      👑 Quyền Admin: Cập nhật hình ảnh, Logo & Banner
                     </div>
                     <div className="text-[11px] text-amber-800">
-                      (Chỉ tài khoản admin của anh mới thấy khung này)
+                      Anh có thể tự do thay đổi logo, ảnh bìa chính và tất cả hình sản phẩm
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={onOpenImageUpdater}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold whitespace-nowrap shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
-                >
-                  Cập nhật hình
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onOpenImageUpdater('site-hero-image')}
+                    className="px-2.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold whitespace-nowrap shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    Đổi ảnh bìa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenImageUpdater('site-logo')}
+                    className="px-2.5 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold whitespace-nowrap shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    Đổi Logo
+                  </button>
+                </div>
               </div>
             )}
 
@@ -127,16 +138,30 @@ export const Hero: React.FC<HeroProps> = ({
 
           {/* Right Column: Hero Visual Photo Card */}
           <div className="lg:col-span-5">
-            <div className="relative rounded-2xl overflow-hidden border border-neutral-200/90 shadow-lg bg-white">
+            <div className="relative rounded-2xl overflow-hidden border border-neutral-200/90 shadow-lg bg-white group">
               <div className="aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3] relative overflow-hidden bg-neutral-100">
                 <img
-                  src={HERO_IMAGE}
+                  src={customHeroImage || HERO_IMAGE}
                   alt="Món quà thiết thực 20/10 cho căn bếp gia đình"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                   loading="eager"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                
+                {/* Admin Quick Action Button on Hero Image */}
+                {isAdmin && onOpenImageUpdater && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenImageUpdater('site-hero-image')}
+                    className="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-xl bg-black/65 hover:bg-black/85 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all cursor-pointer border border-white/30 active:scale-95"
+                    title="Quyền Admin: Bấm để đổi ảnh bìa chính đầu trang"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Đổi ảnh bìa</span>
+                  </button>
+                )}
+
                 <div className="absolute bottom-4 left-4 right-4 text-white">
                   <div className="inline-block px-2.5 py-1 rounded bg-rose-600/90 text-[11px] font-semibold uppercase tracking-wider mb-1">
                     Ấm áp & Chân thành

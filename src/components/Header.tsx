@@ -5,12 +5,13 @@ import { KDTLogo } from './KDTLogo';
 
 interface HeaderProps {
   onOpenConsultation: (prefillProduct?: string) => void;
-  onOpenImageUpdater?: () => void;
+  onOpenImageUpdater?: (targetId?: string) => void;
   onOpenManageVisibility?: () => void;
   hiddenCount?: number;
   isAdmin?: boolean;
   onOpenAdminLogin?: () => void;
   onLogoutAdmin?: () => void;
+  customLogo?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAdmin = false,
   onOpenAdminLogin,
   onLogoutAdmin,
+  customLogo,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200">
@@ -28,12 +30,25 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Zone 1: Brand Wordmark with Official Logo */}
         <div className="flex items-center gap-2 shrink-0">
           <a href="#hero" className="flex items-center gap-2 group">
-            <KDTLogo size="md" variant="full" />
+            <KDTLogo size="md" variant="full" customLogo={customLogo} />
           </a>
           {isAdmin && (
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500 text-white shadow-2xs">
-              👑 Admin KDT
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500 text-white shadow-2xs">
+                👑 Admin
+              </span>
+              {onOpenImageUpdater && (
+                <button
+                  type="button"
+                  onClick={() => onOpenImageUpdater('site-logo')}
+                  className="text-[10px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 cursor-pointer transition-all"
+                  title="Quyền Admin: Bấm để đổi logo công ty"
+                >
+                  <Camera className="w-3 h-3 text-amber-700" />
+                  <span>Đổi Logo</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -80,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               {onOpenImageUpdater && (
                 <button
                   type="button"
-                  onClick={onOpenImageUpdater}
+                  onClick={() => onOpenImageUpdater()}
                   className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:scale-95 border border-amber-300 rounded-xl transition-all cursor-pointer shadow-2xs"
                   title="Quyền Admin: Bấm để mở bảng cập nhật / đổi hình ảnh cho các sản phẩm"
                 >
@@ -106,6 +121,16 @@ export const Header: React.FC<HeaderProps> = ({
               </svg>
             </button>
           )}
+
+          {/* Quick Hotline Call Button: 0397017013 */}
+          <a
+            href={`tel:${COMPANY_INFO.hotline}`}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer shadow-2xs"
+            title="Bấm để gọi ngay Hotline KDT-89: 0397.017.013"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
+            <span>0397.017.013</span>
+          </a>
 
           <button
             onClick={() => onOpenConsultation()}

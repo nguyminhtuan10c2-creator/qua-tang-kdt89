@@ -6,9 +6,10 @@ import { KDTLogo } from './KDTLogo';
 interface FooterProps {
   onOpenAdminLogin?: () => void;
   isAdmin?: boolean;
+  customLogo?: string;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = false }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = false, customLogo }) => {
   return (
     <footer className="bg-neutral-900 text-neutral-300 pt-12 pb-24 md:pb-12 border-t border-neutral-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -16,7 +17,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
           {/* Brand Info */}
           <div className="md:col-span-5 space-y-3">
             <div className="bg-white/10 p-2 rounded-xl inline-block">
-              <KDTLogo size="md" variant="full" />
+              <KDTLogo size="md" variant="full" customLogo={customLogo} />
             </div>
             <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed pr-4">
               {COMPANY_INFO.programTitle} – Đồng hành cùng anh em thợ, kỹ thuật viên và đại lý đối tác thân thiết chuẩn bị món quà thiết thực, trọn vẹn yêu thương ngày 20/10.
@@ -39,10 +40,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
                 <div>
                   <div className="text-neutral-400 text-xs">Hotline:</div>
                   <a
-                    href="tel:[Điền số điện thoại]"
-                    className="font-semibold text-white hover:text-rose-400 transition-colors"
+                    href={`tel:${COMPANY_INFO.hotline}`}
+                    className="font-bold text-white hover:text-rose-400 transition-colors tracking-wide"
                   >
-                    [Điền số điện thoại]
+                    {COMPANY_INFO.hotlineDisplay}
                   </a>
                 </div>
               </div>
@@ -53,10 +54,12 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
                 <div>
                   <div className="text-neutral-400 text-xs">Zalo:</div>
                   <a
-                    href="#register-form"
-                    className="font-semibold text-white hover:text-sky-400 transition-colors"
+                    href={COMPANY_INFO.zaloLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-white hover:text-sky-400 transition-colors"
                   >
-                    [Điền link Zalo]
+                    {COMPANY_INFO.zaloDisplay}
                   </a>
                 </div>
               </div>

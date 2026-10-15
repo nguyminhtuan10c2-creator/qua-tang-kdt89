@@ -56,12 +56,17 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
         )}
 
         <a
-          href={`tel:${COMPANY_INFO.hotline}`}
-          className="flex flex-col items-center justify-center min-w-[58px] h-11 px-1 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 transition-colors shrink-0"
-          title={`Gọi Hotline KDT-89: ${COMPANY_INFO.hotlineDisplay}`}
+          href={COMPANY_INFO.zaloLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center min-w-[58px] h-11 px-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition-colors shrink-0"
+          title={`Nhắn Zalo KDT-89: ${COMPANY_INFO.hotline}`}
         >
-          <Phone className="w-4 h-4 text-rose-600 animate-pulse" />
-          <span className="text-[9px] font-bold mt-0.5 text-rose-700 whitespace-nowrap">0397.017.013</span>
+          <div className="flex items-center gap-0.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
+            <span className="text-[11px] font-black tracking-tight text-sky-700">Zalo</span>
+          </div>
+          <span className="text-[9px] font-bold mt-0.5 text-sky-800 whitespace-nowrap">0397.017.013</span>
         </a>
 
         <button

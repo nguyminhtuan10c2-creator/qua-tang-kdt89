@@ -122,14 +122,16 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Quick Hotline Call Button: 0397017013 */}
+          {/* Quick Zalo Chat / Call Button: 0397017013 */}
           <a
-            href={`tel:${COMPANY_INFO.hotline}`}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer shadow-2xs"
-            title="Bấm để gọi ngay Hotline KDT-89: 0397.017.013"
+            href={COMPANY_INFO.zaloLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all cursor-pointer shadow-2xs"
+            title="Bấm để mở Zalo KDT-89: 0397.017.013"
           >
-            <PhoneCall className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-            <span>0397.017.013</span>
+            <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+            <span>Zalo: 0397.017.013</span>
           </a>
 
           <button

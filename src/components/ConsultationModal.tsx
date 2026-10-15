@@ -132,11 +132,20 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
               {/* Direct Quick Connection */}
               <div className="space-y-2">
                 <a
-                  href={`tel:${COMPANY_INFO.hotline}`}
-                  className="w-full py-3 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors"
+                  href={COMPANY_INFO.zaloLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-xs"
                 >
-                  <PhoneCall className="w-4 h-4 text-emerald-400" />
-                  <span>Gọi trực tiếp Hotline: {COMPANY_INFO.hotline}</span>
+                  <MessageCircle className="w-4 h-4 text-white" />
+                  <span>Nhắn Zalo giữ hàng ngay: {COMPANY_INFO.hotlineDisplay}</span>
+                </a>
+                <a
+                  href={`tel:${COMPANY_INFO.hotline}`}
+                  className="w-full py-2.5 px-4 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs flex items-center justify-center gap-2 transition-colors"
+                >
+                  <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Hoặc bấm gọi trực tiếp: {COMPANY_INFO.hotline}</span>
                 </a>
                 <button
                   onClick={handleReset}

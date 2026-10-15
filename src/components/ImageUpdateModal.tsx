@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Trash2,
+  Copy,
 } from 'lucide-react';
 import {
   PRODUCTS,
@@ -26,6 +27,7 @@ import {
   IMG_FERROLI_IC4200BN,
   IMG_SMART_TV_PRODUCT,
   IMG_SMART_TV_LIVING_ROOM,
+  IMG_MICROWAVE_OVEN,
 } from '../data/products';
 
 export interface CustomizableItem {
@@ -121,6 +123,12 @@ const PRESET_PHOTOS = [
     forProductId: 'prod-tivi-casper-50uga610',
     category: 'televisions',
   },
+  {
+    label: 'Lò vi sóng cao cấp sang trọng',
+    url: IMG_MICROWAVE_OVEN,
+    forProductId: 'prod-microwave-toshiba-20l',
+    category: 'rice_cooker_appliances',
+  },
 ];
 
 export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
@@ -140,7 +148,19 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'upload' | 'preset' | 'url'>('upload');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCopyCustomImages = () => {
+    try {
+      const dataStr = JSON.stringify(customImages, null, 2);
+      navigator.clipboard.writeText(dataStr);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 3000);
+    } catch {
+      // fallback
+    }
+  };
 
   React.useEffect(() => {
     if (targetProduct) {
@@ -577,18 +597,34 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="p-4 bg-neutral-100 border-t border-neutral-200 flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-neutral-500 italic">
-            * Ảnh tải lên được lưu tự động trên điện thoại/máy tính của anh.
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold cursor-pointer transition-colors"
-          >
-            Đóng & Lưu hoàn tất
-          </button>
+        {/* Modal Footer with Sync Advice & Export */}
+        <div className="p-4 bg-amber-50/90 border-t border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="text-[11px] text-amber-950 leading-tight">
+            💡 <strong>Để hiển thị trên tất cả điện thoại khác & khách hàng:</strong>
+            <p className="text-amber-850 text-[10px] mt-0.5">
+              Ảnh anh đổi tại đây đang được lưu trên trình duyệt của máy tính này. Để đồng bộ vĩnh viễn cho mọi điện thoại, anh bấm &quot;Sao chép mã ảnh&quot; rồi dán gửi em nhé!
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            {Object.keys(customImages).length > 0 && (
+              <button
+                type="button"
+                onClick={handleCopyCustomImages}
+                className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                title="Sao chép toàn bộ dữ liệu ảnh anh đã đổi để dán gửi lập trình viên lưu vào web vĩnh viễn"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>{copiedCode ? 'Đã chép vào bộ nhớ!' : 'Sao chép mã ảnh'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold cursor-pointer transition-colors"
+            >
+              Đã xong & Đóng
+            </button>
+          </div>
         </div>
       </div>
     </div>

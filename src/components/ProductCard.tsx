@@ -1,10 +1,11 @@
 import React from 'react';
-import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, ShoppingCart, Camera, Tv, Eye, EyeOff, Tag, Pencil, Trash2 } from 'lucide-react';
+import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, ShoppingCart, ShoppingBag, Camera, Tv, Eye, EyeOff, Tag, Pencil, Trash2 } from 'lucide-react';
 import { ProductItem } from '../data/products';
 
 interface ProductCardProps {
   product: ProductItem;
   onSelect: (product: ProductItem) => void;
+  onBuyProduct?: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
@@ -21,6 +22,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onSelect,
+  onBuyProduct,
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
@@ -350,42 +352,61 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons: Nhờ sale tư vấn (Pulse/Rung nhẹ) & Chọn món */}
-        <div className="mt-4 pt-3 border-t border-neutral-150 flex items-center gap-2">
-          {/* Nút Nhờ sale tư vấn với hiệu ứng pulse nhẹ thu hút sự chú ý */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onConsultProduct) {
-                onConsultProduct(product);
-              } else {
-                onSelect(product);
-              }
-            }}
-            className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer animate-gentle-pulse hover:shadow-md"
-            title="Bấm để nhờ Sale KDT-89 báo giá ưu đãi và kiểm tra kho món này"
-          >
-            <PhoneCall className="w-3.5 h-3.5 text-white shrink-0 animate-subtle-wiggle" />
-            <span className="truncate">Nhờ sale tư vấn</span>
-          </button>
+        {/* Action Buttons: Mua ngay (Nút Mua hàng), Nhờ sale tư vấn & Chọn món */}
+        <div className="mt-4 pt-3 border-t border-neutral-150 flex flex-col gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* Nút Mua ngay nổi bật */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onBuyProduct) {
+                  onBuyProduct(product);
+                } else if (onConsultProduct) {
+                  onConsultProduct(product);
+                }
+              }}
+              className="flex-1 py-2.5 px-3 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 hover:from-rose-800 hover:to-amber-700 active:scale-[0.98] shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              title="Đặt mua sản phẩm này ngay - Giao tận nhà kiểm tra mới thanh toán"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-white shrink-0" />
+              <span className="font-extrabold uppercase tracking-wide text-[11px] sm:text-xs">Mua ngay</span>
+            </button>
 
-          {/* Nút Giỏ hàng / Chọn món để lưu vào danh sách gom đơn */}
-          <button
-            type="button"
-            onClick={() => onSelect(product)}
-            className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer border shrink-0 ${
-              isSelected
-                ? 'bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-300 shadow-xs'
-                : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-200 shadow-2xs hover:border-neutral-300'
-            }`}
-            title={isSelected ? 'Đã thêm vào giỏ hàng (Bấm để bỏ chọn)' : 'Thêm vào giỏ hàng'}
-          >
-            {isSelected ? (
-              <CheckCircle2 className="w-4 h-4 text-rose-600" />
-            ) : (
-              <ShoppingCart className="w-4 h-4 text-neutral-700" />
-            )}
-          </button>
+            {/* Nút Nhờ sale tư vấn */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onConsultProduct) {
+                  onConsultProduct(product);
+                } else {
+                  onSelect(product);
+                }
+              }}
+              className="py-2.5 px-2.5 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 active:scale-[0.98] flex items-center justify-center gap-1 transition-all cursor-pointer"
+              title="Bấm để nhờ Sale KDT-89 tư vấn thêm hoặc thỏa thuận giá thợ"
+            >
+              <PhoneCall className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <span className="hidden sm:inline text-[11px]">Tư vấn</span>
+            </button>
+
+            {/* Nút Giỏ hàng / Chọn món */}
+            <button
+              type="button"
+              onClick={() => onSelect(product)}
+              className={`py-2.5 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer border shrink-0 ${
+                isSelected
+                  ? 'bg-rose-100 text-rose-800 border-rose-400 ring-1 ring-rose-400 shadow-xs'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-200 shadow-2xs hover:border-neutral-300'
+              }`}
+              title={isSelected ? 'Đã thêm vào giỏ (Bấm để bỏ chọn)' : 'Thêm vào giỏ'}
+            >
+              {isSelected ? (
+                <CheckCircle2 className="w-4 h-4 text-rose-700" />
+              ) : (
+                <ShoppingCart className="w-4 h-4 text-neutral-700" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

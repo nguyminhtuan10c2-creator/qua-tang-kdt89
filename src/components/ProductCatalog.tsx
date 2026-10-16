@@ -3,20 +3,26 @@ import { CATEGORIES, PRODUCTS, ProductItem } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
 import { BudgetFilter } from './BudgetFilter';
-import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus } from 'lucide-react';
+import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus, Pencil } from 'lucide-react';
+
+import type { CategoryOverride } from '../lib/firebase';
 
 interface ProductCatalogProps {
   selectedProductIds: string[];
   allProducts?: ProductItem[];
   customImages?: Record<string, string>;
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
+  customCategories?: Record<string, CategoryOverride>;
   onToggleProduct: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
   onOpenAddProduct?: (categoryId?: string) => void;
+  onOpenCategoryEditor?: (categoryId?: string) => void;
   onEditProduct?: (product: ProductItem) => void;
   onDeleteProduct?: (productId: string) => void;
+  onBuyProduct?: (product: ProductItem) => void;
+  onOpenOrderModal?: () => void;
   onOpenConsultation: () => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
@@ -29,11 +35,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   allProducts = PRODUCTS,
   customImages = {},
   customPrices = {},
+  customCategories = {},
   onToggleProduct,
+  onBuyProduct,
+  onOpenOrderModal,
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
   onOpenAddProduct,
+  onOpenCategoryEditor,
   onEditProduct,
   onDeleteProduct,
   onOpenConsultation,
@@ -57,6 +67,22 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     air_conditioners: <Wind className="w-4 h-4 text-teal-600" />,
     televisions: <Tv className="w-4 h-4 text-indigo-600" />,
   };
+
+  // Dynamically computed categories based on CATEGORIES + customCategories
+  const displayedCategories = useMemo(() => {
+    return CATEGORIES.map((cat) => {
+      const override = customCategories[cat.id];
+      if (override) {
+        return {
+          ...cat,
+          name: override.name !== undefined && override.name !== '' ? override.name : cat.name,
+          subTitle: override.subTitle !== undefined && override.subTitle !== '' ? override.subTitle : cat.subTitle,
+          tagline: override.tagline !== undefined && override.tagline !== '' ? override.tagline : cat.tagline,
+        };
+      }
+      return cat;
+    });
+  }, [customCategories]);
 
   // Filter products: For regular customers, completely hide products marked as hidden
   const filteredProducts = useMemo(() => {
@@ -122,6 +148,24 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 <span>Thêm sản phẩm</span>
+              </button>
+            )}
+
+            {/* Admin Edit Category Headings Button */}
+            {isAdmin && onOpenCategoryEditor && (
+              <button
+                type="button"
+                onClick={() => onOpenCategoryEditor()}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 text-xs sm:text-sm font-bold shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Quyền Admin: Sửa tên đề mục các nhóm (Máy tắm nóng, Máy lạnh, Tivi...) và điều kiện lắp đặt"
+              >
+                <Pencil className="w-4 h-4 text-amber-600" />
+                <span>Sửa đề mục</span>
+                {Object.keys(customCategories).length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px]">
+                    {Object.keys(customCategories).length}
+                  </span>
+                )}
               </button>
             )}
 
@@ -199,11 +243,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   : 'bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
               }`}
             >
-              Tất cả các nhóm quà ({isAdmin ? PRODUCTS.length : PRODUCTS.filter(p => !hiddenProductIds.includes(p.id)).length})
+              Tất cả các nhóm quà ({isAdmin ? allProducts.length : allProducts.filter(p => !hiddenProductIds.includes(p.id)).length})
             </button>
 
-            {CATEGORIES.map((cat) => {
-              const count = PRODUCTS.filter((p) => p.category === cat.id && (isAdmin ? true : !hiddenProductIds.includes(p.id))).length;
+            {displayedCategories.map((cat) => {
+              const count = allProducts.filter((p) => p.category === cat.id && (isAdmin ? true : !hiddenProductIds.includes(p.id))).length;
               const isActive = activeCategoryTab === cat.id;
               return (
                 <button
@@ -279,7 +323,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         ) : isDefaultFullView ? (
           // Full 5 groups with dedicated horizontal swipe per category
           <div className="space-y-10">
-            {CATEGORIES.map((category) => {
+            {displayedCategories.map((category) => {
               const catProducts = allProducts.filter((p) => p.category === category.id);
               return (
                 <CategorySection
@@ -291,12 +335,14 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   customImages={customImages}
                   customPrices={customPrices}
                   onToggleProduct={onToggleProduct}
+                  onBuyProduct={onBuyProduct}
                   onConsultProduct={onConsultProduct}
                   onOpenImageUpdater={onOpenImageUpdater}
                   onOpenPriceEditor={onOpenPriceEditor}
                   onEditProduct={onEditProduct}
                   onDeleteProduct={onDeleteProduct}
                   onAddProductToCategory={onOpenAddProduct}
+                  onOpenCategoryEditor={onOpenCategoryEditor}
                   isAdmin={isAdmin}
                   hiddenProductIds={hiddenProductIds}
                   onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}
@@ -356,6 +402,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     customImage={customImages[product.id]}
                     customPrice={customPrices[product.id]}
                     onSelect={onToggleProduct}
+                    onBuyProduct={onBuyProduct}
                     onConsultProduct={onConsultProduct}
                     onOpenImageUpdater={onOpenImageUpdater}
                     onOpenPriceEditor={onOpenPriceEditor}
@@ -384,17 +431,29 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   Anh đã chọn {selectedProductIds.length} món quà ưng ý
                 </div>
                 <div className="text-xs text-neutral-400">
-                  Sale KDT-89 sẽ gửi báo giá đối tác và hỗ trợ giữ hàng ngay khi anh bấm tiếp tục.
+                  KDT-89 giao hàng tận nơi, kiểm tra máy chính hãng mới thanh toán.
                 </div>
               </div>
             </div>
 
-            <button
-              onClick={onOpenConsultation}
-              className="px-5 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shadow-sm"
-            >
-              Gửi danh sách cho Sale tư vấn & giữ hàng
-            </button>
+            <div className="flex items-center gap-2">
+              {onOpenOrderModal && (
+                <button
+                  type="button"
+                  onClick={onOpenOrderModal}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 active:scale-[0.98] text-white text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                >
+                  <span>Đặt mua ngay ({selectedProductIds.length} món)</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onOpenConsultation}
+                className="px-4 py-3 rounded-xl bg-white/15 hover:bg-white/25 active:scale-[0.98] text-white text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer"
+              >
+                Nhờ tư vấn
+              </button>
+            </div>
           </div>
         )}
       </div>

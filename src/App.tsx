@@ -58,6 +58,7 @@ import { AdminLoginModal } from './components/AdminLoginModal';
 import { ProductVisibilityModal } from './components/ProductVisibilityModal';
 import { ProductPriceModal, CustomPrice } from './components/ProductPriceModal';
 import { ProductFormModal } from './components/ProductFormModal';
+import { CategoryEditModal } from './components/CategoryEditModal';
 import { PRODUCTS, ComboItem, ProductItem } from './data/products';
 import {
   subscribeToSiteSettings,
@@ -67,6 +68,7 @@ import {
   deleteCustomImageFromFirestore,
   auth,
   logoutFirebaseAuth,
+  CategoryOverride,
 } from './lib/firebase';
 
 export default function App() {
@@ -166,6 +168,16 @@ export default function App() {
     }
   });
 
+  // Custom category heading overrides (names, subtitles, installation notes)
+  const [customCategories, setCustomCategories] = useState<Record<string, CategoryOverride>>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_custom_categories');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
   // Combined all active products list
   const allProducts = useMemo(() => {
     // 1. Default products excluding deleted
@@ -257,6 +269,14 @@ export default function App() {
             setEditedProducts(data.editedProducts);
             try {
               localStorage.setItem('kdt89_edited_products', JSON.stringify(data.editedProducts));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.customCategories) {
+            setCustomCategories(data.customCategories);
+            try {
+              localStorage.setItem('kdt89_custom_categories', JSON.stringify(data.customCategories));
             } catch (e) {
               console.error(e);
             }
@@ -582,6 +602,46 @@ export default function App() {
     }).catch((e) => console.error('Lỗi lưu deletedProductIds lên Firebase', e));
   };
 
+  // Category Editor modal state
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
+  const [targetCategoryId, setTargetCategoryId] = useState<string | null>(null);
+
+  const handleOpenCategoryEditor = (categoryId?: string) => {
+    setTargetCategoryId(categoryId || 'water_heaters');
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = (categoryId: string, override: CategoryOverride) => {
+    setCustomCategories((prev) => {
+      const updated = { ...prev, [categoryId]: override };
+      try {
+        localStorage.setItem('kdt89_custom_categories', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ customCategories: updated }).catch((e) =>
+        console.error('Lỗi lưu customCategories lên Firebase', e)
+      );
+      return updated;
+    });
+  };
+
+  const handleResetCategory = (categoryId: string) => {
+    setCustomCategories((prev) => {
+      const updated = { ...prev };
+      delete updated[categoryId];
+      try {
+        localStorage.setItem('kdt89_custom_categories', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ customCategories: updated }).catch((e) =>
+        console.error('Lỗi reset customCategories lên Firebase', e)
+      );
+      return updated;
+    });
+  };
+
   const handleToggleProduct = (product: ProductItem) => {
     setSelectedProductIds((prev) => {
       const exists = prev.includes(product.id);
@@ -667,6 +727,15 @@ export default function App() {
             >
               <Tag className="w-3.5 h-3.5 text-rose-200" />
               <span>Sửa giá {Object.keys(customPrices).length > 0 ? `(${Object.keys(customPrices).length} món)` : ''}</span>
+            </button>
+
+            <button
+              onClick={() => handleOpenCategoryEditor()}
+              className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5"
+              title="Sửa đề mục (Máy tắm nóng, Máy lạnh...) và dòng điều kiện lắp đặt / vật tư"
+            >
+              <Pencil className="w-3.5 h-3.5 text-amber-300" />
+              <span>Sửa đề mục {Object.keys(customCategories).length > 0 ? `(${Object.keys(customCategories).length})` : ''}</span>
             </button>
 
             <button
@@ -757,6 +826,7 @@ export default function App() {
           allProducts={allProducts}
           customImages={customImages}
           customPrices={customPrices}
+          customCategories={customCategories}
           onToggleProduct={handleToggleProduct}
           onConsultProduct={(product) =>
             handleOpenConsultation(
@@ -766,6 +836,7 @@ export default function App() {
           onOpenImageUpdater={handleOpenImageUpdater}
           onOpenPriceEditor={handleOpenPriceEditor}
           onOpenAddProduct={handleOpenAddProduct}
+          onOpenCategoryEditor={handleOpenCategoryEditor}
           onEditProduct={handleOpenEditProduct}
           onDeleteProduct={handleDeleteProduct}
           onOpenConsultation={() => handleOpenConsultation()}
@@ -873,6 +944,21 @@ export default function App() {
 
           <button
             type="button"
+            onClick={() => handleOpenCategoryEditor()}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Bấm để sửa đề mục các nhóm (Máy tắm nóng, Máy lạnh, Tivi...) và điều kiện giao lắp"
+          >
+            <Pencil className="w-4 h-4 text-amber-400" />
+            <span>Sửa đề mục</span>
+            {Object.keys(customCategories).length > 0 && (
+              <span className="px-1.5 py-0.2 bg-amber-500 text-neutral-950 rounded-full text-[10px] font-black">
+                {Object.keys(customCategories).length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsVisibilityModalOpen(true)}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
             title="Quyền Admin: Bấm để Quản lý Ẩn / Hiện các sản phẩm với khách hàng"
@@ -915,6 +1001,7 @@ export default function App() {
         onOpenImageUpdater={() => handleOpenImageUpdater()}
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
         onOpenPriceEditor={() => handleOpenPriceEditor()}
+        onOpenCategoryEditor={() => handleOpenCategoryEditor()}
         hiddenCount={hiddenProductIds.length}
         adminEmail={adminEmail}
       />
@@ -927,6 +1014,16 @@ export default function App() {
         onToggleHideProduct={handleToggleHideProduct}
         onUnhideAllProducts={handleUnhideAllProducts}
         customImages={customImages}
+      />
+
+      {/* 18. Category Headings & Subtitles Edit Modal (Admin only) */}
+      <CategoryEditModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        targetCategoryId={targetCategoryId}
+        customCategories={customCategories}
+        onSaveCategory={handleSaveCategory}
+        onResetCategory={handleResetCategory}
       />
     </div>
   );

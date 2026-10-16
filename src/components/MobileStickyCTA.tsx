@@ -1,9 +1,10 @@
 import React from 'react';
-import { Phone, Heart, Camera, EyeOff } from 'lucide-react';
+import { Phone, Heart, Camera, EyeOff, ShoppingBag } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
 
 interface MobileStickyCTAProps {
   onOpenConsultation: () => void;
+  onOpenOrderModal?: () => void;
   onOpenImageUpdater?: () => void;
   onOpenManageVisibility?: () => void;
   hiddenCount?: number;
@@ -13,6 +14,7 @@ interface MobileStickyCTAProps {
 
 export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
   onOpenConsultation,
+  onOpenOrderModal,
   onOpenImageUpdater,
   onOpenManageVisibility,
   hiddenCount = 0,
@@ -69,15 +71,25 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
           <span className="text-[9px] font-bold mt-0.5 text-sky-800 whitespace-nowrap">0397.017.013</span>
         </a>
 
-        <button
-          onClick={onOpenConsultation}
-          className="flex-1 h-11 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
-        >
-          <Heart className="w-4 h-4 fill-white/20 shrink-0" />
-          <span className="truncate">
-            {selectedCount > 0 ? `Giữ ${selectedCount} món đã chọn` : 'Nhờ sale tư vấn & Giữ hàng'}
-          </span>
-        </button>
+        {selectedCount > 0 ? (
+          <button
+            type="button"
+            onClick={onOpenOrderModal || onOpenConsultation}
+            className="flex-1 h-11 px-3 rounded-xl bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 hover:from-rose-800 hover:to-amber-700 active:scale-[0.98] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+          >
+            <ShoppingBag className="w-4 h-4 shrink-0" />
+            <span className="truncate">Đặt mua ({selectedCount} món)</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenConsultation}
+            className="flex-1 h-11 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+          >
+            <Heart className="w-4 h-4 fill-white/20 shrink-0" />
+            <span className="truncate">Nhờ sale tư vấn</span>
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -13,8 +13,11 @@ import {
   collection,
   getDocFromServer,
   setDoc,
+  updateDoc,
   deleteDoc,
   onSnapshot,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -93,6 +96,12 @@ testConnection();
 
 import type { ProductItem, ComboItem } from '../data/products';
 
+export interface CategoryOverride {
+  name?: string;
+  subTitle?: string;
+  tagline?: string;
+}
+
 export interface SiteSettingsData {
   hiddenProductIds?: string[];
   hiddenComboIds?: string[];
@@ -102,6 +111,7 @@ export interface SiteSettingsData {
   editedProducts?: Record<string, Partial<ProductItem>>;
   customCombos?: ComboItem[];
   deletedComboIds?: string[];
+  customCategories?: Record<string, CategoryOverride>;
   updatedAt: string;
 }
 
@@ -316,3 +326,176 @@ export async function logoutFirebaseAuth(): Promise<void> {
     console.error('Logout failed', error);
   }
 }
+
+export const ADMIN_NOTIFICATION_EMAIL = 'nguyminhtuan10C2@gmail.com';
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  modelCode?: string;
+  price: string;
+  quantity: number;
+  imageUrl?: string;
+}
+
+export interface OrderPayload {
+  customerName: string;
+  phoneNumber: string;
+  address: string;
+  items: OrderItem[];
+  totalAmount: string;
+  paymentMethod?: string;
+  note?: string;
+  status?: 'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy';
+}
+
+export interface StoredOrder extends OrderPayload {
+  id: string;
+  createdAt: string;
+}
+
+/**
+ * Submit order to Firestore
+ */
+export async function submitOrderToFirestore(order: OrderPayload): Promise<string> {
+  const id = `kdt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const path = `orders/${id}`;
+  const docRef = doc(db, 'orders', id);
+
+  const payload: StoredOrder = {
+    ...order,
+    id,
+    paymentMethod: order.paymentMethod || 'Thanh toán khi nhận hàng & kiểm tra (COD)',
+    status: order.status || 'Mới',
+    createdAt: new Date().toISOString(),
+  };
+
+  try {
+    await setDoc(docRef, payload);
+    return id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return id;
+  }
+}
+
+/**
+ * Send order notification email to admin email (nguyminhtuan10C2@gmail.com)
+ * Uses FormSubmit.co background dispatch with HTML formatting + fallback mailto link
+ */
+export async function sendOrderEmailNotification(order: StoredOrder, targetEmail = ADMIN_NOTIFICATION_EMAIL): Promise<{ success: boolean; message: string }> {
+  try {
+    const itemsListHtml = order.items
+      .map(
+        (it, idx) =>
+          `${idx + 1}. ${it.name} ${it.modelCode ? `(${it.modelCode})` : ''} - Số lượng: ${it.quantity} - Đơn giá: ${it.price}`
+      )
+      .join('\n');
+
+    const bodyPayload = {
+      _subject: `🔔 [ĐƠN HÀNG MỚI KDT-89] Khách hàng ${order.customerName} - SĐT: ${order.phoneNumber}`,
+      _template: 'table',
+      _captcha: 'false',
+      'Mã đơn hàng': order.id,
+      'Tên khách hàng': order.customerName,
+      'Số điện thoại': order.phoneNumber,
+      'Địa chỉ giao hàng': order.address,
+      'Danh sách sản phẩm': itemsListHtml,
+      'Tổng tiền tạm tính': order.totalAmount,
+      'Hình thức thanh toán': order.paymentMethod || 'COD',
+      'Ghi chú của khách': order.note || 'Không có',
+      'Thời gian đặt': new Date(order.createdAt).toLocaleString('vi-VN'),
+    };
+
+    const res = await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(bodyPayload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (res.ok || data.success === 'true' || (data.message && data.message.includes('Activation'))) {
+      return { success: true, message: 'Đã gửi thông báo đơn hàng qua email' };
+    }
+    return { success: true, message: 'Đã lưu đơn hàng lên hệ thống' };
+  } catch (error) {
+    console.warn('Lỗi khi gửi thông báo email tự động:', error);
+    // Non-blocking error, Firestore has saved it
+    return { success: false, message: 'Đã ghi nhận đơn hàng lên hệ thống Firestore' };
+  }
+}
+
+/**
+ * Generate mailto URI for manual 1-click fallback
+ */
+export function generateOrderMailtoUri(order: StoredOrder, targetEmail = ADMIN_NOTIFICATION_EMAIL): string {
+  const subject = encodeURIComponent(`[ĐƠN HÀNG MỚI KDT-89] ${order.customerName} - ${order.phoneNumber}`);
+  const itemsText = order.items
+    .map((it, idx) => `  ${idx + 1}. ${it.name} ${it.modelCode ? `[${it.modelCode}]` : ''} x${it.quantity}: ${it.price}`)
+    .join('\n');
+
+  const body = encodeURIComponent(
+    `THÔNG TIN ĐƠN HÀNG KHO ĐIỆN TỬ KDT-89\n` +
+    `Mã đơn: ${order.id}\n` +
+    `Ngày đặt: ${new Date(order.createdAt).toLocaleString('vi-VN')}\n` +
+    `----------------------------------------\n` +
+    `Khách hàng: ${order.customerName}\n` +
+    `Số điện thoại: ${order.phoneNumber}\n` +
+    `Địa chỉ giao hàng: ${order.address}\n` +
+    `Ghi chú: ${order.note || 'Không có'}\n` +
+    `----------------------------------------\n` +
+    `SẢN PHẨM ĐẶT MUA:\n${itemsText}\n` +
+    `----------------------------------------\n` +
+    `TỔNG TIỀN TẠM TÍNH: ${order.totalAmount}\n` +
+    `Hình thức: ${order.paymentMethod || 'COD'}\n`
+  );
+
+  return `mailto:${targetEmail}?subject=${subject}&body=${body}`;
+}
+
+/**
+ * Real-time subscription to orders (Admin only)
+ */
+export function subscribeToOrders(
+  onOrders: (orders: StoredOrder[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const ordersRef = collection(db, 'orders');
+  const q = query(ordersRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: StoredOrder[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ ...docSnap.data(), id: docSnap.id } as StoredOrder);
+      });
+      onOrders(list);
+    },
+    (err) => {
+      console.warn('Firestore orders sync:', err);
+      if (onError) onError(err);
+    }
+  );
+}
+
+/**
+ * Update order status
+ */
+export async function updateOrderStatus(
+  orderId: string,
+  newStatus: 'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy'
+): Promise<void> {
+  const docRef = doc(db, 'orders', orderId);
+  const path = `orders/${orderId}`;
+
+  try {
+    await updateDoc(docRef, { status: newStatus });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+

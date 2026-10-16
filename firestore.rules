@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function isValidSiteSetting(data) {
       return data.keys().hasAll(['updatedAt']) &&
-             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'updatedAt']) &&
+             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'updatedAt']) &&
              data.updatedAt is string && data.updatedAt.size() <= 60 &&
              (!('customImages' in data) || data.customImages is map) &&
              (!('hiddenProductIds' in data) || (data.hiddenProductIds is list && data.hiddenProductIds.size() <= 300)) &&
@@ -42,7 +42,8 @@ service cloud.firestore {
              (!('deletedProductIds' in data) || (data.deletedProductIds is list && data.deletedProductIds.size() <= 300)) &&
              (!('editedProducts' in data) || data.editedProducts is map) &&
              (!('customCombos' in data) || (data.customCombos is list && data.customCombos.size() <= 50)) &&
-             (!('deletedComboIds' in data) || (data.deletedComboIds is list && data.deletedComboIds.size() <= 50));
+             (!('deletedComboIds' in data) || (data.deletedComboIds is list && data.deletedComboIds.size() <= 50)) &&
+             (!('customCategories' in data) || data.customCategories is map);
     }
 
     function isValidCustomImage(data) {
@@ -65,6 +66,20 @@ service cloud.firestore {
              (!('giftNote' in data) || (data.giftNote is string && data.giftNote.size() <= 1000));
     }
 
+    function isValidOrder(data) {
+      return data.keys().hasAll(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'createdAt']) &&
+             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'paymentMethod', 'note', 'status', 'createdAt']) &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
+             data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
+             data.address is string && data.address.size() >= 1 && data.address.size() <= 300 &&
+             data.items is list && data.items.size() >= 1 && data.items.size() <= 30 &&
+             data.totalAmount is string && data.totalAmount.size() <= 50 &&
+             data.createdAt is string && data.createdAt.size() <= 60 &&
+             (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50)) &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 1000)) &&
+             (!('status' in data) || (data.status is string && data.status in ['Mới', 'Đã liên hệ', 'Đang giao', 'Hoàn thành', 'Đã hủy']));
+    }
+
     // Site settings: public can read custom prices and hidden products
     match /settings/{settingId} {
       allow get: if isValidId(settingId);
@@ -83,6 +98,12 @@ service cloud.firestore {
     // Customer consultation leads: guests can create with strict validation, only admin can read/list/delete
     match /leads/{leadId} {
       allow create: if isValidId(leadId) && isValidLead(incoming());
+      allow get, list, update, delete: if isAdmin();
+    }
+
+    // Customer purchase orders: guests can submit orders, admin can manage/read/update/delete
+    match /orders/{orderId} {
+      allow create: if isValidId(orderId) && isValidOrder(incoming());
       allow get, list, update, delete: if isAdmin();
     }
   }

@@ -4,6 +4,7 @@ import { COMBOS, ComboItem } from '../data/products';
 
 interface ComboSectionProps {
   onSelectCombo: (combo: ComboItem) => void;
+  onBuyCombo?: (combo: ComboItem) => void;
   isAdmin?: boolean;
   hiddenComboIds?: string[];
   onToggleHideCombo?: (comboId: string) => void;
@@ -15,6 +16,7 @@ interface ComboSectionProps {
 
 export const ComboSection: React.FC<ComboSectionProps> = ({
   onSelectCombo,
+  onBuyCombo,
   isAdmin = false,
   hiddenComboIds = [],
   onToggleHideCombo,
@@ -247,22 +249,42 @@ export const ComboSection: React.FC<ComboSectionProps> = ({
                   </div>
 
                   {/* Price & Action */}
-                  <div className="mt-4 pt-3.5 border-t border-neutral-200 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[10px] text-neutral-500 uppercase tracking-wide">Giá riêng đối tác:</div>
-                      <div className="text-xs sm:text-sm font-bold text-rose-600 font-mono">
-                        {combo.priceNote}
+                  <div className="mt-4 pt-3.5 border-t border-neutral-200 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] text-neutral-500 uppercase tracking-wide">Giá riêng đối tác:</div>
+                        <div className="text-xs sm:text-sm font-bold text-rose-600 font-mono">
+                          {combo.priceNote}
+                        </div>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onSelectCombo(combo)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition-colors shrink-0 cursor-pointer"
-                    >
-                      <span>Chọn combo</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onBuyCombo) {
+                            onBuyCombo(combo);
+                          } else {
+                            onSelectCombo(combo);
+                          }
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 hover:from-rose-800 hover:to-amber-700 active:scale-[0.98] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                        title="Đặt mua combo này ngay"
+                      >
+                        <Gift className="w-3.5 h-3.5" />
+                        <span>Mua ngay combo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onSelectCombo(combo)}
+                        className="inline-flex items-center justify-center px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-semibold transition-colors cursor-pointer"
+                        title="Nhờ sale tư vấn chi tiết về combo"
+                      >
+                        <span>Tư vấn</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

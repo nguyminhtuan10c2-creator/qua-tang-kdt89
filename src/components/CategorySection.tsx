@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { ProductItem } from '../data/products';
 import { ProductCard } from './ProductCard';
-import { ChevronLeft, ChevronRight, Sparkles, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Plus, Pencil } from 'lucide-react';
 
 interface CategorySectionProps {
   category: {
@@ -16,12 +16,14 @@ interface CategorySectionProps {
   customImages?: Record<string, string>;
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   onToggleProduct: (product: ProductItem) => void;
+  onBuyProduct?: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
   onEditProduct?: (product: ProductItem) => void;
   onDeleteProduct?: (productId: string) => void;
   onAddProductToCategory?: (categoryId: string) => void;
+  onOpenCategoryEditor?: (categoryId: string) => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
   onToggleHideProduct?: (product: ProductItem) => void;
@@ -35,12 +37,14 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   customImages = {},
   customPrices = {},
   onToggleProduct,
+  onBuyProduct,
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
   onEditProduct,
   onDeleteProduct,
   onAddProductToCategory,
+  onOpenCategoryEditor,
   isAdmin = false,
   hiddenProductIds = [],
   onToggleHideProduct,
@@ -110,6 +114,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
             {/* Quick left/right arrows for thumb navigation */}
             <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+              {isAdmin && onOpenCategoryEditor && (
+                <button
+                  type="button"
+                  onClick={() => onOpenCategoryEditor(category.id)}
+                  className="px-2 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-[10px] flex items-center gap-1 shadow-2xs transition-colors cursor-pointer mr-1 border border-neutral-300"
+                  title={`Sửa đề mục & mô tả nhóm ${category.name}`}
+                >
+                  <Pencil className="w-3 h-3 text-amber-600" />
+                  <span>Sửa đề mục</span>
+                </button>
+              )}
               {isAdmin && onAddProductToCategory && (
                 <button
                   type="button"
@@ -167,6 +182,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               customImage={customImages[product.id]}
               customPrice={customPrices[product.id]}
               onSelect={onToggleProduct}
+              onBuyProduct={onBuyProduct}
               onConsultProduct={onConsultProduct}
               onOpenImageUpdater={onOpenImageUpdater}
               onOpenPriceEditor={onOpenPriceEditor}

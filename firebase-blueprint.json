@@ -37,6 +37,10 @@
           "type": "array",
           "description": "IDs of combos removed by admin"
         },
+        "customCategories": {
+          "type": "object",
+          "description": "Custom titles, subtitles, and taglines for category headings"
+        },
         "updatedAt": {
           "type": "string",
           "description": "ISO timestamp of last update"
@@ -121,6 +125,65 @@
         "phoneNumber",
         "createdAt"
       ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase orders",
+      "type": "object",
+      "properties": {
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Customer full name"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 25,
+          "description": "Customer phone number"
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300,
+          "description": "Delivery address"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of ordered products or combo items"
+        },
+        "totalAmount": {
+          "type": "string",
+          "description": "Total order amount formatted"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method chosen (COD / Bank transfer)"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Customer notes or instructions"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Mới", "Đã liên hệ", "Đang giao", "Hoàn thành", "Đã hủy"],
+          "description": "Order processing status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Order creation ISO timestamp"
+        }
+      },
+      "required": [
+        "customerName",
+        "phoneNumber",
+        "address",
+        "items",
+        "totalAmount",
+        "createdAt"
+      ]
     }
   },
   "firestore": {
@@ -135,6 +198,10 @@
     "/leads/{leadId}": {
       "schema": "Lead",
       "description": "Customer consultation leads submitted through the website"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer purchase orders submitted through the website"
     }
   }
 }

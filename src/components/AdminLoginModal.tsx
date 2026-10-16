@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck } from 'lucide-react';
+import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil } from 'lucide-react';
 import { loginAdminWithGoogle } from '../lib/firebase';
 
 interface AdminLoginModalProps {
@@ -11,6 +11,7 @@ interface AdminLoginModalProps {
   onOpenImageUpdater?: () => void;
   onOpenManageVisibility?: () => void;
   onOpenPriceEditor?: () => void;
+  onOpenCategoryEditor?: () => void;
   hiddenCount?: number;
   adminEmail?: string | null;
 }
@@ -24,6 +25,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onOpenImageUpdater,
   onOpenManageVisibility,
   onOpenPriceEditor,
+  onOpenCategoryEditor,
   hiddenCount = 0,
   adminEmail,
 }) => {
@@ -140,6 +142,20 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   >
                     <Tag className="w-4 h-4" />
                     <span>Sửa giá sản phẩm (Giá chương trình & Giá niêm yết)</span>
+                  </button>
+                )}
+
+                {onOpenCategoryEditor && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenCategoryEditor();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Pencil className="w-4 h-4 text-amber-400" />
+                    <span>Sửa đề mục & mô tả nhóm (Máy tắm nóng, điều kiện lắp đặt...)</span>
                   </button>
                 )}
 

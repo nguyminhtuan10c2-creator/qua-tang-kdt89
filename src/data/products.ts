@@ -70,8 +70,8 @@ export const CATEGORIES = [
   },
   {
     id: 'water_heaters',
-    name: 'Máy nước nóng – chăm sóc gia đình',
-    subTitle: 'Bao gồm công lắp theo điều kiện áp dụng; vật tư phát sinh tính riêng nếu có.',
+    name: 'Máy tắm nóng – chăm sóc gia đình',
+    subTitle: 'Bao gồm công lắp đặt theo điều kiện áp dụng, vật tư phát sinh tính riêng nếu có.',
     tagline: 'Chăm sóc sức khỏe mẹ và vợ khi thời tiết chuyển lạnh cuối năm.',
   },
   {

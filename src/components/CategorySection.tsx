@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { ProductItem } from '../data/products';
 import { ProductCard } from './ProductCard';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Plus } from 'lucide-react';
 
 interface CategorySectionProps {
   category: {
@@ -19,6 +19,9 @@ interface CategorySectionProps {
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
+  onEditProduct?: (product: ProductItem) => void;
+  onDeleteProduct?: (productId: string) => void;
+  onAddProductToCategory?: (categoryId: string) => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
   onToggleHideProduct?: (product: ProductItem) => void;
@@ -35,6 +38,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
+  onEditProduct,
+  onDeleteProduct,
+  onAddProductToCategory,
   isAdmin = false,
   hiddenProductIds = [],
   onToggleHideProduct,
@@ -104,6 +110,17 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
 
             {/* Quick left/right arrows for thumb navigation */}
             <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
+              {isAdmin && onAddProductToCategory && (
+                <button
+                  type="button"
+                  onClick={() => onAddProductToCategory(category.id)}
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer mr-1"
+                  title={`Thêm sản phẩm mới vào danh mục ${category.name}`}
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Thêm món</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={scrollLeft}
@@ -153,6 +170,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
               onConsultProduct={onConsultProduct}
               onOpenImageUpdater={onOpenImageUpdater}
               onOpenPriceEditor={onOpenPriceEditor}
+              onEditProduct={onEditProduct}
+              onDeleteProduct={onDeleteProduct}
               isSelected={selectedProductIds.includes(product.id)}
               isAdmin={isAdmin}
               isHidden={hiddenProductIds.includes(product.id)}

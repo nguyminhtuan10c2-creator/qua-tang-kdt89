@@ -91,9 +91,17 @@ export async function testConnection() {
 }
 testConnection();
 
+import type { ProductItem, ComboItem } from '../data/products';
+
 export interface SiteSettingsData {
   hiddenProductIds?: string[];
+  hiddenComboIds?: string[];
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
+  customProducts?: ProductItem[];
+  deletedProductIds?: string[];
+  editedProducts?: Record<string, Partial<ProductItem>>;
+  customCombos?: ComboItem[];
+  deletedComboIds?: string[];
   updatedAt: string;
 }
 

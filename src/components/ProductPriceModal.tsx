@@ -136,7 +136,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
               {/* Program price (red, bigger) */}
               <div>
                 <label className="block text-xs font-bold text-rose-700 mb-1">
-                  Giá chương trình 20/10 (Hiển thị to hơn, MÀU ĐỎ):
+                  Giá chương trình (Hiển thị to hơn, MÀU ĐỎ):
                 </label>
                 <div className="relative">
                   <input
@@ -206,7 +206,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
               <div className="p-3 rounded-xl bg-white border border-rose-100 flex items-center justify-between gap-3 shadow-xs">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider block">
-                    Giá 20/10:
+                    Giá chương trình:
                   </span>
                   <span className="text-base sm:text-lg font-extrabold text-rose-600 font-mono tabular-nums leading-tight">
                     {programPriceInput || currentProduct.programPrice}

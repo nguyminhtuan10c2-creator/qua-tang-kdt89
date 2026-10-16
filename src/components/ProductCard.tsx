@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, ShoppingCart, Camera, Tv, Eye, EyeOff, Tag } from 'lucide-react';
+import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, ShoppingCart, Camera, Tv, Eye, EyeOff, Tag, Pencil, Trash2 } from 'lucide-react';
 import { ProductItem } from '../data/products';
 
 interface ProductCardProps {
@@ -8,6 +8,8 @@ interface ProductCardProps {
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
+  onEditProduct?: (product: ProductItem) => void;
+  onDeleteProduct?: (productId: string) => void;
   customPrice?: { programPrice?: string; referencePrice?: string };
   customImage?: string;
   isSelected?: boolean;
@@ -22,6 +24,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
+  onEditProduct,
+  onDeleteProduct,
   customPrice,
   customImage,
   isSelected,
@@ -272,25 +276,42 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             </div>
 
-            {/* Admin Quick Edit Price Button */}
-            {isAdmin && onOpenPriceEditor && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenPriceEditor(product);
-                }}
-                className="mt-1.5 w-full py-1 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-[10px] shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98"
-                title="Quyền Admin: Bấm để sửa giá chương trình và giá niêm yết"
-              >
-                <Tag className="w-3 h-3 text-neutral-950" />
-                <span>Sửa giá món này</span>
-                {customPrice && (
-                  <span className="ml-1 px-1 py-0.2 rounded bg-black/20 text-white text-[8px] font-black">
-                    Đã sửa
-                  </span>
+            {/* Admin Quick Action Buttons */}
+            {isAdmin && (
+              <div className="mt-2 pt-1.5 border-t border-rose-200/60 grid grid-cols-2 gap-1.5">
+                {onOpenPriceEditor && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenPriceEditor(product);
+                    }}
+                    className="py-1 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-[10px] shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98"
+                    title="Quyền Admin: Sửa giá chương trình và giá niêm yết"
+                  >
+                    <Tag className="w-3 h-3 text-neutral-950 shrink-0" />
+                    <span>Sửa giá</span>
+                    {customPrice && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                    )}
+                  </button>
                 )}
-              </button>
+
+                {onEditProduct && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditProduct(product);
+                    }}
+                    className="py-1 px-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-[10px] shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98"
+                    title="Quyền Admin: Đổi tên sản phẩm, mã model, đổi kho hoặc xóa"
+                  >
+                    <Pencil className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span>Đổi tên/kho</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

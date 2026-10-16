@@ -9,9 +9,33 @@
           "type": "array",
           "description": "List of hidden product IDs"
         },
+        "hiddenComboIds": {
+          "type": "array",
+          "description": "List of hidden combo IDs"
+        },
         "customPrices": {
           "type": "object",
           "description": "Custom pricing per product ID"
+        },
+        "customProducts": {
+          "type": "array",
+          "description": "Custom products added by admin"
+        },
+        "deletedProductIds": {
+          "type": "array",
+          "description": "IDs of products removed by admin"
+        },
+        "editedProducts": {
+          "type": "object",
+          "description": "Map of edited product field overrides by admin"
+        },
+        "customCombos": {
+          "type": "array",
+          "description": "Custom combos added by admin"
+        },
+        "deletedComboIds": {
+          "type": "array",
+          "description": "IDs of combos removed by admin"
         },
         "updatedAt": {
           "type": "string",

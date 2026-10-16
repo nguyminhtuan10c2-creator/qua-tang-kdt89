@@ -139,7 +139,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                     className="w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
                     <Tag className="w-4 h-4" />
-                    <span>Sửa giá sản phẩm (Giá 20/10 & Giá niêm yết)</span>
+                    <span>Sửa giá sản phẩm (Giá chương trình & Giá niêm yết)</span>
                   </button>
                 )}
 

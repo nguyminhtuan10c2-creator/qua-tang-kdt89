@@ -3,16 +3,20 @@ import { CATEGORIES, PRODUCTS, ProductItem } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
 import { BudgetFilter } from './BudgetFilter';
-import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff } from 'lucide-react';
+import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus } from 'lucide-react';
 
 interface ProductCatalogProps {
   selectedProductIds: string[];
+  allProducts?: ProductItem[];
   customImages?: Record<string, string>;
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   onToggleProduct: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
   onOpenPriceEditor?: (product: ProductItem) => void;
+  onOpenAddProduct?: (categoryId?: string) => void;
+  onEditProduct?: (product: ProductItem) => void;
+  onDeleteProduct?: (productId: string) => void;
   onOpenConsultation: () => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
@@ -22,12 +26,16 @@ interface ProductCatalogProps {
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   selectedProductIds,
+  allProducts = PRODUCTS,
   customImages = {},
   customPrices = {},
   onToggleProduct,
   onConsultProduct,
   onOpenImageUpdater,
   onOpenPriceEditor,
+  onOpenAddProduct,
+  onEditProduct,
+  onDeleteProduct,
   onOpenConsultation,
   isAdmin = false,
   hiddenProductIds = [],
@@ -52,7 +60,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   // Filter products: For regular customers, completely hide products marked as hidden
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    return allProducts.filter((p) => {
       if (!isAdmin && hiddenProductIds.includes(p.id)) {
         return false;
       }
@@ -104,6 +112,19 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
           {/* Action Row: Quick Search, Image Updater & Visibility Manager */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            {/* Admin Add New Product Button */}
+            {isAdmin && onOpenAddProduct && (
+              <button
+                type="button"
+                onClick={() => onOpenAddProduct()}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-sm font-bold shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Quyền Admin: Thêm máy lạnh, tivi hoặc sản phẩm mới vào kho"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Thêm sản phẩm</span>
+              </button>
+            )}
+
             {/* Admin Visibility Manager button */}
             {isAdmin && onOpenManageVisibility && (
               <button
@@ -126,7 +147,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             {isAdmin && onOpenImageUpdater && (
               <button
                 type="button"
-                onClick={() => onOpenImageUpdater(PRODUCTS[0])}
+                onClick={() => onOpenImageUpdater(allProducts[0] || PRODUCTS[0])}
                 className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-bold border-2 border-amber-600 shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
                 title="Quyền Admin: Bấm để mở bảng tải ảnh hoặc dán link ảnh mới"
               >
@@ -259,7 +280,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           // Full 5 groups with dedicated horizontal swipe per category
           <div className="space-y-10">
             {CATEGORIES.map((category) => {
-              const catProducts = PRODUCTS.filter((p) => p.category === category.id);
+              const catProducts = allProducts.filter((p) => p.category === category.id);
               return (
                 <CategorySection
                   key={category.id}
@@ -273,6 +294,9 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   onConsultProduct={onConsultProduct}
                   onOpenImageUpdater={onOpenImageUpdater}
                   onOpenPriceEditor={onOpenPriceEditor}
+                  onEditProduct={onEditProduct}
+                  onDeleteProduct={onDeleteProduct}
+                  onAddProductToCategory={onOpenAddProduct}
                   isAdmin={isAdmin}
                   hiddenProductIds={hiddenProductIds}
                   onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}
@@ -335,6 +359,8 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     onConsultProduct={onConsultProduct}
                     onOpenImageUpdater={onOpenImageUpdater}
                     onOpenPriceEditor={onOpenPriceEditor}
+                    onEditProduct={onEditProduct}
+                    onDeleteProduct={onDeleteProduct}
                     isSelected={selectedProductIds.includes(product.id)}
                     isAdmin={isAdmin}
                     isHidden={hiddenProductIds.includes(product.id)}

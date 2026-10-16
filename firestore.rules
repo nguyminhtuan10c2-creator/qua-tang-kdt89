@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nguyminhtuan10C2@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidSiteSetting(data) {
+      return data.keys().hasAll(['updatedAt']) &&
+             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'updatedAt']) &&
+             data.updatedAt is string && data.updatedAt.size() <= 60 &&
+             (!('customImages' in data) || data.customImages is map) &&
+             (!('hiddenProductIds' in data) || (data.hiddenProductIds is list && data.hiddenProductIds.size() <= 300)) &&
+             (!('customPrices' in data) || data.customPrices is map);
+    }
+
+    function isValidCustomImage(data) {
+      return data.keys().hasAll(['imageUrl', 'updatedAt']) &&
+             data.keys().hasOnly(['imageUrl', 'updatedAt']) &&
+             data.imageUrl is string && data.imageUrl.size() <= 900000 &&
+             data.updatedAt is string && data.updatedAt.size() <= 60;
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['fullName', 'phoneNumber', 'createdAt']) &&
+             data.keys().hasOnly(['fullName', 'phoneNumber', 'recipient', 'budgetTier', 'interestedProducts', 'deliveryArea', 'giftNote', 'createdAt']) &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+             data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
+             data.createdAt is string && data.createdAt.size() <= 60 &&
+             (!('recipient' in data) || (data.recipient is string && data.recipient in ['Vợ', 'Mẹ', 'Người thân'])) &&
+             (!('budgetTier' in data) || (data.budgetTier is string && data.budgetTier.size() <= 100)) &&
+             (!('interestedProducts' in data) || (data.interestedProducts is string && data.interestedProducts.size() <= 500)) &&
+             (!('deliveryArea' in data) || (data.deliveryArea is string && data.deliveryArea.size() <= 200)) &&
+             (!('giftNote' in data) || (data.giftNote is string && data.giftNote.size() <= 1000));
+    }
+
+    // Site settings: public can read custom prices and hidden products
+    match /settings/{settingId} {
+      allow get: if isValidId(settingId);
+      allow list: if false;
+      allow create, update: if isValidId(settingId) && isValidSiteSetting(incoming());
+      allow delete: if isValidId(settingId) && isAdmin();
+    }
+
+    // Individual custom images per product/asset (prevents 1MB document size limit)
+    match /custom_images/{imageId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(imageId) && isValidCustomImage(incoming());
+      allow delete: if isValidId(imageId);
+    }
+
+    // Customer consultation leads: guests can create with strict validation, only admin can read/list/delete
+    match /leads/{leadId} {
+      allow create: if isValidId(leadId) && isValidLead(incoming());
+      allow get, list, update, delete: if isAdmin();
+    }
+  }
+}

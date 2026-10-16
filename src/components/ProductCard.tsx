@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, Plus, Camera, Tv, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Package, Truck, Wrench, CheckCircle2, PhoneCall, ShoppingCart, Camera, Tv, Eye, EyeOff, Tag } from 'lucide-react';
 import { ProductItem } from '../data/products';
 
 interface ProductCardProps {
@@ -7,6 +7,8 @@ interface ProductCardProps {
   onSelect: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
+  onOpenPriceEditor?: (product: ProductItem) => void;
+  customPrice?: { programPrice?: string; referencePrice?: string };
   customImage?: string;
   isSelected?: boolean;
   isAdmin?: boolean;
@@ -19,6 +21,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onSelect,
   onConsultProduct,
   onOpenImageUpdater,
+  onOpenPriceEditor,
+  customPrice,
   customImage,
   isSelected,
   isAdmin = false,
@@ -248,18 +252,46 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.practicalValue}
           </p>
 
-          {/* Price Grid */}
-          <div className="mt-3 p-2.5 rounded-xl bg-neutral-50 border border-neutral-200/80">
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-xs text-neutral-500">Giá chương trình:</span>
-              <span className="text-xs sm:text-sm font-bold text-rose-600 font-mono tabular-nums">
-                {product.programPrice}
-              </span>
+          {/* Price Section: Giá niêm yết (gạch ngang màu đen) & Giá chương trình (MÀU ĐỎ TO HƠN) */}
+          <div className="mt-3 p-2.5 rounded-xl bg-gradient-to-r from-rose-50/80 to-stone-50 border border-rose-200/80 relative">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">
+                  Giá chương trình:
+                </span>
+                <span className="text-base sm:text-lg font-extrabold text-rose-600 font-mono tabular-nums leading-tight">
+                  {customPrice?.programPrice || product.programPrice}
+                </span>
+              </div>
+
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] text-neutral-500 font-medium">Giá niêm yết:</span>
+                <span className="text-xs sm:text-sm font-semibold text-neutral-900 line-through decoration-neutral-900 decoration-1.5 font-mono tabular-nums">
+                  {customPrice?.referencePrice || product.referencePrice}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mt-1 pt-1 border-t border-neutral-200/60 text-[11px] text-neutral-500">
-              <span>Giá tham khảo:</span>
-              <span className="font-mono tabular-nums">{product.referencePrice}</span>
-            </div>
+
+            {/* Admin Quick Edit Price Button */}
+            {isAdmin && onOpenPriceEditor && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenPriceEditor(product);
+                }}
+                className="mt-1.5 w-full py-1 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-neutral-950 font-bold text-[10px] shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer active:scale-98"
+                title="Quyền Admin: Bấm để sửa giá chương trình và giá niêm yết"
+              >
+                <Tag className="w-3 h-3 text-neutral-950" />
+                <span>Sửa giá món này</span>
+                {customPrice && (
+                  <span className="ml-1 px-1 py-0.2 rounded bg-black/20 text-white text-[8px] font-black">
+                    Đã sửa
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
           {/* Key Specs & Status Checklist */}
@@ -316,21 +348,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span className="truncate">Nhờ sale tư vấn</span>
           </button>
 
-          {/* Nút Chọn món để lưu vào danh sách gom đơn */}
+          {/* Nút Giỏ hàng / Chọn món để lưu vào danh sách gom đơn */}
           <button
             type="button"
             onClick={() => onSelect(product)}
-            className={`py-2.5 px-2.5 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer border shrink-0 ${
+            className={`py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer border shrink-0 ${
               isSelected
-                ? 'bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-300'
-                : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border-neutral-200'
+                ? 'bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-300 shadow-xs'
+                : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-200 shadow-2xs hover:border-neutral-300'
             }`}
-            title={isSelected ? 'Đã chọn món này (Bấm để bỏ chọn)' : 'Lưu món này vào danh sách'}
+            title={isSelected ? 'Đã thêm vào giỏ hàng (Bấm để bỏ chọn)' : 'Thêm vào giỏ hàng'}
           >
             {isSelected ? (
               <CheckCircle2 className="w-4 h-4 text-rose-600" />
             ) : (
-              <Plus className="w-4 h-4 text-neutral-600" />
+              <ShoppingCart className="w-4 h-4 text-neutral-700" />
             )}
           </button>
         </div>

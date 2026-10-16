@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, PhoneCall, MessageCircle, Heart, ShieldAlert, Sparkles } from 'lucide-react';
 import { PRODUCTS, COMPANY_INFO } from '../data/products';
+import { submitConsultationLead } from '../lib/firebase';
 
 interface ConsultationModalProps {
   isOpen: boolean;
@@ -47,7 +48,7 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
       setErrorMsg('Vui lòng nhập họ tên của anh');
@@ -59,6 +60,20 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
     }
     setErrorMsg('');
     setIsSubmitted(true);
+
+    try {
+      await submitConsultationLead({
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        recipient,
+        budgetTier,
+        interestedProducts: interestedProducts.trim(),
+        deliveryArea: deliveryArea.trim(),
+        giftNote: giftNote.trim(),
+      });
+    } catch (err) {
+      console.error('Không thể lưu yêu cầu vào Firebase', err);
+    }
   };
 
   const handleReset = () => {

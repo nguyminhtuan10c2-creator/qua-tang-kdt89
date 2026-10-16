@@ -8,9 +8,11 @@ import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, C
 interface ProductCatalogProps {
   selectedProductIds: string[];
   customImages?: Record<string, string>;
+  customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   onToggleProduct: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
+  onOpenPriceEditor?: (product: ProductItem) => void;
   onOpenConsultation: () => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
@@ -21,9 +23,11 @@ interface ProductCatalogProps {
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   selectedProductIds,
   customImages = {},
+  customPrices = {},
   onToggleProduct,
   onConsultProduct,
   onOpenImageUpdater,
+  onOpenPriceEditor,
   onOpenConsultation,
   isAdmin = false,
   hiddenProductIds = [],
@@ -264,9 +268,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   icon={categoryIcons[category.id]}
                   selectedProductIds={selectedProductIds}
                   customImages={customImages}
+                  customPrices={customPrices}
                   onToggleProduct={onToggleProduct}
                   onConsultProduct={onConsultProduct}
                   onOpenImageUpdater={onOpenImageUpdater}
+                  onOpenPriceEditor={onOpenPriceEditor}
                   isAdmin={isAdmin}
                   hiddenProductIds={hiddenProductIds}
                   onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}
@@ -324,9 +330,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   <ProductCard
                     product={product}
                     customImage={customImages[product.id]}
+                    customPrice={customPrices[product.id]}
                     onSelect={onToggleProduct}
                     onConsultProduct={onConsultProduct}
                     onOpenImageUpdater={onOpenImageUpdater}
+                    onOpenPriceEditor={onOpenPriceEditor}
                     isSelected={selectedProductIds.includes(product.id)}
                     isAdmin={isAdmin}
                     isHidden={hiddenProductIds.includes(product.id)}

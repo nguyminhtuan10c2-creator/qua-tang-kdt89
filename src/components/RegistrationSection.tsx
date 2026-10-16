@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Send, CheckCircle, Heart, PhoneCall, MessageSquareQuote } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
+import { submitConsultationLead } from '../lib/firebase';
 
 interface RegistrationSectionProps {
   onSuccessSubmit?: () => void;
 }
 
-export const RegistrationSection: React.FC<RegistrationSectionProps> = () => {
+export const RegistrationSection: React.FC<RegistrationSectionProps> = ({ onSuccessSubmit }) => {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [recipient, setRecipient] = useState<'Vợ' | 'Mẹ' | 'Người thân'>('Vợ');
@@ -15,10 +16,24 @@ export const RegistrationSection: React.FC<RegistrationSectionProps> = () => {
   const [deliveryArea, setDeliveryArea] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName || !phoneNumber) return;
     setSubmitted(true);
+    if (onSuccessSubmit) onSuccessSubmit();
+
+    try {
+      await submitConsultationLead({
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        recipient,
+        budgetTier,
+        interestedProducts: interestedProducts.trim(),
+        deliveryArea: deliveryArea.trim(),
+      });
+    } catch (err) {
+      console.error('Không thể lưu vào Firebase', err);
+    }
   };
 
   return (

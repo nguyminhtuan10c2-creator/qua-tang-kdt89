@@ -14,9 +14,11 @@ interface CategorySectionProps {
   icon: React.ReactNode;
   selectedProductIds: string[];
   customImages?: Record<string, string>;
+  customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   onToggleProduct: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
+  onOpenPriceEditor?: (product: ProductItem) => void;
   isAdmin?: boolean;
   hiddenProductIds?: string[];
   onToggleHideProduct?: (product: ProductItem) => void;
@@ -28,9 +30,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   icon,
   selectedProductIds,
   customImages = {},
+  customPrices = {},
   onToggleProduct,
   onConsultProduct,
   onOpenImageUpdater,
+  onOpenPriceEditor,
   isAdmin = false,
   hiddenProductIds = [],
   onToggleHideProduct,
@@ -144,9 +148,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             <ProductCard
               product={product}
               customImage={customImages[product.id]}
+              customPrice={customPrices[product.id]}
               onSelect={onToggleProduct}
               onConsultProduct={onConsultProduct}
               onOpenImageUpdater={onOpenImageUpdater}
+              onOpenPriceEditor={onOpenPriceEditor}
               isSelected={selectedProductIds.includes(product.id)}
               isAdmin={isAdmin}
               isHidden={hiddenProductIds.includes(product.id)}

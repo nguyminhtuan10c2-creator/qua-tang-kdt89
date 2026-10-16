@@ -29,6 +29,7 @@ import {
   IMG_SMART_TV_LIVING_ROOM,
   IMG_MICROWAVE_OVEN,
 } from '../data/products';
+import { compressImageFile } from '../lib/firebase';
 
 export interface CustomizableItem {
   id: string;
@@ -169,8 +170,6 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
     }
   }, [targetProduct]);
 
-  if (!isOpen) return null;
-
   const ALL_ITEMS: CustomizableItem[] = useMemo(() => {
     return [
       ...SPECIAL_SITE_ITEMS,
@@ -187,6 +186,8 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
     ];
   }, []);
 
+  if (!isOpen) return null;
+
   const currentProduct = ALL_ITEMS.find((p) => p.id === selectedProductId) || ALL_ITEMS[0];
   const activeDisplayImage = previewImage || customImages[currentProduct.id] || currentProduct.imageUrl;
 
@@ -199,7 +200,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
     return matchCat && matchSearch;
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
@@ -207,15 +208,17 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-        onSaveImage(currentProduct.id, result);
-        setFeedbackMsg(`Đã cập nhật ảnh chụp mới cho "${currentProduct.name}"!`);
+      try {
+        setFeedbackMsg('Đang xử lý & nén ảnh tối ưu...');
+        const compressed = await compressImageFile(file, 900, 0.8);
+        setPreviewImage(compressed);
+        onSaveImage(currentProduct.id, compressed);
+        setFeedbackMsg(`Đã cập nhật ảnh mới sắc nét cho "${currentProduct.name}"!`);
         setTimeout(() => setFeedbackMsg(''), 3500);
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('Lỗi xử lý ảnh:', err);
+        setFeedbackMsg('Không thể xử lý file ảnh này. Vui lòng thử ảnh khác.');
+      }
     }
   };
 

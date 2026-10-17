@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye } from 'lucide-react';
+import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye, ShoppingBag, Type } from 'lucide-react';
 
 function checkAdminAuth(): boolean {
   try {
@@ -59,6 +59,9 @@ import { ProductVisibilityModal } from './components/ProductVisibilityModal';
 import { ProductPriceModal, CustomPrice } from './components/ProductPriceModal';
 import { ProductFormModal } from './components/ProductFormModal';
 import { CategoryEditModal } from './components/CategoryEditModal';
+import { OrderModal } from './components/OrderModal';
+import { OrderManagementModal } from './components/OrderManagementModal';
+import { SiteTextEditorModal, DEFAULT_SITE_TEXTS, DEFAULT_SITE_SEO } from './components/SiteTextEditorModal';
 import { PRODUCTS, ComboItem, ProductItem } from './data/products';
 import {
   subscribeToSiteSettings,
@@ -69,6 +72,8 @@ import {
   auth,
   logoutFirebaseAuth,
   CategoryOverride,
+  subscribeToOrders,
+  StoredOrder,
 } from './lib/firebase';
 
 export default function App() {
@@ -178,6 +183,38 @@ export default function App() {
     }
   });
 
+  // Custom site texts (hero titles, descriptions, announcements, guarantees)
+  const [customTexts, setCustomTexts] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_custom_texts');
+      return saved ? JSON.parse(saved) : DEFAULT_SITE_TEXTS;
+    } catch {
+      return DEFAULT_SITE_TEXTS;
+    }
+  });
+
+  // Custom SEO and Zalo share preview card title/description
+  const [customSeo, setCustomSeo] = useState<{ title?: string; description?: string }>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_custom_seo');
+      return saved ? JSON.parse(saved) : DEFAULT_SITE_SEO;
+    } catch {
+      return DEFAULT_SITE_SEO;
+    }
+  });
+
+  // Order checkout modal state
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false);
+  const [orderSingleProduct, setOrderSingleProduct] = useState<ProductItem | null>(null);
+  const [orderSelectedCombo, setOrderSelectedCombo] = useState<ComboItem | null>(null);
+
+  // Order management modal state (Admin)
+  const [isOrderManagementOpen, setIsOrderManagementOpen] = useState<boolean>(false);
+  const [ordersList, setOrdersList] = useState<StoredOrder[]>([]);
+
+  // Site text & SEO edit modal state (Admin)
+  const [isSiteTextEditorOpen, setIsSiteTextEditorOpen] = useState<boolean>(false);
+
   // Combined all active products list
   const allProducts = useMemo(() => {
     // 1. Default products excluding deleted
@@ -281,6 +318,22 @@ export default function App() {
               console.error(e);
             }
           }
+          if (data.customTexts) {
+            setCustomTexts(data.customTexts);
+            try {
+              localStorage.setItem('kdt89_custom_texts', JSON.stringify(data.customTexts));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.customSeo) {
+            setCustomSeo(data.customSeo);
+            try {
+              localStorage.setItem('kdt89_custom_seo', JSON.stringify(data.customSeo));
+            } catch (e) {
+              console.error(e);
+            }
+          }
         }
       },
       (err) => {
@@ -313,6 +366,31 @@ export default function App() {
       unsubscribeImages();
     };
   }, []);
+
+  // Dynamic SEO & Zalo preview title/description sync
+  useEffect(() => {
+    if (customSeo?.title) {
+      document.title = customSeo.title;
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) ogTitle.setAttribute('content', customSeo.title);
+    }
+    if (customSeo?.description) {
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', customSeo.description);
+      const ogDesc = document.querySelector('meta[property="og:description"]');
+      if (ogDesc) ogDesc.setAttribute('content', customSeo.description);
+    }
+  }, [customSeo]);
+
+  // Real-time subscription to customer orders for admin
+  useEffect(() => {
+    if (!isAdmin) return;
+    const unsubscribeOrders = subscribeToOrders(
+      (orders) => setOrdersList(orders),
+      (err) => console.warn('Orders sync error:', err)
+    );
+    return () => unsubscribeOrders();
+  }, [isAdmin]);
 
   const handleAdminLoginSuccess = () => {
     setIsAdmin(true);
@@ -695,6 +773,59 @@ export default function App() {
     .map((id) => allProducts.find((p) => p.id === id)?.name)
     .filter(Boolean) as string[];
 
+  // Order open handlers
+  const handleOpenOrderProduct = (product: ProductItem) => {
+    setOrderSingleProduct(product);
+    setOrderSelectedCombo(null);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleOpenOrderCombo = (combo: ComboItem) => {
+    setOrderSingleProduct(null);
+    setOrderSelectedCombo(combo);
+    setIsOrderModalOpen(true);
+  };
+
+  const handleOpenOrderCart = () => {
+    setOrderSingleProduct(null);
+    setOrderSelectedCombo(null);
+    setIsOrderModalOpen(true);
+  };
+
+  // Site text save/reset handlers
+  const handleSaveSiteTexts = (
+    newTexts: Record<string, string>,
+    newSeo: { title: string; description: string }
+  ) => {
+    setCustomTexts(newTexts);
+    setCustomSeo(newSeo);
+    try {
+      localStorage.setItem('kdt89_custom_texts', JSON.stringify(newTexts));
+      localStorage.setItem('kdt89_custom_seo', JSON.stringify(newSeo));
+    } catch (e) {
+      console.error(e);
+    }
+    saveSiteSettingsToFirestore({
+      customTexts: newTexts,
+      customSeo: newSeo,
+    }).catch((e) => console.error('Lỗi lưu customTexts lên Firebase', e));
+  };
+
+  const handleResetSiteTexts = () => {
+    setCustomTexts(DEFAULT_SITE_TEXTS);
+    setCustomSeo(DEFAULT_SITE_SEO);
+    try {
+      localStorage.removeItem('kdt89_custom_texts');
+      localStorage.removeItem('kdt89_custom_seo');
+    } catch (e) {
+      console.error(e);
+    }
+    saveSiteSettingsToFirestore({
+      customTexts: DEFAULT_SITE_TEXTS,
+      customSeo: DEFAULT_SITE_SEO,
+    }).catch((e) => console.error('Lỗi reset customTexts lên Firebase', e));
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900">
       {/* Admin Top Notification Strip */}
@@ -712,8 +843,26 @@ export default function App() {
 
           <div className="flex items-center gap-2 ml-auto flex-wrap">
             <button
+              onClick={() => setIsOrderManagementOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-rose-700 hover:bg-rose-800 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-sm ring-1 ring-white/30"
+              title="Xem danh sách đơn đặt hàng của khách hàng (đồng thời gửi thông báo về email)"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-white" />
+              <span>Đơn hàng {ordersList.length > 0 ? `(${ordersList.length})` : ''}</span>
+            </button>
+
+            <button
+              onClick={() => setIsSiteTextEditorOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-blue-700 hover:bg-blue-800 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
+              title="Sửa nội dung chữ trên website và tiêu đề khi chia sẻ link qua Zalo / Facebook"
+            >
+              <Type className="w-3.5 h-3.5 text-sky-200" />
+              <span>Sửa chữ & SEO Zalo</span>
+            </button>
+
+            <button
               onClick={() => handleOpenAddProduct()}
-              className="px-2.5 py-1 rounded-lg bg-rose-700 hover:bg-rose-800 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
+              className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
               title="Thêm sản phẩm mới (máy lạnh, tivi, bếp, gia dụng) vào kho"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
@@ -800,27 +949,33 @@ export default function App() {
       />
 
       <main className="flex-1">
-        {/* 2. Hero Section */}
+        {/* 2. Hero Section - Banner image removed on mobile, mobile category jumps added */}
         <Hero
           onOpenConsultation={handleOpenConsultation}
           onExploreProducts={handleExploreProducts}
           onOpenImageUpdater={handleOpenImageUpdater}
+          onOpenSiteTextEditor={() => setIsSiteTextEditorOpen(true)}
           isAdmin={isAdmin}
           customHeroImage={customImages['site-hero-image']}
+          customTexts={customTexts}
         />
 
-        {/* 3. Suggested Combos with Hide/Unhide Support */}
+        {/* 3. Suggested Combos with Hide/Unhide, Custom Image, and Buy Now Support */}
         <ComboSection
           onSelectCombo={handleSelectCombo}
+          onBuyCombo={handleOpenOrderCombo}
           isAdmin={isAdmin}
           hiddenComboIds={hiddenComboIds}
           onToggleHideCombo={handleToggleHideCombo}
+          customImages={customImages}
+          onOpenImageUpdater={handleOpenImageUpdater}
+          customTexts={customTexts}
         />
 
         {/* 4. Thoughtful Greeting Card Builder */}
         <GiftCardBuilder onAttachMessage={handleAttachMessage} />
 
-        {/* 5. 5 Product Groups with Budget Filter, Custom Images, Prices, Edit & Visibility */}
+        {/* 5. 5 Product Groups with Budget Filter, Custom Images, Prices, Buy Now & Visibility */}
         <ProductCatalog
           selectedProductIds={selectedProductIds}
           allProducts={allProducts}
@@ -828,6 +983,8 @@ export default function App() {
           customPrices={customPrices}
           customCategories={customCategories}
           onToggleProduct={handleToggleProduct}
+          onBuyProduct={handleOpenOrderProduct}
+          onOpenOrderModal={handleOpenOrderCart}
           onConsultProduct={(product) =>
             handleOpenConsultation(
               `${product.name}${product.modelCode ? ` (Mã: ${product.modelCode})` : ''}`
@@ -863,9 +1020,10 @@ export default function App() {
         customLogo={customImages['site-logo']}
       />
 
-      {/* 10. Mobile Sticky Action Bar */}
+      {/* 10. Mobile Sticky Action Bar - 1-tap Buy Now & Consultation */}
       <MobileStickyCTA
         onOpenConsultation={() => handleOpenConsultation()}
+        onOpenOrderModal={handleOpenOrderCart}
         onOpenImageUpdater={handleOpenImageUpdater}
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
         hiddenCount={hiddenProductIds.length}
@@ -917,6 +1075,31 @@ export default function App() {
       {/* 15. Persistent Floating Action Buttons: ONLY visible to Admin */}
       {isAdmin && (
         <div className="fixed bottom-16 sm:bottom-6 right-3 sm:right-6 z-40 flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={() => setIsOrderManagementOpen(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Xem danh sách đơn đặt hàng của khách (đã gửi thông báo về email)"
+          >
+            <ShoppingBag className="w-4 h-4 text-white" />
+            <span>Đơn hàng</span>
+            {ordersList.length > 0 && (
+              <span className="px-1.5 py-0.2 bg-white text-rose-800 rounded-full text-[10px] font-black">
+                {ordersList.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSiteTextEditorOpen(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Sửa chữ trang web và tiêu đề hiển thị khi share link Zalo/Facebook"
+          >
+            <Type className="w-4 h-4 text-sky-200" />
+            <span>Sửa chữ & SEO Zalo</span>
+          </button>
+
           <button
             type="button"
             onClick={() => handleOpenAddProduct()}
@@ -1002,6 +1185,8 @@ export default function App() {
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
         onOpenPriceEditor={() => handleOpenPriceEditor()}
         onOpenCategoryEditor={() => handleOpenCategoryEditor()}
+        onOpenOrders={() => setIsOrderManagementOpen(true)}
+        onOpenSiteTextEditor={() => setIsSiteTextEditorOpen(true)}
         hiddenCount={hiddenProductIds.length}
         adminEmail={adminEmail}
       />
@@ -1024,6 +1209,41 @@ export default function App() {
         customCategories={customCategories}
         onSaveCategory={handleSaveCategory}
         onResetCategory={handleResetCategory}
+      />
+
+      {/* 19. Customer Order & Instant Notification Checkout Modal */}
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        singleProduct={orderSingleProduct}
+        selectedProducts={
+          orderSingleProduct || orderSelectedCombo
+            ? []
+            : allProducts.filter((p) => selectedProductIds.includes(p.id))
+        }
+        selectedCombo={orderSelectedCombo}
+        customPrices={customPrices}
+        customImages={customImages}
+        onOrderSuccess={() => {
+          setSelectedProductIds([]);
+        }}
+      />
+
+      {/* 20. Admin Order Management Modal */}
+      <OrderManagementModal
+        isOpen={isOrderManagementOpen}
+        onClose={() => setIsOrderManagementOpen(false)}
+        isAdmin={isAdmin}
+      />
+
+      {/* 21. Site Text & Zalo Share SEO Customizer Modal (Admin only) */}
+      <SiteTextEditorModal
+        isOpen={isSiteTextEditorOpen}
+        onClose={() => setIsSiteTextEditorOpen(false)}
+        customTexts={customTexts}
+        customSeo={customSeo}
+        onSaveTexts={handleSaveSiteTexts}
+        onResetTexts={handleResetSiteTexts}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil } from 'lucide-react';
+import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type } from 'lucide-react';
 import { loginAdminWithGoogle } from '../lib/firebase';
 
 interface AdminLoginModalProps {
@@ -12,6 +12,8 @@ interface AdminLoginModalProps {
   onOpenManageVisibility?: () => void;
   onOpenPriceEditor?: () => void;
   onOpenCategoryEditor?: () => void;
+  onOpenOrders?: () => void;
+  onOpenSiteTextEditor?: () => void;
   hiddenCount?: number;
   adminEmail?: string | null;
 }
@@ -26,6 +28,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onOpenManageVisibility,
   onOpenPriceEditor,
   onOpenCategoryEditor,
+  onOpenOrders,
+  onOpenSiteTextEditor,
   hiddenCount = 0,
   adminEmail,
 }) => {
@@ -131,6 +135,34 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               </div>
 
               <div className="space-y-2">
+                {onOpenOrders && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenOrders();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors ring-1 ring-rose-400"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-white" />
+                    <span>Xem danh sách đơn đặt hàng của khách</span>
+                  </button>
+                )}
+
+                {onOpenSiteTextEditor && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenSiteTextEditor();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Type className="w-4 h-4 text-sky-200" />
+                    <span>Sửa nội dung chữ trên trang & Tiêu đề share link Zalo</span>
+                  </button>
+                )}
+
                 {onOpenPriceEditor && (
                   <button
                     type="button"

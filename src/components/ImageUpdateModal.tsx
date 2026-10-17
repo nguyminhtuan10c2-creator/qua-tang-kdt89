@@ -28,6 +28,7 @@ import {
   IMG_SMART_TV_PRODUCT,
   IMG_SMART_TV_LIVING_ROOM,
   IMG_MICROWAVE_OVEN,
+  COMBOS,
 } from '../data/products';
 import { compressImageFile } from '../lib/firebase';
 
@@ -45,11 +46,11 @@ export interface CustomizableItem {
 export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
   {
     id: 'site-hero-image',
-    name: '🌟 Ảnh bìa chính đầu trang (Hero Banner 20/10)',
+    name: '🌟 Ảnh bìa chính đầu trang (Hero Banner)',
     modelCode: 'HERO-BANNER',
     category: 'site_branding',
     categoryLabel: 'Ảnh bìa đầu trang',
-    stockStatus: 'Hiển thị ngay đầu trang khi mở web',
+    stockStatus: 'Hiển thị ngay đầu trang khi mở web trên máy tính',
     imageUrl: HERO_IMAGE,
     isSpecial: true,
   },
@@ -63,6 +64,16 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     imageUrl: '',
     isSpecial: true,
   },
+  ...COMBOS.map((c) => ({
+    id: c.id,
+    name: `🎁 ${c.name} (${c.subtitle})`,
+    modelCode: c.id.toUpperCase(),
+    category: 'combos',
+    categoryLabel: 'Combo quà tặng',
+    stockStatus: c.priceNote,
+    imageUrl: c.image,
+    isSpecial: true,
+  })),
 ];
 
 interface ImageUpdateModalProps {

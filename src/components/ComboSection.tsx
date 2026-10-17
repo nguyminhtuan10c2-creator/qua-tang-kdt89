@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Gift, Check, ArrowRight, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Gift, Check, ArrowRight, ChevronLeft, ChevronRight, Sparkles, Eye, EyeOff, Plus, Trash2, Camera } from 'lucide-react';
 import { COMBOS, ComboItem } from '../data/products';
 
 interface ComboSectionProps {
@@ -12,6 +12,9 @@ interface ComboSectionProps {
   deletedComboIds?: string[];
   onOpenAddCombo?: () => void;
   onDeleteCombo?: (comboId: string) => void;
+  customImages?: Record<string, string>;
+  onOpenImageUpdater?: (targetId: string) => void;
+  customTexts?: Record<string, string>;
 }
 
 export const ComboSection: React.FC<ComboSectionProps> = ({
@@ -24,6 +27,9 @@ export const ComboSection: React.FC<ComboSectionProps> = ({
   deletedComboIds = [],
   onOpenAddCombo,
   onDeleteCombo,
+  customImages = {},
+  onOpenImageUpdater,
+  customTexts = {},
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -84,10 +90,10 @@ export const ComboSection: React.FC<ComboSectionProps> = ({
               <span>Gợi ý chuẩn bị quà nhanh</span>
             </div>
             <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-neutral-900 text-balance">
-              Các combo quà tặng thiết thực được anh em chọn nhiều nhất
+              {customTexts.comboTitle || 'Các combo quà tặng thiết thực được chọn nhiều nhất'}
             </h2>
             <p className="mt-1.5 text-xs sm:text-base text-neutral-600">
-              Đã phối sẵn tinh tế, thiết thực (Nồi cơm, Bếp điện, Smart Tivi) – anh chỉ việc chọn, KDT-89 lo đóng gói kèm thiệp và giao đến nơi.
+              {customTexts.comboSubtitle || 'Đã phối sẵn tinh tế, thiết thực (Nồi cơm, Bếp điện, Smart Tivi) – anh chỉ việc chọn, KDT-89 lo đóng gói kèm thiệp và giao đến nơi.'}
             </p>
 
             {/* Admin status pill */}
@@ -189,7 +195,7 @@ export const ComboSection: React.FC<ComboSectionProps> = ({
                 {/* Combo Image with Scrim & Tag */}
                 <div className="relative aspect-[4/3] overflow-hidden bg-neutral-200">
                   <img
-                    src={combo.image}
+                    src={customImages[combo.id] || combo.image}
                     alt={combo.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     referrerPolicy="no-referrer"
@@ -202,6 +208,22 @@ export const ComboSection: React.FC<ComboSectionProps> = ({
                     <div className="absolute top-3 right-3 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
                       Combo #{idx + 1}
                     </div>
+                  )}
+
+                  {/* Admin Quick Change Photo Button for Combo */}
+                  {isAdmin && onOpenImageUpdater && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenImageUpdater(combo.id);
+                      }}
+                      className="absolute bottom-2.5 right-2.5 z-20 px-2.5 py-1 rounded-lg bg-black/75 hover:bg-black/90 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-md border border-white/20 transition-all cursor-pointer"
+                      title="Quyền Admin: Bấm để đổi ảnh cho combo này"
+                    >
+                      <Camera className="w-3 h-3 text-amber-300" />
+                      <span>Đổi ảnh combo</span>
+                    </button>
                   )}
                 </div>
 

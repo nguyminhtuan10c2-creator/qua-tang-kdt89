@@ -112,6 +112,8 @@ export interface SiteSettingsData {
   customCombos?: ComboItem[];
   deletedComboIds?: string[];
   customCategories?: Record<string, CategoryOverride>;
+  customTexts?: Record<string, string>;
+  customSeo?: { title?: string; description?: string };
   updatedAt: string;
 }
 
@@ -496,6 +498,20 @@ export async function updateOrderStatus(
     await updateDoc(docRef, { status: newStatus });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+/**
+ * Delete an order from Firestore
+ */
+export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
+  const docRef = doc(db, 'orders', orderId);
+  const path = `orders/${orderId}`;
+
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
 

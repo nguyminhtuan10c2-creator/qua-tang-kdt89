@@ -41,6 +41,14 @@
           "type": "object",
           "description": "Custom titles, subtitles, and taglines for category headings"
         },
+        "customTexts": {
+          "type": "object",
+          "description": "Custom site text overrides (hero titles, descriptions, announcements, guarantees)"
+        },
+        "customSeo": {
+          "type": "object",
+          "description": "Custom SEO title and description for social share cards"
+        },
         "updatedAt": {
           "type": "string",
           "description": "ISO timestamp of last update"

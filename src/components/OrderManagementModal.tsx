@@ -13,11 +13,13 @@ import {
   Mail,
   RefreshCw,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 import {
   StoredOrder,
   subscribeToOrders,
   updateOrderStatus,
+  deleteOrderFromFirestore,
   generateOrderMailtoUri,
   ADMIN_NOTIFICATION_EMAIL,
 } from '../lib/firebase';
@@ -35,21 +37,26 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 }) => {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen || !isAdmin) return;
 
     setLoading(true);
+    setLoadError(null);
     const unsubscribe = subscribeToOrders(
       (orderList) => {
         setOrders(orderList);
         setLoading(false);
+        setLoadError(null);
       },
       (err) => {
-        console.error('Error fetching orders:', err);
+        console.warn('Orders subscription status:', err.message || err);
+        setLoadError('Không thể tải danh sách đơn hàng. Vui lòng thử lại.');
         setLoading(false);
       }
     );
@@ -83,6 +90,18 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
       console.error(e);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm('Anh có chắc muốn xóa đơn hàng này không?')) return;
+    try {
+      setDeletingId(orderId);
+      await deleteOrderFromFirestore(orderId);
+    } catch (e) {
+      console.error('Lỗi xóa đơn hàng:', e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -178,7 +197,32 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
 
         {/* Orders list */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-          {loading ? (
+          {loadError ? (
+            <div className="py-14 text-center text-neutral-600 space-y-3">
+              <AlertCircle className="w-10 h-10 mx-auto text-amber-500" />
+              <p className="text-sm font-semibold text-neutral-800">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setLoadError(null);
+                  subscribeToOrders(
+                    (list) => {
+                      setOrders(list);
+                      setLoading(false);
+                    },
+                    (e) => {
+                      setLoadError('Không thể tải danh sách đơn hàng. Vui lòng thử lại.');
+                      setLoading(false);
+                    }
+                  );
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs active:scale-95 transition-all"
+              >
+                Tải lại danh sách
+              </button>
+            </div>
+          ) : loading ? (
             <div className="py-16 text-center text-neutral-500">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-rose-600" />
               <p className="text-xs">Đang tải danh sách đơn hàng từ Firebase...</p>
@@ -320,15 +364,28 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     Thanh toán: <strong className="text-neutral-700">{order.paymentMethod || 'COD'}</strong>
                   </span>
 
-                  <a
-                    href={generateOrderMailtoUri(order, ADMIN_NOTIFICATION_EMAIL)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-neutral-600 hover:text-rose-700"
-                  >
-                    <Mail className="w-3 h-3 text-rose-600" />
-                    <span>Mở gửi email chi tiết</span>
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={generateOrderMailtoUri(order, ADMIN_NOTIFICATION_EMAIL)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-neutral-600 hover:text-rose-700 font-medium"
+                    >
+                      <Mail className="w-3 h-3 text-rose-600" />
+                      <span>Mở gửi email chi tiết</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrder(order.id)}
+                      disabled={deletingId === order.id}
+                      className="inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Xóa đơn hàng này"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>{deletingId === order.id ? 'Đang xóa...' : 'Xóa'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))

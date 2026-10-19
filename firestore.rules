@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function isValidSiteSetting(data) {
       return data.keys().hasAll(['updatedAt']) &&
-             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'customTexts', 'customSeo', 'updatedAt']) &&
+             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'customTexts', 'customSeo', 'hiddenSections', 'addedCategories', 'deletedCategoryIds', 'updatedAt']) &&
              data.updatedAt is string && data.updatedAt.size() <= 60 &&
              (!('customImages' in data) || data.customImages is map) &&
              (!('hiddenProductIds' in data) || (data.hiddenProductIds is list && data.hiddenProductIds.size() <= 300)) &&
@@ -45,7 +45,10 @@ service cloud.firestore {
              (!('deletedComboIds' in data) || (data.deletedComboIds is list && data.deletedComboIds.size() <= 50)) &&
              (!('customCategories' in data) || data.customCategories is map) &&
              (!('customTexts' in data) || data.customTexts is map) &&
-             (!('customSeo' in data) || data.customSeo is map);
+             (!('customSeo' in data) || data.customSeo is map) &&
+             (!('hiddenSections' in data) || (data.hiddenSections is list && data.hiddenSections.size() <= 50)) &&
+             (!('addedCategories' in data) || (data.addedCategories is list && data.addedCategories.size() <= 50)) &&
+             (!('deletedCategoryIds' in data) || (data.deletedCategoryIds is list && data.deletedCategoryIds.size() <= 100));
     }
 
     function isValidCustomImage(data) {

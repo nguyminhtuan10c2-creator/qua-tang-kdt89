@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { CATEGORIES, PRODUCTS, ProductItem } from '../data/products';
+import { CATEGORIES, PRODUCTS, ProductItem, CategoryItem } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
 import { BudgetFilter } from './BudgetFilter';
-import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus, Pencil } from 'lucide-react';
+import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus, Pencil, Layers } from 'lucide-react';
 
 import type { CategoryOverride } from '../lib/firebase';
 
 interface ProductCatalogProps {
   selectedProductIds: string[];
   allProducts?: ProductItem[];
+  allCategories?: CategoryItem[];
+  deletedCategoryIds?: string[];
   customImages?: Record<string, string>;
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   customCategories?: Record<string, CategoryOverride>;
@@ -19,6 +21,7 @@ interface ProductCatalogProps {
   onOpenPriceEditor?: (product: ProductItem) => void;
   onOpenAddProduct?: (categoryId?: string) => void;
   onOpenCategoryEditor?: (categoryId?: string) => void;
+  onOpenCategoryManager?: (categoryId?: string) => void;
   onEditProduct?: (product: ProductItem) => void;
   onDeleteProduct?: (productId: string) => void;
   onBuyProduct?: (product: ProductItem) => void;
@@ -33,6 +36,8 @@ interface ProductCatalogProps {
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   selectedProductIds,
   allProducts = PRODUCTS,
+  allCategories = CATEGORIES,
+  deletedCategoryIds = [],
   customImages = {},
   customPrices = {},
   customCategories = {},
@@ -44,6 +49,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   onOpenPriceEditor,
   onOpenAddProduct,
   onOpenCategoryEditor,
+  onOpenCategoryManager,
   onEditProduct,
   onDeleteProduct,
   onOpenConsultation,
@@ -68,21 +74,24 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     televisions: <Tv className="w-4 h-4 text-indigo-600" />,
   };
 
-  // Dynamically computed categories based on CATEGORIES + customCategories
+  // Dynamically computed categories based on allCategories + customCategories - deletedCategoryIds
   const displayedCategories = useMemo(() => {
-    return CATEGORIES.map((cat) => {
-      const override = customCategories[cat.id];
-      if (override) {
-        return {
-          ...cat,
-          name: override.name !== undefined && override.name !== '' ? override.name : cat.name,
-          subTitle: override.subTitle !== undefined && override.subTitle !== '' ? override.subTitle : cat.subTitle,
-          tagline: override.tagline !== undefined && override.tagline !== '' ? override.tagline : cat.tagline,
-        };
-      }
-      return cat;
-    });
-  }, [customCategories]);
+    const baseList = allCategories && allCategories.length > 0 ? allCategories : CATEGORIES;
+    return baseList
+      .filter((cat) => !deletedCategoryIds.includes(cat.id))
+      .map((cat) => {
+        const override = customCategories[cat.id];
+        if (override) {
+          return {
+            ...cat,
+            name: override.name !== undefined && override.name !== '' ? override.name : cat.name,
+            subTitle: override.subTitle !== undefined && override.subTitle !== '' ? override.subTitle : cat.subTitle,
+            tagline: override.tagline !== undefined && override.tagline !== '' ? override.tagline : cat.tagline,
+          };
+        }
+        return cat;
+      });
+  }, [allCategories, deletedCategoryIds, customCategories]);
 
   // Filter products: For regular customers, completely hide products marked as hidden
   const filteredProducts = useMemo(() => {
@@ -151,21 +160,19 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </button>
             )}
 
-            {/* Admin Edit Category Headings Button */}
-            {isAdmin && onOpenCategoryEditor && (
+            {/* Admin Category Manager Button */}
+            {isAdmin && (onOpenCategoryManager || onOpenCategoryEditor) && (
               <button
                 type="button"
-                onClick={() => onOpenCategoryEditor()}
+                onClick={() => (onOpenCategoryManager ? onOpenCategoryManager() : onOpenCategoryEditor?.())}
                 className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white hover:bg-neutral-100 text-neutral-800 border border-neutral-300 text-xs sm:text-sm font-bold shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
-                title="Quyền Admin: Sửa tên đề mục các nhóm (Máy tắm nóng, Máy lạnh, Tivi...) và điều kiện lắp đặt"
+                title="Quyền Admin: Thêm bớt và sửa đề mục các nhóm danh mục sản phẩm"
               >
-                <Pencil className="w-4 h-4 text-amber-600" />
-                <span>Sửa đề mục</span>
-                {Object.keys(customCategories).length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px]">
-                    {Object.keys(customCategories).length}
-                  </span>
-                )}
+                <Layers className="w-4 h-4 text-rose-600" />
+                <span>Quản lý danh mục</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-100 text-rose-900 border border-rose-300 font-bold text-[10px]">
+                  {displayedCategories.length} nhóm
+                </span>
               </button>
             )}
 
@@ -330,7 +337,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   key={category.id}
                   category={category}
                   products={catProducts}
-                  icon={categoryIcons[category.id]}
+                  icon={categoryIcons[category.id] || <Sparkles className="w-4 h-4 text-rose-600" />}
                   selectedProductIds={selectedProductIds}
                   customImages={customImages}
                   customPrices={customPrices}
@@ -342,7 +349,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   onEditProduct={onEditProduct}
                   onDeleteProduct={onDeleteProduct}
                   onAddProductToCategory={onOpenAddProduct}
-                  onOpenCategoryEditor={onOpenCategoryEditor}
+                  onOpenCategoryEditor={onOpenCategoryManager || onOpenCategoryEditor}
                   isAdmin={isAdmin}
                   hiddenProductIds={hiddenProductIds}
                   onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}

@@ -49,6 +49,18 @@
           "type": "object",
           "description": "Custom SEO title and description for social share cards"
         },
+        "hiddenSections": {
+          "type": "array",
+          "description": "List of hidden landing page section IDs (hero, combos, gift_card, product_catalog, why_choose, order_steps, registration, footer, mobile_cta)"
+        },
+        "addedCategories": {
+          "type": "array",
+          "description": "Custom product categories added by admin"
+        },
+        "deletedCategoryIds": {
+          "type": "array",
+          "description": "List of deleted or hidden category IDs"
+        },
         "updatedAt": {
           "type": "string",
           "description": "ISO timestamp of last update"

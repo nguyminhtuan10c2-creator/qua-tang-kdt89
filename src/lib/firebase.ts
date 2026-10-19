@@ -92,9 +92,7 @@ export async function testConnection() {
     }
   }
 }
-testConnection();
-
-import type { ProductItem, ComboItem } from '../data/products';
+import type { ProductItem, ComboItem, CategoryItem } from '../data/products';
 
 export interface CategoryOverride {
   name?: string;
@@ -114,6 +112,9 @@ export interface SiteSettingsData {
   customCategories?: Record<string, CategoryOverride>;
   customTexts?: Record<string, string>;
   customSeo?: { title?: string; description?: string };
+  hiddenSections?: string[];
+  addedCategories?: CategoryItem[];
+  deletedCategoryIds?: string[];
   updatedAt: string;
 }
 

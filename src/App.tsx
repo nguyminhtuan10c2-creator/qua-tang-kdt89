@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye, ShoppingBag, Type } from 'lucide-react';
+import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye, ShoppingBag, Type, Sliders, Layers } from 'lucide-react';
 
 function checkAdminAuth(): boolean {
   try {
@@ -59,10 +59,12 @@ import { ProductVisibilityModal } from './components/ProductVisibilityModal';
 import { ProductPriceModal, CustomPrice } from './components/ProductPriceModal';
 import { ProductFormModal } from './components/ProductFormModal';
 import { CategoryEditModal } from './components/CategoryEditModal';
+import { CategoryManagerModal } from './components/CategoryManagerModal';
+import { SectionVisibilityModal } from './components/SectionVisibilityModal';
 import { OrderModal } from './components/OrderModal';
 import { OrderManagementModal } from './components/OrderManagementModal';
 import { SiteTextEditorModal, DEFAULT_SITE_TEXTS, DEFAULT_SITE_SEO } from './components/SiteTextEditorModal';
-import { PRODUCTS, ComboItem, ProductItem } from './data/products';
+import { PRODUCTS, CATEGORIES, ComboItem, ProductItem, CategoryItem } from './data/products';
 import {
   subscribeToSiteSettings,
   saveSiteSettingsToFirestore,
@@ -203,6 +205,43 @@ export default function App() {
     }
   });
 
+  // Hidden landing page sections state (hero, combos, gift_card, product_catalog, why_choose, order_steps, registration, footer, mobile_cta)
+  const [hiddenSections, setHiddenSections] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_hidden_sections');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Custom categories added by admin
+  const [addedCategories, setAddedCategories] = useState<CategoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_added_categories');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Deleted / hidden category IDs
+  const [deletedCategoryIds, setDeletedCategoryIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_deleted_category_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Section visibility modal state (Admin)
+  const [isSectionVisibilityOpen, setIsSectionVisibilityOpen] = useState<boolean>(false);
+
+  // Category Manager modal state (Admin)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState<boolean>(false);
+  const [categoryManagerTargetId, setCategoryManagerTargetId] = useState<string | null>(null);
+
   // Order checkout modal state
   const [isOrderModalOpen, setIsOrderModalOpen] = useState<boolean>(false);
   const [orderSingleProduct, setOrderSingleProduct] = useState<ProductItem | null>(null);
@@ -214,6 +253,14 @@ export default function App() {
 
   // Site text & SEO edit modal state (Admin)
   const [isSiteTextEditorOpen, setIsSiteTextEditorOpen] = useState<boolean>(false);
+
+  // Combined all categories (CATEGORIES + addedCategories)
+  const allCategories = useMemo(() => {
+    const customOnly = (addedCategories || []).filter(
+      (ac) => !CATEGORIES.some((c) => c.id === ac.id)
+    );
+    return [...CATEGORIES, ...customOnly];
+  }, [addedCategories]);
 
   // Combined all active products list
   const allProducts = useMemo(() => {
@@ -330,6 +377,30 @@ export default function App() {
             setCustomSeo(data.customSeo);
             try {
               localStorage.setItem('kdt89_custom_seo', JSON.stringify(data.customSeo));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.hiddenSections) {
+            setHiddenSections(data.hiddenSections);
+            try {
+              localStorage.setItem('kdt89_hidden_sections', JSON.stringify(data.hiddenSections));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.addedCategories) {
+            setAddedCategories(data.addedCategories);
+            try {
+              localStorage.setItem('kdt89_added_categories', JSON.stringify(data.addedCategories));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.deletedCategoryIds) {
+            setDeletedCategoryIds(data.deletedCategoryIds);
+            try {
+              localStorage.setItem('kdt89_deleted_category_ids', JSON.stringify(data.deletedCategoryIds));
             } catch (e) {
               console.error(e);
             }
@@ -680,6 +751,94 @@ export default function App() {
     }).catch((e) => console.error('Lỗi lưu deletedProductIds lên Firebase', e));
   };
 
+  // Section Visibility toggle handlers
+  const handleToggleSection = (sectionId: string) => {
+    setHiddenSections((prev) => {
+      const exists = prev.includes(sectionId);
+      const updated = exists ? prev.filter((id) => id !== sectionId) : [...prev, sectionId];
+      try {
+        localStorage.setItem('kdt89_hidden_sections', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ hiddenSections: updated }).catch((e) =>
+        console.error('Lỗi lưu hiddenSections lên Firebase', e)
+      );
+      return updated;
+    });
+  };
+
+  const handleShowAllSections = () => {
+    setHiddenSections([]);
+    try {
+      localStorage.removeItem('kdt89_hidden_sections');
+    } catch (e) {
+      console.error(e);
+    }
+    saveSiteSettingsToFirestore({ hiddenSections: [] }).catch((e) =>
+      console.error('Lỗi show all sections lên Firebase', e)
+    );
+  };
+
+  // Category Manager modal & handlers
+  const handleOpenCategoryManager = (catId?: string) => {
+    setCategoryManagerTargetId(catId || null);
+    setIsCategoryManagerOpen(true);
+  };
+
+  const handleAddCategory = (newCat: CategoryItem) => {
+    setAddedCategories((prev) => {
+      const updated = [...prev, newCat];
+      try {
+        localStorage.setItem('kdt89_added_categories', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ addedCategories: updated }).catch((e) =>
+        console.error('Lỗi lưu addedCategories lên Firebase', e)
+      );
+      return updated;
+    });
+  };
+
+  const handleDeleteCategory = (catId: string) => {
+    const updatedAdded = addedCategories.filter((c) => c.id !== catId);
+    setAddedCategories(updatedAdded);
+    try {
+      localStorage.setItem('kdt89_added_categories', JSON.stringify(updatedAdded));
+    } catch (e) {
+      console.error(e);
+    }
+
+    const updatedDeleted = Array.from(new Set([...deletedCategoryIds, catId]));
+    setDeletedCategoryIds(updatedDeleted);
+    try {
+      localStorage.setItem('kdt89_deleted_category_ids', JSON.stringify(updatedDeleted));
+    } catch (e) {
+      console.error(e);
+    }
+
+    saveSiteSettingsToFirestore({
+      addedCategories: updatedAdded,
+      deletedCategoryIds: updatedDeleted,
+    }).catch((e) => console.error('Lỗi xóa danh mục trên Firebase', e));
+  };
+
+  const handleRestoreCategory = (catId: string) => {
+    setDeletedCategoryIds((prev) => {
+      const updated = prev.filter((id) => id !== catId);
+      try {
+        localStorage.setItem('kdt89_deleted_category_ids', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ deletedCategoryIds: updated }).catch((e) =>
+        console.error('Lỗi khôi phục danh mục trên Firebase', e)
+      );
+      return updated;
+    });
+  };
+
   // Category Editor modal state
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
   const [targetCategoryId, setTargetCategoryId] = useState<string | null>(null);
@@ -879,6 +1038,24 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => setIsSectionVisibilityOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-purple-700 hover:bg-purple-800 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 shadow-xs"
+              title="Quyền Admin: Bật / Tắt các phần hiển thị trên Landing Page (Hero, Combo, Quà tặng, Sản phẩm, Lý do chọn...)"
+            >
+              <Sliders className="w-3.5 h-3.5 text-purple-200" />
+              <span>Bật/Tắt phần {hiddenSections.length > 0 ? `(${hiddenSections.length} ẩn)` : ''}</span>
+            </button>
+
+            <button
+              onClick={() => handleOpenCategoryManager()}
+              className="px-2.5 py-1 rounded-lg bg-black/25 hover:bg-black/35 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5 border border-white/20"
+              title="Quyền Admin: Thêm bớt danh mục mới, xóa danh mục hoặc sửa đổi đề mục nhóm sản phẩm"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-300" />
+              <span>Quản lý Danh mục</span>
+            </button>
+
+            <button
               onClick={() => handleOpenCategoryEditor()}
               className="px-2.5 py-1 rounded-lg bg-black/20 hover:bg-black/30 font-bold text-white transition-colors cursor-pointer text-xs flex items-center gap-1.5"
               title="Sửa đề mục (Máy tắm nóng, Máy lạnh...) và dòng điều kiện lắp đặt / vật tư"
@@ -949,87 +1126,228 @@ export default function App() {
       />
 
       <main className="flex-1">
-        {/* 2. Hero Section - Banner image removed on mobile, mobile category jumps added */}
-        <Hero
-          onOpenConsultation={handleOpenConsultation}
-          onExploreProducts={handleExploreProducts}
-          onOpenImageUpdater={handleOpenImageUpdater}
-          onOpenSiteTextEditor={() => setIsSiteTextEditorOpen(true)}
-          isAdmin={isAdmin}
-          customHeroImage={customImages['site-hero-image']}
-          customTexts={customTexts}
-        />
+        {/* 2. Hero Section */}
+        {(!hiddenSections.includes('hero') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('hero') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Banner mở đầu (Hero) đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('hero')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <Hero
+              onOpenConsultation={handleOpenConsultation}
+              onExploreProducts={handleExploreProducts}
+              onOpenImageUpdater={handleOpenImageUpdater}
+              onOpenSiteTextEditor={() => setIsSiteTextEditorOpen(true)}
+              isAdmin={isAdmin}
+              customHeroImage={customImages['site-hero-image']}
+              customTexts={customTexts}
+            />
+          </div>
+        )}
 
-        {/* 3. Suggested Combos with Hide/Unhide, Custom Image, and Buy Now Support */}
-        <ComboSection
-          onSelectCombo={handleSelectCombo}
-          onBuyCombo={handleOpenOrderCombo}
-          isAdmin={isAdmin}
-          hiddenComboIds={hiddenComboIds}
-          onToggleHideCombo={handleToggleHideCombo}
-          customImages={customImages}
-          onOpenImageUpdater={handleOpenImageUpdater}
-          customTexts={customTexts}
-        />
+        {/* 3. Suggested Combos */}
+        {(!hiddenSections.includes('combos') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('combos') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Gói Combo gia đình đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('combos')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <ComboSection
+              onSelectCombo={handleSelectCombo}
+              onBuyCombo={handleOpenOrderCombo}
+              isAdmin={isAdmin}
+              hiddenComboIds={hiddenComboIds}
+              onToggleHideCombo={handleToggleHideCombo}
+              customImages={customImages}
+              onOpenImageUpdater={handleOpenImageUpdater}
+              customTexts={customTexts}
+            />
+          </div>
+        )}
 
         {/* 4. Thoughtful Greeting Card Builder */}
-        <GiftCardBuilder onAttachMessage={handleAttachMessage} />
+        {(!hiddenSections.includes('gift_card') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('gift_card') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Bộ chọn quà & thiệp chúc mừng đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('gift_card')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <GiftCardBuilder onAttachMessage={handleAttachMessage} />
+          </div>
+        )}
 
-        {/* 5. 5 Product Groups with Budget Filter, Custom Images, Prices, Buy Now & Visibility */}
-        <ProductCatalog
-          selectedProductIds={selectedProductIds}
-          allProducts={allProducts}
-          customImages={customImages}
-          customPrices={customPrices}
-          customCategories={customCategories}
-          onToggleProduct={handleToggleProduct}
-          onBuyProduct={handleOpenOrderProduct}
-          onOpenOrderModal={handleOpenOrderCart}
-          onConsultProduct={(product) =>
-            handleOpenConsultation(
-              `${product.name}${product.modelCode ? ` (Mã: ${product.modelCode})` : ''}`
-            )
-          }
-          onOpenImageUpdater={handleOpenImageUpdater}
-          onOpenPriceEditor={handleOpenPriceEditor}
-          onOpenAddProduct={handleOpenAddProduct}
-          onOpenCategoryEditor={handleOpenCategoryEditor}
-          onEditProduct={handleOpenEditProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onOpenConsultation={() => handleOpenConsultation()}
-          isAdmin={isAdmin}
-          hiddenProductIds={hiddenProductIds}
-          onToggleHideProduct={handleToggleHideProduct}
-          onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
-        />
+        {/* 5. 5+ Product Groups with Budget Filter, Custom Images, Prices, Buy Now, Categories & Visibility */}
+        {(!hiddenSections.includes('product_catalog') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('product_catalog') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Danh mục & Lưới toàn bộ sản phẩm đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('product_catalog')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <ProductCatalog
+              selectedProductIds={selectedProductIds}
+              allProducts={allProducts}
+              allCategories={allCategories}
+              deletedCategoryIds={deletedCategoryIds}
+              customImages={customImages}
+              customPrices={customPrices}
+              customCategories={customCategories}
+              onToggleProduct={handleToggleProduct}
+              onBuyProduct={handleOpenOrderProduct}
+              onOpenOrderModal={handleOpenOrderCart}
+              onConsultProduct={(product) =>
+                handleOpenConsultation(
+                  `${product.name}${product.modelCode ? ` (Mã: ${product.modelCode})` : ''}`
+                )
+              }
+              onOpenImageUpdater={handleOpenImageUpdater}
+              onOpenPriceEditor={handleOpenPriceEditor}
+              onOpenAddProduct={handleOpenAddProduct}
+              onOpenCategoryEditor={handleOpenCategoryEditor}
+              onOpenCategoryManager={handleOpenCategoryManager}
+              onEditProduct={handleOpenEditProduct}
+              onDeleteProduct={handleDeleteProduct}
+              onOpenConsultation={() => handleOpenConsultation()}
+              isAdmin={isAdmin}
+              hiddenProductIds={hiddenProductIds}
+              onToggleHideProduct={handleToggleHideProduct}
+              onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
+            />
+          </div>
+        )}
 
         {/* 6. Why choose KDT-89 */}
-        <WhyChooseKDT />
+        {(!hiddenSections.includes('why_choose') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('why_choose') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Mục Lý do chọn KDT-89 đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('why_choose')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <WhyChooseKDT />
+          </div>
+        )}
 
         {/* 7. Order Steps */}
-        <OrderSteps onOpenConsultation={() => handleOpenConsultation()} />
+        {(!hiddenSections.includes('order_steps') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('order_steps') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">4 Bước đặt hàng đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('order_steps')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <OrderSteps onOpenConsultation={() => handleOpenConsultation()} />
+          </div>
+        )}
 
         {/* 8. On-page Registration Form */}
-        <RegistrationSection />
+        {(!hiddenSections.includes('registration') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('registration') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Form đăng ký nhận tư vấn đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('registration')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <RegistrationSection />
+          </div>
+        )}
       </main>
 
       {/* 9. Official Footer */}
-      <Footer
-        isAdmin={isAdmin}
-        onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
-        customLogo={customImages['site-logo']}
-      />
+      {(!hiddenSections.includes('footer') || isAdmin) && (
+        <div className="relative">
+          {isAdmin && hiddenSections.includes('footer') && (
+            <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+              <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+              <span className="font-semibold">Chân trang Footer đang ẩn với khách hàng</span>
+              <button
+                type="button"
+                onClick={() => handleToggleSection('footer')}
+                className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+              >
+                Hiện lại
+              </button>
+            </div>
+          )}
+          <Footer
+            isAdmin={isAdmin}
+            onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+            customLogo={customImages['site-logo']}
+          />
+        </div>
+      )}
 
       {/* 10. Mobile Sticky Action Bar - 1-tap Buy Now & Consultation */}
-      <MobileStickyCTA
-        onOpenConsultation={() => handleOpenConsultation()}
-        onOpenOrderModal={handleOpenOrderCart}
-        onOpenImageUpdater={handleOpenImageUpdater}
-        onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
-        hiddenCount={hiddenProductIds.length}
-        selectedCount={selectedProductIds.length}
-        isAdmin={isAdmin}
-      />
+      {(!hiddenSections.includes('mobile_cta') || isAdmin) && (
+        <MobileStickyCTA
+          onOpenConsultation={() => handleOpenConsultation()}
+          onOpenOrderModal={handleOpenOrderCart}
+          onOpenImageUpdater={handleOpenImageUpdater}
+          onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
+          hiddenCount={hiddenProductIds.length}
+          selectedCount={selectedProductIds.length}
+          isAdmin={isAdmin}
+        />
+      )}
 
       {/* 11. Consultation & Reservation Modal */}
       <ConsultationModal
@@ -1068,6 +1386,7 @@ export default function App() {
         onClose={() => setIsProductFormOpen(false)}
         mode={productFormMode}
         initialProduct={productFormTarget}
+        categories={allCategories.filter((c) => !deletedCategoryIds.includes(c.id))}
         onSaveProduct={handleSaveProduct}
         onDeleteProduct={handleDeleteProduct}
       />
@@ -1088,6 +1407,34 @@ export default function App() {
                 {ordersList.length}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSectionVisibilityOpen(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Bật / Tắt các phần trên Landing Page (Hero, Combo, Quà tặng, Sản phẩm...)"
+          >
+            <Sliders className="w-4 h-4 text-purple-200" />
+            <span>Bật/Tắt phần</span>
+            {hiddenSections.length > 0 && (
+              <span className="px-1.5 py-0.2 bg-white text-purple-900 rounded-full text-[10px] font-black">
+                {hiddenSections.length} ẩn
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenCategoryManager()}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-neutral-950 hover:bg-neutral-900 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Thêm bớt danh mục mới hoặc sửa đề mục nhóm sản phẩm"
+          >
+            <Layers className="w-4 h-4 text-amber-400" />
+            <span>Quản lý Danh mục</span>
+            <span className="px-1.5 py-0.2 bg-amber-500 text-neutral-950 rounded-full text-[10px] font-black">
+              {allCategories.filter((c) => !deletedCategoryIds.includes(c.id)).length}
+            </span>
           </button>
 
           <button
@@ -1183,6 +1530,8 @@ export default function App() {
         onLogout={handleAdminLogout}
         onOpenImageUpdater={() => handleOpenImageUpdater()}
         onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
+        onOpenSectionVisibility={() => setIsSectionVisibilityOpen(true)}
+        onOpenCategoryManager={() => handleOpenCategoryManager()}
         onOpenPriceEditor={() => handleOpenPriceEditor()}
         onOpenCategoryEditor={() => handleOpenCategoryEditor()}
         onOpenOrders={() => setIsOrderManagementOpen(true)}
@@ -1244,6 +1593,34 @@ export default function App() {
         customSeo={customSeo}
         onSaveTexts={handleSaveSiteTexts}
         onResetTexts={handleResetSiteTexts}
+      />
+
+      {/* 22. Landing Page Section Visibility Modal (Admin only) */}
+      <SectionVisibilityModal
+        isOpen={isSectionVisibilityOpen}
+        onClose={() => setIsSectionVisibilityOpen(false)}
+        hiddenSections={hiddenSections}
+        onToggleSection={handleToggleSection}
+        onShowAllSections={handleShowAllSections}
+      />
+
+      {/* 23. Category Manager Modal (Admin only: Add/Remove/Edit Categories & Headings) */}
+      <CategoryManagerModal
+        isOpen={isCategoryManagerOpen}
+        onClose={() => {
+          setIsCategoryManagerOpen(false);
+          setCategoryManagerTargetId(null);
+        }}
+        allCategories={allCategories}
+        allProducts={allProducts}
+        customCategories={customCategories}
+        deletedCategoryIds={deletedCategoryIds}
+        targetCategoryId={categoryManagerTargetId}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
+        onRestoreCategory={handleRestoreCategory}
+        onSaveCategoryOverride={handleSaveCategory}
+        onResetCategoryOverride={handleResetCategory}
       />
     </div>
   );

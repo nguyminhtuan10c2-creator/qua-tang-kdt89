@@ -1,8 +1,16 @@
+export interface CategoryItem {
+  id: string;
+  name: string;
+  subTitle?: string;
+  tagline?: string;
+  isCustom?: boolean;
+}
+
 export interface ProductItem {
   id: string;
   name: string;
   modelCode?: string;
-  category: 'rice_cooker_appliances' | 'kitchen_stoves' | 'water_heaters' | 'air_conditioners' | 'televisions';
+  category: string;
   categoryLabel: string;
   budgetTier: '<1m' | '1m-2m' | '2m-4m' | '>4m';
   budgetLabel: string;

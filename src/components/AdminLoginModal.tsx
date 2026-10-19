@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type } from 'lucide-react';
+import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type, Sliders, Layers } from 'lucide-react';
 import { loginAdminWithGoogle } from '../lib/firebase';
 
 interface AdminLoginModalProps {
@@ -10,6 +10,8 @@ interface AdminLoginModalProps {
   onLogout: () => void;
   onOpenImageUpdater?: () => void;
   onOpenManageVisibility?: () => void;
+  onOpenSectionVisibility?: () => void;
+  onOpenCategoryManager?: () => void;
   onOpenPriceEditor?: () => void;
   onOpenCategoryEditor?: () => void;
   onOpenOrders?: () => void;
@@ -26,6 +28,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onLogout,
   onOpenImageUpdater,
   onOpenManageVisibility,
+  onOpenSectionVisibility,
+  onOpenCategoryManager,
   onOpenPriceEditor,
   onOpenCategoryEditor,
   onOpenOrders,
@@ -177,17 +181,35 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   </button>
                 )}
 
-                {onOpenCategoryEditor && (
+                {onOpenSectionVisibility && (
                   <button
                     type="button"
                     onClick={() => {
                       onClose();
-                      onOpenCategoryEditor();
+                      onOpenSectionVisibility();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <Sliders className="w-4 h-4 text-purple-200" />
+                    <span>Bật / Tắt các phần trên Landing Page</span>
+                  </button>
+                )}
+
+                {(onOpenCategoryManager || onOpenCategoryEditor) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      if (onOpenCategoryManager) {
+                        onOpenCategoryManager();
+                      } else {
+                        onOpenCategoryEditor?.();
+                      }
                     }}
                     className="w-full py-3 px-4 rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-colors"
                   >
-                    <Pencil className="w-4 h-4 text-amber-400" />
-                    <span>Sửa đề mục & mô tả nhóm (Máy tắm nóng, điều kiện lắp đặt...)</span>
+                    <Layers className="w-4 h-4 text-amber-400" />
+                    <span>Quản lý Thêm / Bớt Danh mục & Sửa đề mục nhóm hàng</span>
                   </button>
                 )}
 

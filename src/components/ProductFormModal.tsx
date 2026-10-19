@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Check, Trash2, Camera, Upload, Sparkles, Tag, ShieldCheck, Box } from 'lucide-react';
-import { ProductItem, CATEGORIES, BUDGET_TIERS } from '../data/products';
+import { ProductItem, CATEGORIES, BUDGET_TIERS, CategoryItem } from '../data/products';
 import { compressImageFile } from '../lib/firebase';
 
 interface ProductFormModalProps {
@@ -10,6 +10,7 @@ interface ProductFormModalProps {
   onDeleteProduct?: (productId: string) => void;
   initialProduct?: ProductItem | null;
   mode: 'add' | 'edit';
+  categories?: CategoryItem[];
 }
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
@@ -19,10 +20,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   onDeleteProduct,
   initialProduct,
   mode,
+  categories,
 }) => {
+  const activeCategories = categories && categories.length > 0 ? categories : CATEGORIES;
   const [name, setName] = useState('');
   const [modelCode, setModelCode] = useState('');
-  const [category, setCategory] = useState<ProductItem['category']>('air_conditioners');
+  const [category, setCategory] = useState<string>(activeCategories[0]?.id || 'air_conditioners');
   const [budgetTier, setBudgetTier] = useState<ProductItem['budgetTier']>('>4m');
   const [programPrice, setProgramPrice] = useState('');
   const [referencePrice, setReferencePrice] = useState('');
@@ -94,7 +97,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     e.preventDefault();
     if (!name.trim()) return;
 
-    const categoryObj = CATEGORIES.find((c) => c.id === category);
+    const categoryObj = activeCategories.find((c) => c.id === category);
     const budgetObj = BUDGET_TIERS.find((b) => b.id === budgetTier);
 
     const productId = initialProduct?.id || `prod-custom-${Date.now()}`;
@@ -192,10 +195,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as ProductItem['category'])}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm font-medium text-neutral-900 bg-white outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-sm font-medium text-neutral-900 bg-white outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 cursor-pointer"
               >
-                {CATEGORIES.map((cat) => (
+                {activeCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>

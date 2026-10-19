@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { ProductItem } from '../data/products';
+import { ProductItem, CategoryItem } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { ChevronLeft, ChevronRight, Sparkles, Plus, Pencil } from 'lucide-react';
 
@@ -7,8 +7,8 @@ interface CategorySectionProps {
   category: {
     id: string;
     name: string;
-    subTitle: string;
-    tagline: string;
+    subTitle?: string;
+    tagline?: string;
   };
   products: ProductItem[];
   icon: React.ReactNode;

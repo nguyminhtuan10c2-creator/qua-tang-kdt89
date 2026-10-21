@@ -31,6 +31,7 @@ interface ProductCatalogProps {
   hiddenProductIds?: string[];
   onToggleHideProduct?: (productId: string) => void;
   onOpenManageVisibility?: () => void;
+  customTexts?: Record<string, string>;
 }
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
@@ -41,6 +42,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   customImages = {},
   customPrices = {},
   customCategories = {},
+  customTexts = {},
   onToggleProduct,
   onBuyProduct,
   onOpenOrderModal,
@@ -135,13 +137,13 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Danh mục sản phẩm có sẵn tại kho</span>
+              <span>{customTexts.catalogBadge || 'Danh mục sản phẩm có sẵn tại kho'}</span>
             </div>
             <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-              Quà 20/10 thiết thực cho mẹ và vợ
+              {customTexts.catalogTitle || 'Thiết bị điện máy & gia dụng giá tốt tại kho'}
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-neutral-600">
-              Ưu đãi riêng cho đối tác – Hàng chính hãng 100% – Hỗ trợ giao tận nơi & lắp đặt
+              {customTexts.catalogSubtitle || 'Ưu đãi riêng cho đối tác – Hàng chính hãng 100% – Hỗ trợ giao tận nơi & lắp đặt chu đáo'}
             </p>
           </div>
 

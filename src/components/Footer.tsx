@@ -7,9 +7,20 @@ interface FooterProps {
   onOpenAdminLogin?: () => void;
   isAdmin?: boolean;
   customLogo?: string;
+  customTexts?: Record<string, string>;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = false, customLogo }) => {
+export const Footer: React.FC<FooterProps> = ({
+  onOpenAdminLogin,
+  isAdmin = false,
+  customLogo,
+  customTexts = {},
+}) => {
+  const intro = customTexts.footerIntro || `${COMPANY_INFO.programTitle} – Đồng hành cùng anh em thợ, kỹ thuật viên và đại lý đối tác thân thiết chuẩn bị thiết bị điện máy, điện gia dụng chính hãng, uy tín tận tâm.`;
+  const hotline = customTexts.hotline || COMPANY_INFO.hotlineDisplay;
+  const address = customTexts.address || COMPANY_INFO.address;
+  const workingHours = customTexts.workingHours || COMPANY_INFO.timeframe;
+
   return (
     <footer className="bg-neutral-900 text-neutral-300 pt-12 pb-24 md:pb-12 border-t border-neutral-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -20,7 +31,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
               <KDTLogo size="md" variant="full" customLogo={customLogo} />
             </div>
             <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed pr-4">
-              {COMPANY_INFO.programTitle} – Đồng hành cùng anh em thợ, kỹ thuật viên và đại lý đối tác thân thiết chuẩn bị món quà thiết thực, trọn vẹn yêu thương ngày 20/10.
+              {intro}
             </p>
             <div className="pt-2 text-xs text-neutral-500">
               © {new Date().getFullYear()} {COMPANY_INFO.name}. Bản quyền thuộc về công ty.
@@ -40,10 +51,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
                 <div>
                   <div className="text-neutral-400 text-xs">Hotline:</div>
                   <a
-                    href={`tel:${COMPANY_INFO.hotline}`}
+                    href={`tel:${hotline.replace(/[^0-9]/g, '')}`}
                     className="font-bold text-white hover:text-rose-400 transition-colors tracking-wide"
                   >
-                    {COMPANY_INFO.hotlineDisplay}
+                    {hotline}
                   </a>
                 </div>
               </div>
@@ -59,7 +70,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
                     rel="noopener noreferrer"
                     className="font-bold text-white hover:text-sky-400 transition-colors"
                   >
-                    {COMPANY_INFO.zaloDisplay}
+                    {hotline}
                   </a>
                 </div>
               </div>
@@ -70,18 +81,18 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAdminLogin, isAdmin = fals
                 <div>
                   <div className="text-neutral-400 text-xs">Địa chỉ kho/showroom:</div>
                   <div className="font-semibold text-white">
-                    {COMPANY_INFO.address}
+                    {address}
                   </div>
                 </div>
               </div>
 
-              {/* Thời gian chương trình */}
+              {/* Thời gian mở cửa / chương trình */}
               <div className="p-3 rounded-xl bg-neutral-800/60 border border-neutral-750 flex items-start gap-3 sm:col-span-2">
                 <Calendar className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-neutral-400 text-xs">Thời gian chương trình:</div>
+                  <div className="text-neutral-400 text-xs">Thời gian mở cửa / phục vụ:</div>
                   <div className="font-semibold text-white">
-                    {COMPANY_INFO.timeframe}
+                    {workingHours}
                   </div>
                 </div>
               </div>

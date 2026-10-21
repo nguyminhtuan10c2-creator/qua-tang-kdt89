@@ -100,6 +100,23 @@ export interface CategoryOverride {
   tagline?: string;
 }
 
+export interface SiteDecorSettings {
+  showCountdown?: boolean;
+  countdownTitle?: string;
+  countdownSubtitle?: string;
+  countdownTargetDate?: string;
+  countdownMode?: 'daily' | 'target_date';
+  countdownBadge?: string;
+  countdownSoldPercent?: number;
+  countdownButtonText?: string;
+  fallingEffect?: 'none' | 'sakura' | 'red_envelope' | 'confetti' | 'snow' | 'stars' | 'hearts';
+  fallingSpeed?: 'slow' | 'normal' | 'fast';
+  showLiveOrderTicker?: boolean;
+  showCornerRibbon?: boolean;
+  cornerRibbonText?: string;
+  enablePulsingCta?: boolean;
+}
+
 export interface SiteSettingsData {
   hiddenProductIds?: string[];
   hiddenComboIds?: string[];
@@ -115,6 +132,7 @@ export interface SiteSettingsData {
   hiddenSections?: string[];
   addedCategories?: CategoryItem[];
   deletedCategoryIds?: string[];
+  decorSettings?: SiteDecorSettings;
   updatedAt: string;
 }
 
@@ -274,7 +292,7 @@ export function compressImageFile(file: File, maxWidth = 900, quality = 0.8): Pr
 export interface ConsultationLeadPayload {
   fullName: string;
   phoneNumber: string;
-  recipient?: 'Vợ' | 'Mẹ' | 'Người thân';
+  recipient?: 'Vợ' | 'Mẹ' | 'Người thân' | string;
   budgetTier?: string;
   interestedProducts?: string;
   deliveryArea?: string;

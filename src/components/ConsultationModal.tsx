@@ -9,6 +9,8 @@ interface ConsultationModalProps {
   preselectedProductNames?: string[];
   initialRecipient?: 'Vợ' | 'Mẹ' | 'Người thân';
   initialNote?: string;
+  isRecipientHidden?: boolean;
+  customTexts?: Record<string, string>;
 }
 
 export const ConsultationModal: React.FC<ConsultationModalProps> = ({
@@ -17,6 +19,8 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
   preselectedProductNames = [],
   initialRecipient = 'Vợ',
   initialNote = '',
+  isRecipientHidden = false,
+  customTexts = {},
 }) => {
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -116,14 +120,16 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
                 Đã tiếp nhận yêu cầu giữ hàng!
               </h4>
               <p className="text-sm text-neutral-600 leading-relaxed mb-6">
-                Cảm ơn anh <strong className="text-neutral-900">{fullName}</strong> ({phoneNumber}). Sale phụ trách anh em thợ của KDT-89 sẽ gọi lại ngay để xác nhận giá ưu đãi tốt nhất và giữ hàng quà 20/10 cho anh.
+                Cảm ơn anh <strong className="text-neutral-900">{fullName}</strong> ({phoneNumber}). Sale phụ trách của KDT-89 sẽ gọi lại ngay để xác nhận giá ưu đãi tốt nhất và giữ hàng cho anh.
               </p>
 
               <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-200 text-left text-xs text-neutral-600 space-y-2 mb-6">
-                <div>
-                  <span className="font-semibold text-neutral-800">Quà tặng cho: </span>
-                  {recipient}
-                </div>
+                {!isRecipientHidden && (
+                  <div>
+                    <span className="font-semibold text-neutral-800">Quà tặng cho: </span>
+                    {recipient}
+                  </div>
+                )}
                 {interestedProducts && (
                   <div>
                     <span className="font-semibold text-neutral-800">Sản phẩm: </span>
@@ -179,31 +185,33 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
                 </div>
               )}
 
-              {/* Recipient Selector */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
-                  Anh muốn mua quà cho:
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Vợ', 'Mẹ', 'Người thân'] as const).map((item) => (
-                    <button
-                      type="button"
-                      key={item}
-                      onClick={() => setRecipient(item)}
-                      className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
-                        recipient === item
-                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                          : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
-                      }`}
-                    >
-                      {item === 'Vợ' && '🌹 '}
-                      {item === 'Mẹ' && '👵 '}
-                      {item === 'Người thân' && '🎁 '}
-                      {item}
-                    </button>
-                  ))}
+              {/* Recipient Selector (Ẩn khi isRecipientHidden = true) */}
+              {!isRecipientHidden && (
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wider">
+                    {customTexts.recipientLabel || 'Anh muốn mua quà cho:'}
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['Vợ', 'Mẹ', 'Người thân'] as const).map((item) => (
+                      <button
+                        type="button"
+                        key={item}
+                        onClick={() => setRecipient(item)}
+                        className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                          recipient === item
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+                        }`}
+                      >
+                        {item === 'Vợ' && '🌹 '}
+                        {item === 'Mẹ' && '👵 '}
+                        {item === 'Người thân' && '🎁 '}
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Họ tên & SĐT */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

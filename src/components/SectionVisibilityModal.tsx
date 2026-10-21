@@ -70,6 +70,13 @@ export const LANDING_PAGE_SECTIONS: SectionConfig[] = [
     icon: <PhoneCall className="w-4 h-4 text-teal-500" />,
   },
   {
+    id: 'gift_recipient',
+    name: 'Mục chọn người nhận quà ("Anh muốn mua quà cho: Vợ / Mẹ / Người thân")',
+    description: 'Bật khi chạy dịp lễ tặng quà (20/10, 8/3, Vu Lan...). Tắt khi chạy Black Friday, ngày đôi, xả kho...',
+    icon: <HeartHandshake className="w-4 h-4 text-pink-500" />,
+    badge: 'Tùy chọn Form',
+  },
+  {
     id: 'footer',
     name: 'Chân trang (Footer & Thông tin công ty)',
     description: 'Địa chỉ kho 89-91 Đường số 1, hotline, mã số thuế và thông tin liên hệ',

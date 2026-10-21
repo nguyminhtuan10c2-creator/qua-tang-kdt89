@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenAdminLogin?: () => void;
   onLogoutAdmin?: () => void;
   customLogo?: string;
+  customTexts?: Record<string, string>;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,9 +24,20 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdminLogin,
   onLogoutAdmin,
   customLogo,
+  customTexts = {},
 }) => {
+  const announcement = customTexts.headerAnnouncement;
+  const navProducts = customTexts.navProducts || 'Sản phẩm';
+  const consultBtn = customTexts.headerConsultationBtn || 'Nhờ sale tư vấn';
+  const hotline = customTexts.hotline || COMPANY_INFO.hotlineDisplay;
+
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-neutral-200">
+      {announcement && (
+        <div className="bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 text-white text-[11px] sm:text-xs py-1.5 px-4 text-center font-bold tracking-wide shadow-xs flex items-center justify-center gap-2 overflow-hidden">
+          <span className="truncate">{announcement}</span>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4 md:gap-8">
         {/* Zone 1: Brand Wordmark with Official Logo */}
         <div className="flex items-center gap-2 shrink-0">
@@ -58,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
             Combo gợi ý
           </a>
           <a href="#products" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
-            Quà 20/10
+            {navProducts}
           </a>
           <a href="#budget" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
             Theo ngân sách
@@ -122,16 +134,16 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Quick Zalo Chat / Call Button: 0397017013 */}
+          {/* Quick Zalo Chat / Call Button */}
           <a
             href={COMPANY_INFO.zaloLink}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all cursor-pointer shadow-2xs"
-            title="Bấm để mở Zalo KDT-89: 0397.017.013"
+            title={`Bấm để mở Zalo KDT-89: ${hotline}`}
           >
             <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-            <span>Zalo: 0397.017.013</span>
+            <span>Zalo: {hotline}</span>
           </a>
 
           <button
@@ -139,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Heart className="w-4 h-4 fill-white/20" />
-            <span className="hidden xs:inline">Nhờ sale tư vấn</span>
+            <span className="hidden xs:inline">{consultBtn}</span>
             <span className="xs:hidden">Tư vấn</span>
           </button>
         </div>

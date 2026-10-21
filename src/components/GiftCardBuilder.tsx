@@ -3,30 +3,37 @@ import { Heart, Copy, Check, MessageSquareHeart } from 'lucide-react';
 
 interface GiftCardBuilderProps {
   onAttachMessage: (message: string, recipient: string) => void;
+  customTexts?: Record<string, string>;
 }
 
 const SAMPLE_WISHES = {
   vo: [
-    '20/10 chúc vợ yêu luôn vui vẻ, bớt vất vả. Cảm ơn em đã luôn là hậu phương ấm áp của gia đình mình!',
-    'Chúc vợ 20/10 rạng rỡ, xinh đẹp. Căn bếp mới này tặng em, mong mỗi bữa cơm nhà mình luôn tràn ngập tiếng cười!',
-    'Anh biết anh bận công trình ít thời gian ở nhà, món quà nhỏ này mong san sẻ việc nhà cùng em mỗi ngày. Yêu vợ!',
+    'Chúc người thương luôn vui vẻ, rạng rỡ và bình an. Cảm ơn vì đã luôn là hậu phương ấm áp của gia đình mình!',
+    'Chúc người thương luôn xinh đẹp, hạnh phúc. Món quà này gửi trọn tấm lòng, mong mỗi ngày trôi qua đều ngập tràn tiếng cười!',
+    'Món quà nhỏ này mong san sẻ việc nhà cùng em mỗi ngày. Yêu và thương thật nhiều!',
   ],
   me: [
-    'Nhân ngày 20/10, con chúc mẹ luôn dồi dào sức khỏe, an vui bên con cháu. Con kính tặng mẹ món quà thiết thực này!',
-    'Mẹ ơi, con chúc mẹ ngày 20/10 thật nhiều niềm vui. Cơm dẻo canh ngọt mỗi ngày mẹ nhớ giữ gìn sức khỏe nhé mẹ!',
-    'Kính chúc Mẹ yêu quý ngày 20/10 bình an, khỏe mạnh. Cảm ơn Mẹ đã một đời hy sinh và chăm lo cho chúng con!',
+    'Con kính chúc Mẹ luôn dồi dào sức khỏe, an vui bên con cháu. Con kính tặng mẹ món quà thiết thực này!',
+    'Mẹ ơi, con chúc mẹ thật nhiều niềm vui. Cơm dẻo canh ngọt mỗi ngày mẹ nhớ giữ gìn sức khỏe nhé mẹ!',
+    'Kính chúc Mẹ yêu quý luôn bình an, mạnh khỏe. Cảm ơn Mẹ đã một đời hy sinh và chăm lo cho chúng con!',
   ],
   nguoi_than: [
-    'Chúc bạn/chị một ngày 20/10 ngập tràn niềm vui, công việc thuận lợi và luôn hạnh phúc bên gia đình!',
-    'Gửi tặng món quà thiết thực nhân ngày Phụ nữ Việt Nam 20/10. Chúc luôn an yên và ngập tràn may mắn!',
+    'Chúc bạn/anh/chị ngập tràn niềm vui, công việc hanh thông thuận lợi và luôn hạnh phúc bên gia đình!',
+    'Gửi tặng món quà thiết thực và chân thành nhất. Chúc luôn an yên, may mắn và vạn sự như ý!',
   ],
 };
 
-export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessage }) => {
+export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessage, customTexts = {} }) => {
   const [target, setTarget] = useState<'vo' | 'me' | 'nguoi_than'>('vo');
   const [selectedWish, setSelectedWish] = useState<string>(SAMPLE_WISHES.vo[0]);
   const [copied, setCopied] = useState<boolean>(false);
   const [attached, setAttached] = useState<boolean>(false);
+
+  const title = customTexts.giftCardTitle || 'Tặng kèm thiệp chúc mừng viết tay chu đáo';
+  const subtitle = customTexts.giftCardSubtitle || 'KDT-89 in thiệp trang trọng, gói quà chu đáo gửi kèm đơn hàng hoàn toàn miễn phí.';
+  const tagVo = customTexts.giftCardTagVo || 'Tặng Vợ';
+  const tagMe = customTexts.giftCardTagMe || 'Tặng Mẹ';
+  const tagNguoiThan = customTexts.giftCardTagNguoiThan || 'Người thân';
 
   const handleSelectTab = (newTarget: 'vo' | 'me' | 'nguoi_than') => {
     setTarget(newTarget);
@@ -41,7 +48,7 @@ export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessag
   };
 
   const handleAttach = () => {
-    const label = target === 'vo' ? 'Vợ' : target === 'me' ? 'Mẹ' : 'Người thân';
+    const label = target === 'vo' ? tagVo : target === 'me' ? tagMe : tagNguoiThan;
     onAttachMessage(selectedWish, label);
     setAttached(true);
     setTimeout(() => setAttached(false), 3000);
@@ -58,10 +65,10 @@ export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessag
               </div>
               <div>
                 <h3 className="font-bold text-base sm:text-lg text-neutral-900 tracking-tight">
-                  Tặng kèm thiệp viết tay 20/10 chu đáo
+                  {title}
                 </h3>
                 <p className="text-xs text-neutral-500">
-                  Anh em không khéo ăn nói? KDT-89 gợi ý sẵn lời chúc ý nghĩa, in thiệp nắn nót bỏ kèm thùng quà.
+                  {subtitle}
                 </p>
               </div>
             </div>
@@ -74,7 +81,7 @@ export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessag
                   target === 'vo' ? 'bg-white text-rose-700 shadow-xs' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Tặng Vợ
+                {tagVo}
               </button>
               <button
                 onClick={() => handleSelectTab('me')}
@@ -82,7 +89,7 @@ export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessag
                   target === 'me' ? 'bg-white text-rose-700 shadow-xs' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Tặng Mẹ
+                {tagMe}
               </button>
               <button
                 onClick={() => handleSelectTab('nguoi_than')}
@@ -90,7 +97,7 @@ export const GiftCardBuilder: React.FC<GiftCardBuilderProps> = ({ onAttachMessag
                   target === 'nguoi_than' ? 'bg-white text-rose-700 shadow-xs' : 'text-neutral-600 hover:text-neutral-900'
                 }`}
               >
-                Người thân
+                {tagNguoiThan}
               </button>
             </div>
           </div>

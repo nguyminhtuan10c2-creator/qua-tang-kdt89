@@ -10,6 +10,7 @@ interface MobileStickyCTAProps {
   hiddenCount?: number;
   selectedCount: number;
   isAdmin?: boolean;
+  customTexts?: Record<string, string>;
 }
 
 export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
@@ -20,7 +21,10 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
   hiddenCount = 0,
   selectedCount,
   isAdmin = false,
+  customTexts = {},
 }) => {
+  const hotline = customTexts.hotline || COMPANY_INFO.hotlineDisplay;
+  const consultBtn = customTexts.headerConsultationBtn || 'Nhờ sale tư vấn';
   return (
     <aside
       aria-label="Thanh thao tác nhanh"
@@ -62,13 +66,13 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           className="flex flex-col items-center justify-center min-w-[58px] h-11 px-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition-colors shrink-0"
-          title={`Nhắn Zalo KDT-89: ${COMPANY_INFO.hotline}`}
+          title={`Nhắn Zalo KDT-89: ${hotline}`}
         >
           <div className="flex items-center gap-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>
             <span className="text-[11px] font-black tracking-tight text-sky-700">Zalo</span>
           </div>
-          <span className="text-[9px] font-bold mt-0.5 text-sky-800 whitespace-nowrap">0397.017.013</span>
+          <span className="text-[9px] font-bold mt-0.5 text-sky-800 whitespace-nowrap">{hotline}</span>
         </a>
 
         {selectedCount > 0 ? (
@@ -87,7 +91,7 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
             className="flex-1 h-11 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
           >
             <Heart className="w-4 h-4 fill-white/20 shrink-0" />
-            <span className="truncate">Nhờ sale tư vấn</span>
+            <span className="truncate">{consultBtn}</span>
           </button>
         )}
       </div>

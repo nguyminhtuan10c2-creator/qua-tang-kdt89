@@ -4,22 +4,27 @@ import { CheckSquare, ArrowRight } from 'lucide-react';
 
 interface OrderStepsProps {
   onOpenConsultation: () => void;
+  customTexts?: Record<string, string>;
 }
 
-export const OrderSteps: React.FC<OrderStepsProps> = ({ onOpenConsultation }) => {
+export const OrderSteps: React.FC<OrderStepsProps> = ({ onOpenConsultation, customTexts = {} }) => {
+  const badge = customTexts.orderStepsBadge || 'Quy trình 4 bước nhanh gọn';
+  const title = customTexts.orderStepsTitle || 'Hướng dẫn đặt hàng cho đối tác';
+  const subtitle = customTexts.orderStepsSubtitle || 'Chỉ mất 1 phút để giữ hàng món thiết bị ưng ý nhất tại kho KDT-89';
+
   return (
     <section id="order-steps" className="py-12 sm:py-16 bg-neutral-50 border-b border-neutral-200">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-xl mx-auto mb-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-700 mb-2">
             <CheckSquare className="w-3.5 h-3.5" />
-            <span>Quy trình 4 bước nhanh gọn</span>
+            <span>{badge}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
-            Hướng dẫn đặt hàng cho đối tác
+            {title}
           </h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Chỉ mất 1 phút để giữ hàng món quà ưng ý nhất dịp 20/10
+            {subtitle}
           </p>
         </div>
 

@@ -283,6 +283,13 @@ export default function App() {
     return [...list, ...validCustom];
   }, [deletedProductIds, editedProducts, customProducts]);
 
+  // Check if gift recipient selector is hidden either via hiddenSections or customTexts
+  const isGiftRecipientHidden = useMemo(() => {
+    if (hiddenSections.includes('gift_recipient')) return true;
+    if (customTexts.showGiftRecipient === 'false') return true;
+    return false;
+  }, [hiddenSections, customTexts]);
+
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(false);
 
   // Real-time synchronization with Firebase Cloud Firestore
@@ -1123,6 +1130,7 @@ export default function App() {
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
         onLogoutAdmin={handleAdminLogout}
         customLogo={customImages['site-logo']}
+        customTexts={customTexts}
       />
 
       <main className="flex-1">
@@ -1199,7 +1207,7 @@ export default function App() {
                 </button>
               </div>
             )}
-            <GiftCardBuilder onAttachMessage={handleAttachMessage} />
+            <GiftCardBuilder onAttachMessage={handleAttachMessage} customTexts={customTexts} />
           </div>
         )}
 
@@ -1227,6 +1235,7 @@ export default function App() {
               customImages={customImages}
               customPrices={customPrices}
               customCategories={customCategories}
+              customTexts={customTexts}
               onToggleProduct={handleToggleProduct}
               onBuyProduct={handleOpenOrderProduct}
               onOpenOrderModal={handleOpenOrderCart}
@@ -1267,7 +1276,7 @@ export default function App() {
                 </button>
               </div>
             )}
-            <WhyChooseKDT />
+            <WhyChooseKDT customTexts={customTexts} />
           </div>
         )}
 
@@ -1287,7 +1296,7 @@ export default function App() {
                 </button>
               </div>
             )}
-            <OrderSteps onOpenConsultation={() => handleOpenConsultation()} />
+            <OrderSteps onOpenConsultation={() => handleOpenConsultation()} customTexts={customTexts} />
           </div>
         )}
 
@@ -1307,7 +1316,12 @@ export default function App() {
                 </button>
               </div>
             )}
-            <RegistrationSection />
+            <RegistrationSection
+              customTexts={customTexts}
+              isAdmin={isAdmin}
+              isRecipientHidden={isGiftRecipientHidden}
+              onToggleRecipient={() => handleToggleSection('gift_recipient')}
+            />
           </div>
         )}
       </main>
@@ -1332,6 +1346,7 @@ export default function App() {
             isAdmin={isAdmin}
             onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
             customLogo={customImages['site-logo']}
+            customTexts={customTexts}
           />
         </div>
       )}
@@ -1346,6 +1361,7 @@ export default function App() {
           hiddenCount={hiddenProductIds.length}
           selectedCount={selectedProductIds.length}
           isAdmin={isAdmin}
+          customTexts={customTexts}
         />
       )}
 
@@ -1358,6 +1374,8 @@ export default function App() {
         }
         initialRecipient={consultationRecipient}
         initialNote={consultationNote}
+        isRecipientHidden={isGiftRecipientHidden}
+        customTexts={customTexts}
       />
 
       {/* 12. Product Image Update Modal */}

@@ -32,7 +32,7 @@ service cloud.firestore {
 
     function isValidSiteSetting(data) {
       return data.keys().hasAll(['updatedAt']) &&
-             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'customTexts', 'customSeo', 'hiddenSections', 'addedCategories', 'deletedCategoryIds', 'updatedAt']) &&
+             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'customTexts', 'customSeo', 'hiddenSections', 'addedCategories', 'deletedCategoryIds', 'decorSettings', 'updatedAt']) &&
              data.updatedAt is string && data.updatedAt.size() <= 60 &&
              (!('customImages' in data) || data.customImages is map) &&
              (!('hiddenProductIds' in data) || (data.hiddenProductIds is list && data.hiddenProductIds.size() <= 300)) &&
@@ -48,7 +48,8 @@ service cloud.firestore {
              (!('customSeo' in data) || data.customSeo is map) &&
              (!('hiddenSections' in data) || (data.hiddenSections is list && data.hiddenSections.size() <= 50)) &&
              (!('addedCategories' in data) || (data.addedCategories is list && data.addedCategories.size() <= 50)) &&
-             (!('deletedCategoryIds' in data) || (data.deletedCategoryIds is list && data.deletedCategoryIds.size() <= 100));
+             (!('deletedCategoryIds' in data) || (data.deletedCategoryIds is list && data.deletedCategoryIds.size() <= 100)) &&
+             (!('decorSettings' in data) || data.decorSettings is map);
     }
 
     function isValidCustomImage(data) {
@@ -64,7 +65,7 @@ service cloud.firestore {
              data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.createdAt is string && data.createdAt.size() <= 60 &&
-             (!('recipient' in data) || (data.recipient is string && data.recipient in ['Vợ', 'Mẹ', 'Người thân'])) &&
+             (!('recipient' in data) || (data.recipient is string && data.recipient.size() <= 100)) &&
              (!('budgetTier' in data) || (data.budgetTier is string && data.budgetTier.size() <= 100)) &&
              (!('interestedProducts' in data) || (data.interestedProducts is string && data.interestedProducts.size() <= 500)) &&
              (!('deliveryArea' in data) || (data.deliveryArea is string && data.deliveryArea.size() <= 200)) &&
@@ -73,13 +74,15 @@ service cloud.firestore {
 
     function isValidOrder(data) {
       return data.keys().hasAll(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'createdAt']) &&
-             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'paymentMethod', 'note', 'status', 'createdAt']) &&
+             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'recipient', 'giftCardRequested', 'paymentMethod', 'note', 'status', 'createdAt']) &&
              data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.address is string && data.address.size() >= 1 && data.address.size() <= 300 &&
              data.items is list && data.items.size() >= 1 && data.items.size() <= 30 &&
              data.totalAmount is string && data.totalAmount.size() <= 50 &&
              data.createdAt is string && data.createdAt.size() <= 60 &&
+             (!('recipient' in data) || (data.recipient is string && data.recipient.size() <= 100)) &&
+             (!('giftCardRequested' in data) || data.giftCardRequested is bool) &&
              (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50)) &&
              (!('note' in data) || (data.note is string && data.note.size() <= 1000)) &&
              (!('status' in data) || (data.status is string && data.status in ['Mới', 'Đã liên hệ', 'Đang giao', 'Hoàn thành', 'Đã hủy']));

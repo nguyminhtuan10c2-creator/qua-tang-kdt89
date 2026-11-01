@@ -16,6 +16,9 @@ import {
   Plus,
   Minus,
   Sparkles,
+  Gift,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   OrderItem,
@@ -38,6 +41,9 @@ interface OrderModalProps {
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   customImages?: Record<string, string>;
   onOrderSuccess?: (order: StoredOrder) => void;
+  isRecipientHidden?: boolean;
+  isAdmin?: boolean;
+  onToggleRecipient?: () => void;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -49,10 +55,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   customPrices = {},
   customImages = {},
   onOrderSuccess,
+  isRecipientHidden = false,
+  isAdmin = false,
+  onToggleRecipient,
 }) => {
   const [customerName, setCustomerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
+  const [recipient, setRecipient] = useState<'Vợ' | 'Mẹ' | 'Người thân' | 'Tự dùng / Lắp công trình'>('Vợ');
+  const [giftCardRequested, setGiftCardRequested] = useState(false);
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Thanh toán khi nhận hàng & kiểm tra (COD)');
 
@@ -201,6 +212,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         address: trimmedAddress,
         items: orderItems,
         totalAmount,
+        recipient: isRecipientHidden ? undefined : recipient,
+        giftCardRequested: isRecipientHidden ? false : giftCardRequested,
         paymentMethod,
         note: note.trim() || undefined,
         status: 'Mới',
@@ -359,6 +372,17 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               <div className="text-[11px] text-neutral-500">
                 Địa chỉ giao: <span className="text-neutral-800 font-medium">{completedOrder.address}</span>
               </div>
+              {completedOrder.recipient && (
+                <div className="text-[11px] text-rose-700 font-semibold flex items-center gap-1.5 pt-1">
+                  <Gift className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Mục đích / Người nhận: <strong>{completedOrder.recipient}</strong></span>
+                  {completedOrder.giftCardRequested && (
+                    <span className="px-2 py-0.2 rounded-full bg-rose-100 text-rose-800 text-[10px]">
+                      + Gói quà & thiệp miễn phí
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-center pt-2">
@@ -452,6 +476,78 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* 1.5. Recipient / Purpose Selection (Toggleable for campaigns that need/do not need it) */}
+            {!isRecipientHidden && (
+              <div className="rounded-2xl bg-rose-50/70 border border-rose-200/90 p-3.5 sm:p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-neutral-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Mục đích / Người nhận quà:</span>
+                  </label>
+                  {isAdmin && onToggleRecipient && (
+                    <button
+                      type="button"
+                      onClick={onToggleRecipient}
+                      className="text-[11px] text-neutral-500 hover:text-neutral-800 flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded-md border border-neutral-200 shadow-2xs"
+                      title="Quyền Admin: Bấm để Tắt mục này nếu chương trình không cần hỏi người nhận quà"
+                    >
+                      <EyeOff className="w-3 h-3 text-neutral-500" />
+                      <span>Tắt mục này</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(['Vợ', 'Mẹ', 'Người thân', 'Tự dùng / Lắp công trình'] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRecipient(r)}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer text-center ${
+                        recipient === r
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs ring-1 ring-rose-500'
+                          : 'bg-white hover:bg-neutral-50 text-neutral-700 border-neutral-300'
+                      }`}
+                    >
+                      {r === 'Vợ' && '🌹 '}
+                      {r === 'Mẹ' && '👵 '}
+                      {r === 'Người thân' && '🎁 '}
+                      {r === 'Tự dùng / Lắp công trình' && '🏢 '}
+                      <span>{r}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Free Gift Wrap & Card Checkbox */}
+                <label className="mt-1 p-2.5 rounded-xl border border-rose-200 bg-white flex items-center gap-2 cursor-pointer text-xs text-rose-950 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={giftCardRequested}
+                    onChange={(e) => setGiftCardRequested(e.target.checked)}
+                    className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500"
+                  />
+                  <span>🎁 Yêu cầu KDT-89 viết thiệp chúc mừng & đóng gói quà chu đáo (Miễn phí 100%)</span>
+                </label>
+              </div>
+            )}
+
+            {/* When hidden and viewed by Admin */}
+            {isRecipientHidden && isAdmin && onToggleRecipient && (
+              <div className="p-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/80 flex items-center justify-between text-xs text-amber-900 shadow-2xs">
+                <span className="flex items-center gap-1.5">
+                  <EyeOff className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Mục <strong>&quot;Tặng quà cho ai&quot;</strong> đang <strong>TẮT</strong> (không hiện với khách)</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={onToggleRecipient}
+                  className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] font-bold cursor-pointer"
+                >
+                  Bật lại
+                </button>
+              </div>
+            )}
 
             {/* 2. Customer Delivery Info */}
             <div className="space-y-3.5">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type, Sliders, Layers } from 'lucide-react';
+import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type, Sliders, Layers, Palette } from 'lucide-react';
 import { loginAdminWithGoogle } from '../lib/firebase';
 
 interface AdminLoginModalProps {
@@ -16,6 +16,7 @@ interface AdminLoginModalProps {
   onOpenCategoryEditor?: () => void;
   onOpenOrders?: () => void;
   onOpenSiteTextEditor?: () => void;
+  onOpenDecoration?: () => void;
   hiddenCount?: number;
   adminEmail?: string | null;
 }
@@ -34,6 +35,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onOpenCategoryEditor,
   onOpenOrders,
   onOpenSiteTextEditor,
+  onOpenDecoration,
   hiddenCount = 0,
   adminEmail,
 }) => {
@@ -150,6 +152,20 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   >
                     <ShoppingBag className="w-4 h-4 text-white" />
                     <span>Xem danh sách đơn đặt hàng của khách</span>
+                  </button>
+                )}
+
+                {onOpenDecoration && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenDecoration();
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all border border-amber-300"
+                  >
+                    <Palette className="w-4 h-4 text-yellow-300" />
+                    <span>Tùy chỉnh Trang trí Website & Flash Sale Giờ Vàng</span>
                   </button>
                 )}
 

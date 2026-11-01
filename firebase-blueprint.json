@@ -61,6 +61,10 @@
           "type": "array",
           "description": "List of deleted or hidden category IDs"
         },
+        "decorSettings": {
+          "type": "object",
+          "description": "Store decoration and flash sale countdown configuration"
+        },
         "updatedAt": {
           "type": "string",
           "description": "ISO timestamp of last update"
@@ -176,6 +180,15 @@
         "totalAmount": {
           "type": "string",
           "description": "Total order amount formatted"
+        },
+        "recipient": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Gift recipient or purchase purpose"
+        },
+        "giftCardRequested": {
+          "type": "boolean",
+          "description": "Whether free gift wrapping and greeting card is requested"
         },
         "paymentMethod": {
           "type": "string",

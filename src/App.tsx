@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye, ShoppingBag, Type, Sliders, Layers } from 'lucide-react';
+import { Camera, ShieldCheck, LogOut, EyeOff, Tag, Cloud, CloudCheck, Share2, Plus, Pencil, Eye, ShoppingBag, Type, Sliders, Layers, Palette } from 'lucide-react';
 
 function checkAdminAuth(): boolean {
   try {
@@ -44,6 +44,9 @@ function persistAdminAuth(value: boolean) {
 
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { FlashSaleCountdown } from './components/FlashSaleCountdown';
+import { StoreDecorations } from './components/StoreDecorations';
+import { StoreDecorationModal, DEFAULT_DECOR_SETTINGS } from './components/StoreDecorationModal';
 import { ComboSection } from './components/ComboSection';
 import { GiftCardBuilder } from './components/GiftCardBuilder';
 import { ProductCatalog } from './components/ProductCatalog';
@@ -76,6 +79,7 @@ import {
   CategoryOverride,
   subscribeToOrders,
   StoredOrder,
+  SiteDecorSettings,
 } from './lib/firebase';
 
 export default function App() {
@@ -254,6 +258,17 @@ export default function App() {
   // Site text & SEO edit modal state (Admin)
   const [isSiteTextEditorOpen, setIsSiteTextEditorOpen] = useState<boolean>(false);
 
+  // Store decorations & Flash sale countdown state
+  const [decorSettings, setDecorSettings] = useState<SiteDecorSettings>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_decor_settings');
+      return saved ? JSON.parse(saved) : DEFAULT_DECOR_SETTINGS;
+    } catch {
+      return DEFAULT_DECOR_SETTINGS;
+    }
+  });
+  const [isDecorationModalOpen, setIsDecorationModalOpen] = useState<boolean>(false);
+
   // Combined all categories (CATEGORIES + addedCategories)
   const allCategories = useMemo(() => {
     const customOnly = (addedCategories || []).filter(
@@ -408,6 +423,14 @@ export default function App() {
             setDeletedCategoryIds(data.deletedCategoryIds);
             try {
               localStorage.setItem('kdt89_deleted_category_ids', JSON.stringify(data.deletedCategoryIds));
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.decorSettings) {
+            setDecorSettings(data.decorSettings);
+            try {
+              localStorage.setItem('kdt89_decor_settings', JSON.stringify(data.decorSettings));
             } catch (e) {
               console.error(e);
             }
@@ -628,6 +651,49 @@ export default function App() {
       );
       return updated;
     });
+  };
+
+  // Decoration & Flash Sale Settings Handlers
+  const handleSaveDecorSettings = (newSettings: SiteDecorSettings, hideRecipient?: boolean) => {
+    setDecorSettings(newSettings);
+    try {
+      localStorage.setItem('kdt89_decor_settings', JSON.stringify(newSettings));
+    } catch (e) {
+      console.error(e);
+    }
+
+    let updatedHidden = hiddenSections;
+    if (typeof hideRecipient === 'boolean') {
+      if (hideRecipient && !hiddenSections.includes('gift_recipient')) {
+        updatedHidden = [...hiddenSections, 'gift_recipient'];
+        setHiddenSections(updatedHidden);
+      } else if (!hideRecipient && hiddenSections.includes('gift_recipient')) {
+        updatedHidden = hiddenSections.filter((s) => s !== 'gift_recipient');
+        setHiddenSections(updatedHidden);
+      }
+      try {
+        localStorage.setItem('kdt89_hidden_sections', JSON.stringify(updatedHidden));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    saveSiteSettingsToFirestore({
+      decorSettings: newSettings,
+      hiddenSections: updatedHidden,
+    }).catch((e) => console.error('Lỗi lưu decorSettings lên Firebase', e));
+  };
+
+  const handleResetDecorSettings = () => {
+    setDecorSettings(DEFAULT_DECOR_SETTINGS);
+    try {
+      localStorage.setItem('kdt89_decor_settings', JSON.stringify(DEFAULT_DECOR_SETTINGS));
+    } catch (e) {
+      console.error(e);
+    }
+    saveSiteSettingsToFirestore({ decorSettings: DEFAULT_DECOR_SETTINGS }).catch((e) =>
+      console.error('Lỗi reset decorSettings lên Firebase', e)
+    );
   };
 
   // Product Form Modal state (Add / Edit / Delete Product)
@@ -1120,6 +1186,13 @@ export default function App() {
         </aside>
       )}
 
+      {/* Interactive Store Decorations (Confetti/Snow/Petals falling, Live social proof ticker, Floating gift deal ribbon) */}
+      <StoreDecorations
+        decorSettings={decorSettings}
+        onExploreProducts={handleExploreProducts}
+        onOpenOrderModal={handleOpenOrderCart}
+      />
+
       {/* 1. Header with Top Bar Contract */}
       <Header
         onOpenConsultation={() => handleOpenConsultation()}
@@ -1158,6 +1231,32 @@ export default function App() {
               isAdmin={isAdmin}
               customHeroImage={customImages['site-hero-image']}
               customTexts={customTexts}
+            />
+          </div>
+        )}
+
+        {/* 2.5. Flash Sale Urgency Countdown Timer Banner */}
+        {(!hiddenSections.includes('flash_sale') || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('flash_sale') && (
+              <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
+                <EyeOff className="w-3.5 h-3.5 text-purple-300" />
+                <span className="font-semibold">Thanh Flash Sale đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('flash_sale')}
+                  className="px-2 py-0.5 rounded bg-purple-700 hover:bg-purple-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <FlashSaleCountdown
+              decorSettings={decorSettings}
+              onExploreProducts={handleExploreProducts}
+              onOpenOrderModal={handleOpenOrderCart}
+              isAdmin={isAdmin}
+              onOpenDecorationModal={() => setIsDecorationModalOpen(true)}
             />
           </div>
         )}
@@ -1429,6 +1528,16 @@ export default function App() {
 
           <button
             type="button"
+            onClick={() => setIsDecorationModalOpen(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
+            title="Quyền Admin: Cài đặt đếm ngược Flash Sale, hiệu ứng rơi lãng mạn & trang trí website"
+          >
+            <Palette className="w-4 h-4 text-yellow-300" />
+            <span>Trang trí & Flash Sale</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsSectionVisibilityOpen(true)}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs sm:text-sm shadow-xl active:scale-95 transition-all border-2 border-white cursor-pointer group"
             title="Quyền Admin: Bật / Tắt các phần trên Landing Page (Hero, Combo, Quà tặng, Sản phẩm...)"
@@ -1554,6 +1663,7 @@ export default function App() {
         onOpenCategoryEditor={() => handleOpenCategoryEditor()}
         onOpenOrders={() => setIsOrderManagementOpen(true)}
         onOpenSiteTextEditor={() => setIsSiteTextEditorOpen(true)}
+        onOpenDecoration={() => setIsDecorationModalOpen(true)}
         hiddenCount={hiddenProductIds.length}
         adminEmail={adminEmail}
       />
@@ -1591,6 +1701,9 @@ export default function App() {
         selectedCombo={orderSelectedCombo}
         customPrices={customPrices}
         customImages={customImages}
+        isRecipientHidden={isGiftRecipientHidden}
+        isAdmin={isAdmin}
+        onToggleRecipient={() => handleToggleSection('gift_recipient')}
         onOrderSuccess={() => {
           setSelectedProductIds([]);
         }}
@@ -1639,6 +1752,16 @@ export default function App() {
         onRestoreCategory={handleRestoreCategory}
         onSaveCategoryOverride={handleSaveCategory}
         onResetCategoryOverride={handleResetCategory}
+      />
+
+      {/* 24. Store Decoration & Flash Sale Customizer Modal (Admin only) */}
+      <StoreDecorationModal
+        isOpen={isDecorationModalOpen}
+        onClose={() => setIsDecorationModalOpen(false)}
+        decorSettings={decorSettings}
+        isRecipientHidden={isGiftRecipientHidden}
+        onSaveDecorSettings={handleSaveDecorSettings}
+        onResetDecorSettings={handleResetDecorSettings}
       />
     </div>
   );

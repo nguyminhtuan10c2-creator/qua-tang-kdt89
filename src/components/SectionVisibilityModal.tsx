@@ -33,6 +33,13 @@ export const LANDING_PAGE_SECTIONS: SectionConfig[] = [
     icon: <Sparkles className="w-4 h-4 text-amber-500" />,
   },
   {
+    id: 'flash_sale',
+    name: 'Thanh đồng hồ đếm ngược Flash Sale Giờ Vàng',
+    description: 'Đồng hồ đếm lùi giờ, thanh % đã bán, nút Săn deal ngay',
+    icon: <Clock className="w-4 h-4 text-red-500" />,
+    badge: 'Kích cầu',
+  },
+  {
     id: 'combos',
     name: 'Gói Combo thiết bị gia đình (Combo Quà tặng)',
     description: 'Combo Quà cho mẹ, Căn bếp ấm, Nhà mát (có thể ẩn/hiện từng combo)',

@@ -365,6 +365,8 @@ export interface OrderPayload {
   address: string;
   items: OrderItem[];
   totalAmount: string;
+  recipient?: string;
+  giftCardRequested?: boolean;
   paymentMethod?: string;
   note?: string;
   status?: 'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy';
@@ -413,7 +415,7 @@ export async function sendOrderEmailNotification(order: StoredOrder, targetEmail
       )
       .join('\n');
 
-    const bodyPayload = {
+    const bodyPayload: Record<string, string> = {
       _subject: `🔔 [ĐƠN HÀNG MỚI KDT-89] Khách hàng ${order.customerName} - SĐT: ${order.phoneNumber}`,
       _template: 'table',
       _captcha: 'false',
@@ -421,6 +423,8 @@ export async function sendOrderEmailNotification(order: StoredOrder, targetEmail
       'Tên khách hàng': order.customerName,
       'Số điện thoại': order.phoneNumber,
       'Địa chỉ giao hàng': order.address,
+      'Người nhận / Mục đích': order.recipient || 'Tự dùng / Không chỉ định',
+      'Yêu cầu gói quà & thiệp': order.giftCardRequested ? 'CÓ (Miễn phí 100%)' : 'Không',
       'Danh sách sản phẩm': itemsListHtml,
       'Tổng tiền tạm tính': order.totalAmount,
       'Hình thức thanh toán': order.paymentMethod || 'COD',
@@ -466,6 +470,8 @@ export function generateOrderMailtoUri(order: StoredOrder, targetEmail = ADMIN_N
     `Khách hàng: ${order.customerName}\n` +
     `Số điện thoại: ${order.phoneNumber}\n` +
     `Địa chỉ giao hàng: ${order.address}\n` +
+    `Người nhận quà: ${order.recipient || 'Tự dùng / Không chỉ định'}\n` +
+    `Gói quà & Thiệp: ${order.giftCardRequested ? 'CÓ (Miễn phí 100%)' : 'Không'}\n` +
     `Ghi chú: ${order.note || 'Không có'}\n` +
     `----------------------------------------\n` +
     `SẢN PHẨM ĐẶT MUA:\n${itemsText}\n` +

@@ -105,14 +105,8 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             </div>
           </div>
 
-          {/* Navigation Controls on Mobile & Desktop */}
-          <div className="flex items-center justify-between sm:justify-end gap-2.5 pt-1 sm:pt-0">
-            {/* Mobile swipe hint */}
-            <span className="sm:hidden text-[11px] text-neutral-500 font-medium flex items-center gap-1">
-              <span>👉 Vuốt ngang xem tiếp</span>
-            </span>
-
-            {/* Quick left/right arrows for thumb navigation */}
+          {/* Admin action buttons */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 pt-1 sm:pt-0">
             <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
               {isAdmin && onOpenCategoryEditor && (
                 <button
@@ -129,29 +123,13 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                 <button
                   type="button"
                   onClick={() => onAddProductToCategory(category.id)}
-                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer mr-1"
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                   title={`Thêm sản phẩm mới vào danh mục ${category.name}`}
                 >
                   <Plus className="w-3 h-3" />
                   <span>Thêm món</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={scrollLeft}
-                className="w-7 h-7 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-100 flex items-center justify-center transition-colors shadow-2xs"
-                title="Xem sản phẩm trước"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 text-neutral-600" />
-              </button>
-              <button
-                type="button"
-                onClick={scrollRight}
-                className="w-7 h-7 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-100 flex items-center justify-center transition-colors shadow-2xs"
-                title="Xem sản phẩm kế tiếp"
-              >
-                <ChevronRight className="w-3.5 h-3.5 text-neutral-600" />
-              </button>
             </div>
           </div>
         </div>
@@ -167,15 +145,12 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
         )}
       </div>
 
-      {/* Product List: Horizontal Snap Scroll on Mobile (-mx-4 for full edge swipe), Responsive Grid on Desktop */}
-      <div
-        ref={scrollRef}
-        className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 gap-3.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-5 sm:overflow-visible"
-      >
+      {/* Product List: Điện Máy Xanh style 2-column grid on mobile, responsive grid on desktop */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {productsToRender.map((product) => (
           <div
             key={product.id}
-            className="w-[80vw] max-w-[295px] shrink-0 snap-center sm:w-auto sm:shrink sm:snap-align-none flex flex-col"
+            className="w-full flex flex-col"
           >
             <ProductCard
               product={product}

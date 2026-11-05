@@ -45,6 +45,7 @@ function persistAdminAuth(value: boolean) {
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { FlashSaleCountdown } from './components/FlashSaleCountdown';
+import { MegaSaleCampaignCountdown } from './components/MegaSaleCampaignCountdown';
 import { StoreDecorations } from './components/StoreDecorations';
 import { StoreDecorationModal, DEFAULT_DECOR_SETTINGS } from './components/StoreDecorationModal';
 import { ComboSection } from './components/ComboSection';
@@ -66,8 +67,11 @@ import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { SectionVisibilityModal } from './components/SectionVisibilityModal';
 import { OrderModal } from './components/OrderModal';
 import { OrderManagementModal } from './components/OrderManagementModal';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
+import { VoucherWalletModal } from './components/VoucherWalletModal';
 import { SiteTextEditorModal, DEFAULT_SITE_TEXTS, DEFAULT_SITE_SEO } from './components/SiteTextEditorModal';
 import { PRODUCTS, CATEGORIES, ComboItem, ProductItem, CategoryItem } from './data/products';
+import { CustomerAccount, VoucherItem } from './data/vouchers';
 import {
   subscribeToSiteSettings,
   saveSiteSettingsToFirestore,
@@ -254,6 +258,29 @@ export default function App() {
   // Order management modal state (Admin)
   const [isOrderManagementOpen, setIsOrderManagementOpen] = useState<boolean>(false);
   const [ordersList, setOrdersList] = useState<StoredOrder[]>([]);
+
+  // Customer Account & Voucher Wallet State (Kho KDT-89)
+  const [customerAccount, setCustomerAccount] = useState<CustomerAccount | null>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_customer_account');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState<boolean>(false);
+  const [isVoucherWalletOpen, setIsVoucherWalletOpen] = useState<boolean>(false);
+  const [selectedVoucherForOrder, setSelectedVoucherForOrder] = useState<VoucherItem | null>(null);
+
+  const handleLogoutCustomer = () => {
+    setCustomerAccount(null);
+    try {
+      localStorage.removeItem('kdt89_customer_account');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
 
   // Site text & SEO edit modal state (Admin)
   const [isSiteTextEditorOpen, setIsSiteTextEditorOpen] = useState<boolean>(false);
@@ -511,6 +538,17 @@ export default function App() {
     }
   };
 
+  // Check if Mega Sale campaign (e.g. 11.11) is actively running or in teaser
+  const isMegaSaleActive = useMemo(() => {
+    if (hiddenSections.includes('mega_sale_countdown')) return false;
+    const cfg = decorSettings?.megaSaleConfig;
+    if (cfg && cfg.enabled === false) return false;
+    const teaserTime = new Date(cfg?.teaserStartDate || '2026-11-02T00:00').getTime();
+    const endTime = new Date(cfg?.endDate || '2026-11-13T23:59').getTime();
+    const nowTime = Date.now();
+    return nowTime >= teaserTime && nowTime <= endTime;
+  }, [hiddenSections, decorSettings?.megaSaleConfig]);
+
   // Visibility modal state
   const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState<boolean>(false);
 
@@ -684,6 +722,14 @@ export default function App() {
     }).catch((e) => console.error('Lỗi lưu decorSettings lên Firebase', e));
   };
 
+  const handleQuickUpdateDecorSettings = (partial: Partial<SiteDecorSettings>) => {
+    const updated = {
+      ...(decorSettings || DEFAULT_DECOR_SETTINGS),
+      ...partial,
+    };
+    handleSaveDecorSettings(updated);
+  };
+
   const handleResetDecorSettings = () => {
     setDecorSettings(DEFAULT_DECOR_SETTINGS);
     try {
@@ -822,6 +868,21 @@ export default function App() {
       deletedProductIds: updatedDeleted,
       customProducts: updatedCustom,
     }).catch((e) => console.error('Lỗi lưu deletedProductIds lên Firebase', e));
+  };
+
+  const handleImportBulkProducts = (newProds: ProductItem[]) => {
+    setCustomProducts((prev) => {
+      const updated = [...newProds, ...prev];
+      try {
+        localStorage.setItem('kdt89_custom_products', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      saveSiteSettingsToFirestore({ customProducts: updated }).catch((e) =>
+        console.error('Lỗi lưu customProducts sau khi import lên Firebase', e)
+      );
+      return updated;
+    });
   };
 
   // Section Visibility toggle handlers
@@ -1059,10 +1120,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-neutral-50 text-neutral-900">
       {/* Admin Top Notification Strip */}
       {isAdmin && (
-        <aside className="bg-amber-500 text-white px-3 sm:px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm sticky top-0 z-50">
+        <aside className="w-full max-w-full overflow-hidden bg-amber-500 text-white px-3 sm:px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm sticky top-0 z-50">
           <div className="flex items-center gap-2 font-bold flex-wrap">
             <span className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-black uppercase tracking-wider">
               👑 Admin KDT-89
@@ -1204,6 +1265,9 @@ export default function App() {
         onLogoutAdmin={handleAdminLogout}
         customLogo={customImages['site-logo']}
         customTexts={customTexts}
+        customerAccount={customerAccount}
+        onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
+        onOpenVoucherWallet={() => setIsVoucherWalletOpen(true)}
       />
 
       <main className="flex-1">
@@ -1235,8 +1299,36 @@ export default function App() {
           </div>
         )}
 
-        {/* 2.5. Flash Sale Urgency Countdown Timer Banner */}
-        {(!hiddenSections.includes('flash_sale') || isAdmin) && (
+        {/* 2.4. Mega Sale Campaign Countdown (Chạy khi sắp hoặc đang có chiến dịch lớn 11.11, Black Friday...) */}
+        {((isMegaSaleActive && !hiddenSections.includes('mega_sale_countdown')) || isAdmin) && (
+          <div className="relative">
+            {isAdmin && hiddenSections.includes('mega_sale_countdown') && (
+              <div className="bg-amber-950/95 text-amber-200 text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-amber-800">
+                <EyeOff className="w-3.5 h-3.5 text-amber-400" />
+                <span className="font-semibold">Đồng hồ Siêu Sale Đón Đầu đang ẩn với khách hàng</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSection('mega_sale_countdown')}
+                  className="px-2 py-0.5 rounded bg-amber-700 hover:bg-amber-600 text-white font-bold ml-2 transition-colors cursor-pointer text-[11px]"
+                >
+                  Hiện lại
+                </button>
+              </div>
+            )}
+            <MegaSaleCampaignCountdown
+              decorSettings={decorSettings}
+              onExploreProducts={handleExploreProducts}
+              onOpenOrderModal={handleOpenOrderCart}
+              onOpenConsultation={(note) => handleOpenConsultation(note || 'Tư vấn săn deal Siêu Sale 11.11')}
+              isAdmin={isAdmin}
+              onOpenDecorationModal={() => setIsDecorationModalOpen(true)}
+              onUpdateDecorSettings={handleQuickUpdateDecorSettings}
+            />
+          </div>
+        )}
+
+        {/* 2.5. Flash Sale Hằng Ngày (Chỉ hiển thị khi KHÔNG có chiến dịch lớn 11.11, tránh bị trùng lặp 2 đồng hồ) */}
+        {((!isMegaSaleActive && !hiddenSections.includes('flash_sale')) || isAdmin) && (
           <div className="relative">
             {isAdmin && hiddenSections.includes('flash_sale') && (
               <div className="bg-purple-900/95 text-white text-xs py-1.5 px-4 text-center flex items-center justify-center gap-2 border-b border-purple-700">
@@ -1255,8 +1347,10 @@ export default function App() {
               decorSettings={decorSettings}
               onExploreProducts={handleExploreProducts}
               onOpenOrderModal={handleOpenOrderCart}
+              onOpenConsultation={(note) => handleOpenConsultation(note || 'Tư vấn săn deal sale lớn')}
               isAdmin={isAdmin}
               onOpenDecorationModal={() => setIsDecorationModalOpen(true)}
+              onUpdateDecorSettings={handleQuickUpdateDecorSettings}
             />
           </div>
         )}
@@ -1335,6 +1429,21 @@ export default function App() {
               customPrices={customPrices}
               customCategories={customCategories}
               customTexts={customTexts}
+              decorSettings={decorSettings}
+              onOpenDecorationModal={() => setIsDecorationModalOpen(true)}
+              showBudgetFilter={
+                !hiddenSections.includes('budget_filter') &&
+                Boolean(decorSettings?.showBudgetFilter)
+              }
+              onToggleBudgetFilter={(show) => {
+                handleQuickUpdateDecorSettings({ showBudgetFilter: show });
+                if (!show && !hiddenSections.includes('budget_filter')) {
+                  handleToggleSection('budget_filter');
+                } else if (show && hiddenSections.includes('budget_filter')) {
+                  handleToggleSection('budget_filter');
+                }
+              }}
+              onImportBulkProducts={handleImportBulkProducts}
               onToggleProduct={handleToggleProduct}
               onBuyProduct={handleOpenOrderProduct}
               onOpenOrderModal={handleOpenOrderCart}
@@ -1355,6 +1464,7 @@ export default function App() {
               hiddenProductIds={hiddenProductIds}
               onToggleHideProduct={handleToggleHideProduct}
               onOpenManageVisibility={() => setIsVisibilityModalOpen(true)}
+              onOpenVoucherWallet={() => setIsVoucherWalletOpen(true)}
             />
           </div>
         )}
@@ -1704,8 +1814,45 @@ export default function App() {
         isRecipientHidden={isGiftRecipientHidden}
         isAdmin={isAdmin}
         onToggleRecipient={() => handleToggleSection('gift_recipient')}
+        customerAccount={customerAccount}
+        initialSelectedVoucher={selectedVoucherForOrder}
+        onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
         onOrderSuccess={() => {
           setSelectedProductIds([]);
+          setSelectedVoucherForOrder(null);
+        }}
+      />
+
+      {/* 19.1. Customer Registration & Login Modal (Đăng nhập / Tạo tài khoản khách hàng) */}
+      <CustomerAuthModal
+        isOpen={isCustomerAuthOpen}
+        onClose={() => setIsCustomerAuthOpen(false)}
+        currentAccount={customerAccount}
+        onLogoutCustomer={handleLogoutCustomer}
+        onOpenVoucherWallet={() => {
+          setIsCustomerAuthOpen(false);
+          setIsVoucherWalletOpen(true);
+        }}
+        onLoginSuccess={(acc) => {
+          setCustomerAccount(acc);
+          setIsVoucherWalletOpen(true);
+        }}
+      />
+
+      {/* 19.2. Customer Voucher Wallet Modal (Ví Voucher ưu đãi Kho KDT-89) */}
+      <VoucherWalletModal
+        isOpen={isVoucherWalletOpen}
+        onClose={() => setIsVoucherWalletOpen(false)}
+        customerAccount={customerAccount}
+        onOpenLogin={() => {
+          setIsVoucherWalletOpen(false);
+          setIsCustomerAuthOpen(true);
+        }}
+        onLogoutCustomer={handleLogoutCustomer}
+        onSelectVoucherToShop={(voucher) => {
+          setSelectedVoucherForOrder(voucher);
+          setIsVoucherWalletOpen(false);
+          handleExploreProducts();
         }}
       />
 

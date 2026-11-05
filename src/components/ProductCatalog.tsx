@@ -1,11 +1,34 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { CATEGORIES, PRODUCTS, ProductItem, CategoryItem } from '../data/products';
+import { CATEGORIES, PRODUCTS, ProductItem, CategoryItem, MAX_CATALOG_PRICE, isProductInPriceRange } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
 import { BudgetFilter } from './BudgetFilter';
-import { Search, Sparkles, Flame, Droplets, Wind, UtensilsCrossed, LayoutGrid, Columns, ChevronLeft, ChevronRight, Camera, Tv, Eye, EyeOff, Plus, Pencil, Layers } from 'lucide-react';
+import { BulkProductImportModal } from './BulkProductImportModal';
+import { FlashSaleTimeSlots } from './FlashSaleTimeSlots';
+import {
+  Search,
+  Sparkles,
+  Flame,
+  Droplets,
+  Wind,
+  UtensilsCrossed,
+  LayoutGrid,
+  Columns,
+  ChevronLeft,
+  ChevronRight,
+  Camera,
+  Tv,
+  Eye,
+  EyeOff,
+  Plus,
+  Pencil,
+  Layers,
+  Zap,
+  Sliders,
+  FileSpreadsheet,
+} from 'lucide-react';
 
-import type { CategoryOverride } from '../lib/firebase';
+import type { CategoryOverride, SiteDecorSettings } from '../lib/firebase';
 
 interface ProductCatalogProps {
   selectedProductIds: string[];
@@ -15,6 +38,11 @@ interface ProductCatalogProps {
   customImages?: Record<string, string>;
   customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
   customCategories?: Record<string, CategoryOverride>;
+  decorSettings?: SiteDecorSettings;
+  onOpenDecorationModal?: () => void;
+  showBudgetFilter?: boolean;
+  onToggleBudgetFilter?: (show: boolean) => void;
+  onImportBulkProducts?: (products: ProductItem[]) => void;
   onToggleProduct: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;
   onOpenImageUpdater?: (product: ProductItem) => void;
@@ -32,6 +60,7 @@ interface ProductCatalogProps {
   onToggleHideProduct?: (productId: string) => void;
   onOpenManageVisibility?: () => void;
   customTexts?: Record<string, string>;
+  onOpenVoucherWallet?: () => void;
 }
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({
@@ -43,6 +72,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   customPrices = {},
   customCategories = {},
   customTexts = {},
+  decorSettings,
+  onOpenDecorationModal,
+  showBudgetFilter = false,
+  onToggleBudgetFilter,
+  onImportBulkProducts,
   onToggleProduct,
   onBuyProduct,
   onOpenOrderModal,
@@ -59,11 +93,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   hiddenProductIds = [],
   onToggleHideProduct,
   onOpenManageVisibility,
+  onOpenVoucherWallet,
 }) => {
+  const [activeDealFilter, setActiveDealFilter] = useState<'all' | 'flash_deal' | 'best_seller' | 'deep_discount' | 'new_arrival'>('all');
   const [activeCategoryTab, setActiveCategoryTab] = useState<string>('all');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, MAX_CATALOG_PRICE]);
   const [selectedBudget, setSelectedBudget] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [mobileLayout, setMobileLayout] = useState<'horizontal' | 'grid'>('horizontal');
+  const [mobileLayout, setMobileLayout] = useState<'horizontal' | 'grid'>('grid');
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState<boolean>(false);
 
   const filteredScrollRef = useRef<HTMLDivElement>(null);
 
@@ -103,17 +141,61 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
       }
       const matchCategory =
         activeCategoryTab === 'all' || p.category === activeCategoryTab;
-      const matchBudget =
-        selectedBudget === 'all' || p.budgetTier === selectedBudget;
+
+      // Price range filter
+      const customPrice = customPrices[p.id];
+      const matchPrice =
+        !showBudgetFilter && priceRange[0] === 0 && priceRange[1] >= MAX_CATALOG_PRICE
+          ? true
+          : isProductInPriceRange(p, priceRange[0], priceRange[1], customPrice);
+
       const matchSearch =
         searchQuery.trim() === '' ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.practicalValue.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (p.modelCode && p.modelCode.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      return matchCategory && matchBudget && matchSearch;
+      // Quick Deal Tabs filter like Điện Máy Xanh
+      let matchDeal = true;
+      if (activeDealFilter === 'flash_deal') {
+        matchDeal =
+          Boolean(p.highlightTag?.toLowerCase().includes('sale')) ||
+          Boolean(p.highlightTag?.toLowerCase().includes('giảm')) ||
+          Boolean(p.highlightTag?.toLowerCase().includes('deal')) ||
+          Boolean(p.highlightTag?.toLowerCase().includes('hot')) ||
+          Boolean(p.referencePrice && p.programPrice !== p.referencePrice);
+      } else if (activeDealFilter === 'best_seller') {
+        matchDeal =
+          Boolean(p.highlightTag?.toLowerCase().includes('chạy')) ||
+          p.name.includes('Cuckoo') ||
+          p.name.includes('Casper') ||
+          p.name.includes('Ariston') ||
+          p.name.includes('Sunhouse') ||
+          Boolean(p.stockStatus?.includes('1')) ||
+          Boolean(p.stockStatus?.includes('2'));
+      } else if (activeDealFilter === 'deep_discount') {
+        matchDeal = Boolean(p.referencePrice && p.referencePrice.length > 0);
+      } else if (activeDealFilter === 'new_arrival') {
+        matchDeal =
+          p.id.startsWith('custom-') ||
+          p.id.startsWith('import-') ||
+          Boolean(p.highlightTag?.toLowerCase().includes('mới')) ||
+          Boolean(p.stockStatus?.includes('Sẵn'));
+      }
+
+      return matchCategory && matchPrice && matchSearch && matchDeal;
     });
-  }, [activeCategoryTab, selectedBudget, searchQuery, isAdmin, hiddenProductIds]);
+  }, [
+    allProducts,
+    activeCategoryTab,
+    priceRange,
+    customPrices,
+    searchQuery,
+    isAdmin,
+    hiddenProductIds,
+    showBudgetFilter,
+    activeDealFilter,
+  ]);
 
   const scrollFilteredLeft = () => {
     if (filteredScrollRef.current) {
@@ -127,7 +209,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     }
   };
 
-  const isDefaultFullView = activeCategoryTab === 'all' && selectedBudget === 'all' && !searchQuery;
+  const isDefaultFullView =
+    activeDealFilter === 'all' &&
+    activeCategoryTab === 'all' &&
+    (!showBudgetFilter || (priceRange[0] === 0 && priceRange[1] >= MAX_CATALOG_PRICE)) &&
+    !searchQuery;
 
   return (
     <section id="products" className="py-10 sm:py-16 bg-neutral-50 overflow-hidden">
@@ -196,6 +282,40 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </button>
             )}
 
+            {/* Admin Bulk Import Button */}
+            {isAdmin && onImportBulkProducts && (
+              <button
+                type="button"
+                onClick={() => setIsBulkImportOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
+                title="Quyền Admin: Nhập bảng giá từ file Excel/CSV hoặc dán từ Zalo/bảng tính"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                <span>Nhập File / Bảng giá</span>
+              </button>
+            )}
+
+            {/* Admin Toggle Budget Filter Button */}
+            {isAdmin && onToggleBudgetFilter && (
+              <button
+                type="button"
+                onClick={() => onToggleBudgetFilter(!showBudgetFilter)}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs sm:text-sm font-bold shadow-xs transition-all shrink-0 cursor-pointer active:scale-95 ${
+                  showBudgetFilter
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                    : 'bg-white text-neutral-600 border-neutral-300 hover:bg-neutral-100'
+                }`}
+                title="Quyền Admin: Bật hoặc tắt bảng giá ngân sách (Thanh kéo giá) trên toàn website"
+              >
+                {showBudgetFilter ? (
+                  <Sliders className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-neutral-400" />
+                )}
+                <span>Bảng giá ngân sách: {showBudgetFilter ? 'ĐANG BẬT' : 'ĐANG TẮT (Ẩn)'}</span>
+              </button>
+            )}
+
             {/* Only Admin sees the quick image updater button */}
             {isAdmin && onOpenImageUpdater && (
               <button
@@ -231,14 +351,132 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
         </div>
 
-        {/* Budget Filter Bar */}
-        <div className="mb-5">
-          <BudgetFilter
-            selectedBudget={selectedBudget}
-            onSelectBudget={setSelectedBudget}
-            activeCount={filteredProducts.length}
-          />
+        {/* Điện Máy Xanh style Quick Deal Filter Pills ("các tab nhỏ chuyển đổi về các sản phẩm đang sale tốt") */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5">
+            <button
+              type="button"
+              onClick={() => setActiveDealFilter('all')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                activeDealFilter === 'all'
+                  ? 'bg-neutral-900 text-white shadow-xs'
+                  : 'bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 shadow-2xs'
+              }`}
+            >
+              <span>🔥 Tất cả sản phẩm</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${activeDealFilter === 'all' ? 'bg-neutral-800 text-neutral-200' : 'bg-neutral-100 text-neutral-600'}`}>
+                {isAdmin ? allProducts.length : allProducts.filter(p => !hiddenProductIds.includes(p.id)).length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDealFilter('flash_deal')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                activeDealFilter === 'flash_deal'
+                  ? 'bg-red-600 text-white shadow-xs ring-2 ring-red-400/30'
+                  : 'bg-white hover:bg-red-50 text-red-700 border border-red-200 shadow-2xs'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400 shrink-0" />
+              <span>⚡ Deal Sốc Hôm Nay</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDealFilter('best_seller')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                activeDealFilter === 'best_seller'
+                  ? 'bg-amber-500 text-neutral-950 shadow-xs ring-2 ring-amber-400/30'
+                  : 'bg-white hover:bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs'
+              }`}
+            >
+              <span>👑 Bán Chạy Nhất</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDealFilter('deep_discount')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                activeDealFilter === 'deep_discount'
+                  ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/30'
+                  : 'bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs'
+              }`}
+            >
+              <span>💎 Giảm Sâu &gt; 20%</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveDealFilter('new_arrival')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
+                activeDealFilter === 'new_arrival'
+                  ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/30'
+                  : 'bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+              }`}
+            >
+              <span>⭐ Hàng Mới Về</span>
+            </button>
+          </div>
         </div>
+
+        {/* =========================================================================
+            KHUNG GIỜ SĂN SALE CHUẨN ĐIỆN MÁY XANH (HIỂN THỊ KHI CHỌN DEAL SỐC HOẶC TẤT CẢ)
+            Phân biệt rõ ràng: Đếm ngược ĐẾN NGÀY SALE vs Trong THỜI GIAN SALE
+           ========================================================================= */}
+        {(activeDealFilter === 'flash_deal' || activeDealFilter === 'all') && (
+          <FlashSaleTimeSlots
+            decorSettings={decorSettings}
+            activeCategoryTab={activeCategoryTab}
+            onSelectCategoryTab={(catId) => {
+              if (catId === 'flash_deal') {
+                setActiveDealFilter('flash_deal');
+                setActiveCategoryTab('all');
+              } else if (catId === 'discount_50') {
+                setActiveDealFilter('deep_discount');
+              } else {
+                setActiveCategoryTab(catId);
+                setActiveDealFilter('flash_deal');
+              }
+            }}
+            isAdmin={isAdmin}
+            onOpenDecorationModal={onOpenDecorationModal}
+            onOpenConsultation={onOpenConsultation}
+            onOpenVoucherWallet={onOpenVoucherWallet}
+          />
+        )}
+
+        {/* Budget Filter Bar with Range Slider - Bật/Tắt theo nhu cầu của Admin */}
+        {(showBudgetFilter || isAdmin) && (
+          <div className="mb-5">
+            {isAdmin && !showBudgetFilter && (
+              <div className="mb-2 p-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <EyeOff className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Bảng giá ngân sách đang ẨN với khách hàng (Trang web đang rất gọn gàng)</span>
+                </span>
+                {onToggleBudgetFilter && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleBudgetFilter(true)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] cursor-pointer"
+                  >
+                    Bật hiện lại
+                  </button>
+                )}
+              </div>
+            )}
+            {showBudgetFilter && (
+              <BudgetFilter
+                priceRange={priceRange}
+                onPriceRangeChange={setPriceRange}
+                selectedBudget={selectedBudget}
+                onSelectBudget={setSelectedBudget}
+                activeCount={filteredProducts.length}
+              />
+            )}
+          </div>
+        )}
 
         {/* Category Tabs (Segmented control) with Mobile View Mode Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-2 border-b border-neutral-200">
@@ -321,10 +559,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <button
               onClick={() => {
                 setActiveCategoryTab('all');
+                setPriceRange([0, MAX_CATALOG_PRICE]);
                 setSelectedBudget('all');
                 setSearchQuery('');
               }}
-              className="mt-3 px-4 py-2 rounded-lg bg-neutral-900 text-white text-xs font-semibold"
+              className="mt-3 px-4 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold cursor-pointer transition-colors"
             >
               Đặt lại bộ lọc
             </button>
@@ -388,13 +627,13 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               )}
             </div>
 
-            {/* Container */}
+            {/* Container - Điện Máy Xanh style 2-column grid on mobile */}
             <div
               ref={filteredScrollRef}
               className={
                 mobileLayout === 'horizontal'
                   ? 'flex overflow-x-auto snap-x snap-mandatory no-scrollbar pb-3 pt-1 gap-3.5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-5 sm:overflow-visible'
-                  : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5'
+                  : 'grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3 lg:grid-cols-4'
               }
             >
               {filteredProducts.map((product) => (
@@ -403,7 +642,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   className={
                     mobileLayout === 'horizontal'
                       ? 'w-[80vw] max-w-[295px] shrink-0 snap-center sm:w-auto sm:shrink sm:snap-align-none flex flex-col'
-                      : 'flex flex-col'
+                      : 'w-full flex flex-col'
                   }
                 >
                   <ProductCard
@@ -466,6 +705,18 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
         )}
       </div>
+
+      {/* Admin Bulk Product Import Modal */}
+      {isAdmin && onImportBulkProducts && (
+        <BulkProductImportModal
+          isOpen={isBulkImportOpen}
+          onClose={() => setIsBulkImportOpen(false)}
+          categories={displayedCategories}
+          onImportProducts={(imported) => {
+            onImportBulkProducts(imported);
+          }}
+        />
+      )}
     </section>
   );
 };

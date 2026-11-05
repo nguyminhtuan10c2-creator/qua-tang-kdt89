@@ -13,16 +13,16 @@ export const KDTLogo: React.FC<KDTLogoProps> = ({
   variant = 'full',
   customLogo,
 }) => {
-  const iconSize = size === 'sm' ? 32 : size === 'lg' ? 48 : 40;
+  const iconSize = size === 'sm' ? 24 : size === 'lg' ? 44 : 30;
 
   return (
-    <div className={`inline-flex items-center gap-2.5 ${className}`}>
+    <div className={`inline-flex items-center gap-1.5 sm:gap-2.5 shrink-0 ${className}`}>
       {customLogo ? (
         <img
           src={customLogo}
           alt="KDT-89 Logo"
           style={{ height: `${iconSize}px` }}
-          className="w-auto max-w-[140px] object-contain shrink-0 rounded-md"
+          className="w-auto max-w-[110px] sm:max-w-[140px] object-contain shrink-0 rounded-md"
         />
       ) : (
         /* Exact SVG recreation of the KDT emblem from the uploaded logo image:
@@ -34,7 +34,7 @@ export const KDTLogo: React.FC<KDTLogoProps> = ({
           viewBox="0 0 120 120"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="shrink-0 drop-shadow-xs"
+          className="w-6.5 h-6.5 sm:w-7.5 sm:h-7.5 shrink-0 drop-shadow-xs"
         >
         {/* Top-right metallic grey orbital swoosh arcs */}
         <path
@@ -81,11 +81,11 @@ export const KDTLogo: React.FC<KDTLogoProps> = ({
 
       {variant === 'full' && (
         <div className="flex flex-col text-left">
-          <span className="font-extrabold text-base sm:text-lg text-neutral-900 tracking-tight leading-tight flex items-center gap-1.5">
+          <span className="font-extrabold text-sm sm:text-lg text-neutral-900 tracking-tight leading-tight flex items-center gap-1 sm:gap-1.5">
             <span className="text-[#F25A24]">KDT</span>
             <span className="text-neutral-800">-89</span>
           </span>
-          <span className="text-[10px] sm:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider leading-none">
+          <span className="hidden sm:block text-[10px] sm:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider leading-none">
             Điện máy & Gia dụng
           </span>
         </div>

@@ -11,6 +11,7 @@ import {
   getFirestore,
   doc,
   collection,
+  getDoc,
   getDocFromServer,
   setDoc,
   updateDoc,
@@ -100,21 +101,42 @@ export interface CategoryOverride {
   tagline?: string;
 }
 
+export interface MegaSaleCampaignConfig {
+  enabled: boolean;
+  campaignId: string; // 'double_11' | 'black_friday' | 'double_12' | 'tet_holiday' | 'year_end' | 'custom'
+  title: string;
+  badge: string;
+  subtitle: string;
+  startDate: string; // ISO format e.g. '2026-11-09T00:00'
+  endDate: string; // ISO format e.g. '2026-11-13T23:59'
+  teaserStartDate: string; // ISO format e.g. '2026-11-08T00:00' (hoặc '2026-11-02T00:00')
+  highlights?: string;
+  theme?: 'red' | 'black' | 'gold' | 'rose' | 'orange';
+  buttonTextUpcoming?: string;
+  buttonTextLive?: string;
+  earlyBirdSlots?: number;
+}
+
 export interface SiteDecorSettings {
   showCountdown?: boolean;
+  activeSaleCampaignId?: string; // 'double_11' | 'black_friday' | 'double_12' | 'tet_holiday' | 'year_end' | 'daily_flash'
+  allowCustomerSwitchCampaign?: boolean; // Allow visitors to click and preview countdown of other upcoming big sales
   countdownTitle?: string;
   countdownSubtitle?: string;
   countdownTargetDate?: string;
-  countdownMode?: 'daily' | 'target_date';
+  countdownMode?: 'daily' | 'target_date' | 'campaign';
   countdownBadge?: string;
   countdownSoldPercent?: number;
   countdownButtonText?: string;
+  countdownTheme?: 'red' | 'black' | 'gold' | 'rose' | 'orange';
   fallingEffect?: 'none' | 'sakura' | 'red_envelope' | 'confetti' | 'snow' | 'stars' | 'hearts';
   fallingSpeed?: 'slow' | 'normal' | 'fast';
   showLiveOrderTicker?: boolean;
   showCornerRibbon?: boolean;
   cornerRibbonText?: string;
   enablePulsingCta?: boolean;
+  showBudgetFilter?: boolean; // Bật / Tắt bộ lọc bảng giá ngân sách (Price Range Slider)
+  megaSaleConfig?: MegaSaleCampaignConfig;
 }
 
 export interface SiteSettingsData {
@@ -324,15 +346,28 @@ export async function submitConsultationLead(lead: ConsultationLeadPayload): Pro
 /**
  * Google Sign-In for Admin
  */
-export async function loginAdminWithGoogle(): Promise<{ email: string | null; isAdmin: boolean }> {
+export async function loginAdminWithGoogle(): Promise<{ email: string | null; isAdmin: boolean; cancelled?: boolean }> {
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     const isOwner = user.email === 'nguyminhtuan10C2@gmail.com';
     return { email: user.email, isAdmin: isOwner };
-  } catch (error) {
-    console.error('Google Sign-In failed', error);
+  } catch (error: any) {
+    const code = error?.code || '';
+    if (
+      code === 'auth/popup-closed-by-user' ||
+      code === 'auth/cancelled-popup-request' ||
+      code === 'auth/user-cancelled'
+    ) {
+      // User closed the popup window or cancelled. This is expected behavior, not an error.
+      return { email: null, isAdmin: false, cancelled: true };
+    }
+    if (code === 'auth/popup-blocked') {
+      throw new Error('Trình duyệt đã chặn cửa sổ đăng nhập popup. Anh vui lòng cho phép popup hoặc dùng mã 89.');
+    }
+    console.warn('Google Sign-In status:', error?.message || error);
     throw error;
   }
 }
@@ -368,6 +403,8 @@ export interface OrderPayload {
   recipient?: string;
   giftCardRequested?: boolean;
   paymentMethod?: string;
+  appliedVoucher?: string;
+  voucherDiscount?: string;
   note?: string;
   status?: 'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy';
 }
@@ -376,6 +413,7 @@ export interface StoredOrder extends OrderPayload {
   id: string;
   createdAt: string;
 }
+
 
 /**
  * Submit order to Firestore
@@ -539,4 +577,229 @@ export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
+
+/* =========================================================================
+   CUSTOMER ACCOUNT & VOUCHER REDEMPTION
+   Khách hàng tạo tài khoản đăng nhập (Họ tên, SĐT, Mật khẩu, Địa chỉ)
+   Mỗi số điện thoại nhận ví voucher, và mỗi voucher chỉ dùng 1 lần/SĐT
+   ========================================================================= */
+
+import type { CustomerAccount, VoucherRedemptionRecord } from '../data/vouchers';
+
+/**
+ * Register a new customer account
+ */
+export async function registerCustomerAccount(data: {
+  fullName: string;
+  phoneNumber: string;
+  password?: string;
+  address?: string;
+}): Promise<CustomerAccount> {
+  const cleanPhone = data.phoneNumber.replace(/[^0-9]/g, '');
+  const docRef = doc(db, 'customers', cleanPhone);
+
+  const existingSnap = await getDoc(docRef).catch(() => null);
+  if (existingSnap && existingSnap.exists()) {
+    throw new Error('Số điện thoại này đã được đăng ký tài khoản trước đó. Vui lòng bấm sang tab Đăng Nhập!');
+  }
+
+  const newAccount: CustomerAccount = {
+    fullName: data.fullName.trim(),
+    phoneNumber: cleanPhone,
+    registeredAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+    vouchersClaimed: ['KDT89-50K', 'KDT89-100K', 'KDT89-200K', 'KDT89-500K'],
+  };
+
+  if (data.password && data.password.trim()) {
+    newAccount.password = data.password.trim();
+  }
+  if (data.address && data.address.trim()) {
+    newAccount.address = data.address.trim();
+  }
+
+  try {
+    await setDoc(docRef, newAccount);
+  } catch (error) {
+    console.warn('Firestore set customer account error:', error);
+  }
+
+  return newAccount;
+}
+
+/**
+ * Customer login with Phone number & optional password
+ */
+export async function loginCustomerAccount(
+  phoneNumber: string,
+  password?: string
+): Promise<CustomerAccount> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const docRef = doc(db, 'customers', cleanPhone);
+
+  const snap = await getDoc(docRef);
+  if (!snap.exists()) {
+    throw new Error('Số điện thoại này chưa có tài khoản. Vui lòng bấm sang tab "Tạo tài khoản" để kích hoạt ví voucher!');
+  }
+
+  const account = snap.data() as CustomerAccount;
+
+  // If account has password and user provided password, verify
+  if (account.password && password) {
+    if (account.password !== password.trim()) {
+      throw new Error('Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
+    }
+  }
+
+  // Update last login
+  try {
+    await updateDoc(docRef, { lastLoginAt: new Date().toISOString() });
+    account.lastLoginAt = new Date().toISOString();
+  } catch (e) {
+    // ignore
+  }
+
+  return account;
+}
+
+/**
+ * Quick register or login customer by Name & Phone number (for backwards compatibility)
+ */
+export async function registerOrLoginCustomer(fullName: string, phoneNumber: string): Promise<CustomerAccount> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const docRef = doc(db, 'customers', cleanPhone);
+
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as CustomerAccount;
+      if (fullName && fullName.trim() !== data.fullName) {
+        await updateDoc(docRef, { fullName: fullName.trim() });
+        data.fullName = fullName.trim();
+      }
+      return data;
+    } else {
+      const newAccount: CustomerAccount = {
+        fullName: fullName.trim(),
+        phoneNumber: cleanPhone,
+        registeredAt: new Date().toISOString(),
+        vouchersClaimed: ['KDT89-100K', 'KDT89-200K', 'KDT89-500K'],
+      };
+      await setDoc(docRef, newAccount);
+      return newAccount;
+    }
+  } catch (error) {
+    console.warn('Firestore customer account sync fallback:', error);
+    return {
+      fullName: fullName.trim(),
+      phoneNumber: cleanPhone,
+      registeredAt: new Date().toISOString(),
+      vouchersClaimed: ['KDT89-100K', 'KDT89-200K', 'KDT89-500K'],
+    };
+  }
+}
+
+/**
+ * Check if a voucher code has already been redeemed by this phone number
+ * Rule: "mỗi sdt mua 1 lần sẽ được dùng voucher 1 lần"
+ */
+export async function checkVoucherRedeemed(phoneNumber: string, voucherCode: string): Promise<boolean> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const redemptionId = `${voucherCode}_${cleanPhone}`;
+  const docRef = doc(db, 'voucher_redemptions', redemptionId);
+
+  try {
+    const snap = await getDoc(docRef);
+    return snap.exists();
+  } catch (error) {
+    console.warn('Check voucher redemption error:', error);
+    return false;
+  }
+}
+
+/**
+ * Record a voucher redemption for a phone number
+ */
+export async function recordVoucherRedemption(
+  phoneNumber: string,
+  customerName: string,
+  voucherCode: string,
+  discountAmount: number,
+  orderId: string
+): Promise<void> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const redemptionId = `${voucherCode}_${cleanPhone}`;
+  const path = `voucher_redemptions/${redemptionId}`;
+  const docRef = doc(db, 'voucher_redemptions', redemptionId);
+
+  const payload: VoucherRedemptionRecord = {
+    id: redemptionId,
+    phoneNumber: cleanPhone,
+    customerName,
+    voucherCode,
+    discountAmount,
+    orderId,
+    usedAt: new Date().toISOString(),
+  };
+
+  try {
+    await setDoc(docRef, payload);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+  }
+}
+
+/**
+ * Get all redeemed vouchers for a specific phone number
+ */
+export async function getCustomerRedeemedVouchers(phoneNumber: string): Promise<string[]> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  const vouchersToCheck = ['KDT89-50K', 'KDT89-100K', 'KDT89-200K', 'KDT89-500K'];
+  const redeemed: string[] = [];
+
+  for (const vCode of vouchersToCheck) {
+    const isRedeemed = await checkVoucherRedeemed(cleanPhone, vCode);
+    if (isRedeemed) redeemed.push(vCode);
+  }
+
+  return redeemed;
+}
+
+/**
+ * Admin: Subscribe to all voucher redemptions
+ */
+export function subscribeToVoucherRedemptions(
+  onRedemptions: (records: VoucherRedemptionRecord[]) => void
+): () => void {
+  const colRef = collection(db, 'voucher_redemptions');
+
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const list: VoucherRedemptionRecord[] = [];
+      snapshot.forEach((snap) => {
+        list.push({ ...snap.data(), id: snap.id } as VoucherRedemptionRecord);
+      });
+      onRedemptions(list);
+    },
+    (err) => {
+      console.warn('Voucher redemptions sync error:', err);
+    }
+  );
+}
+
+/**
+ * Admin: Reset a voucher redemption for a phone number
+ */
+export async function resetVoucherRedemption(redemptionId: string): Promise<void> {
+  const docRef = doc(db, 'voucher_redemptions', redemptionId);
+  const path = `voucher_redemptions/${redemptionId}`;
+
+  try {
+    await deleteDoc(docRef);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
+}
+
 

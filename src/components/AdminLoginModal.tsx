@@ -51,15 +51,22 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     setErrorMsg('');
     try {
       const res = await loginAdminWithGoogle();
-      setSuccessMsg(`Chào anh ${res.email || ''}! Đã xác thực quyền Quản trị qua Google.`);
-      setTimeout(() => {
-        onLoginSuccess();
-        setSuccessMsg('');
-        onClose();
-      }, 700);
+      if (res.cancelled) {
+        // User voluntarily closed the Google popup or cancelled, no error to show
+        return;
+      }
+      if (res.isAdmin) {
+        setSuccessMsg(`Chào anh ${res.email || ''}! Đã xác thực quyền Quản trị qua Google.`);
+        setTimeout(() => {
+          onLoginSuccess();
+          setSuccessMsg('');
+          onClose();
+        }, 700);
+      } else {
+        setErrorMsg(`Tài khoản Google (${res.email || ''}) chưa được cấp quyền Quản trị. Anh có thể nhập mã 89 bên dưới để tiếp tục.`);
+      }
     } catch (err: any) {
-      console.error(err);
-      setErrorMsg('Không thể đăng nhập Google. Anh có thể nhập mã quản trị 89 bên dưới.');
+      setErrorMsg(err?.message || 'Không thể đăng nhập Google lúc này. Anh có thể nhập mã quản trị 89 bên dưới.');
     } finally {
       setIsGoogleLoading(false);
     }
@@ -342,11 +349,30 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                     />
                     <KeyRound className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
                   </div>
-                  <span className="text-[11px] text-neutral-500 block mt-1">
-                    * Gợi ý: Nhập số <strong>89</strong> để bật quyền Admin.
-                  </span>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[11px] text-neutral-500">
+                      * Mã quản trị của công ty: <strong>89</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasscode('89');
+                        setErrorMsg('');
+                      }}
+                      className="text-[11px] text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
+                    >
+                      Điền nhanh số 89
+                    </button>
+                  </div>
                 </div>
 
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-neutral-950 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>Xác nhận mở quyền Quản trị</span>
+                </button>
               </form>
             </div>
           )}

@@ -350,6 +350,16 @@ export const OrderManagementModal: React.FC<OrderManagementModalProps> = ({
                     ))}
                   </div>
 
+                  {order.appliedVoucher && (
+                    <div className="mt-1.5 flex items-center justify-between text-[11px] text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/80 font-bold">
+                      <span className="flex items-center gap-1">
+                        <span>🎁</span>
+                        <span>Voucher: {order.appliedVoucher}</span>
+                      </span>
+                      <span className="text-red-600 font-mono">{order.voucherDiscount || ''}</span>
+                    </div>
+                  )}
+
                   <div className="mt-2 pt-2 border-t border-neutral-200 flex items-center justify-between text-xs font-bold">
                     <span className="text-neutral-600">Tổng thanh toán:</span>
                     <span className="text-sm font-black text-rose-700 font-mono">

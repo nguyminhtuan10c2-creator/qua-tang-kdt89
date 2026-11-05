@@ -74,7 +74,7 @@ service cloud.firestore {
 
     function isValidOrder(data) {
       return data.keys().hasAll(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'createdAt']) &&
-             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'recipient', 'giftCardRequested', 'paymentMethod', 'note', 'status', 'createdAt']) &&
+             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'recipient', 'giftCardRequested', 'paymentMethod', 'appliedVoucher', 'voucherDiscount', 'note', 'status', 'createdAt']) &&
              data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.address is string && data.address.size() >= 1 && data.address.size() <= 300 &&
@@ -84,8 +84,33 @@ service cloud.firestore {
              (!('recipient' in data) || (data.recipient is string && data.recipient.size() <= 100)) &&
              (!('giftCardRequested' in data) || data.giftCardRequested is bool) &&
              (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50)) &&
+             (!('appliedVoucher' in data) || (data.appliedVoucher is string && data.appliedVoucher.size() <= 50)) &&
+             (!('voucherDiscount' in data) || (data.voucherDiscount is string && data.voucherDiscount.size() <= 50)) &&
              (!('note' in data) || (data.note is string && data.note.size() <= 1000)) &&
              (!('status' in data) || (data.status is string && data.status in ['Mới', 'Đã liên hệ', 'Đang giao', 'Hoàn thành', 'Đã hủy']));
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['fullName', 'phoneNumber', 'registeredAt']) &&
+             data.keys().hasOnly(['fullName', 'phoneNumber', 'registeredAt', 'vouchersClaimed', 'password', 'address', 'lastLoginAt']) &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+             data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
+             data.registeredAt is string && data.registeredAt.size() <= 60 &&
+             (!('password' in data) || (data.password is string && data.password.size() <= 100)) &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+             (!('lastLoginAt' in data) || (data.lastLoginAt is string && data.lastLoginAt.size() <= 60)) &&
+             (!('vouchersClaimed' in data) || (data.vouchersClaimed is list && data.vouchersClaimed.size() <= 20));
+    }
+
+    function isValidVoucherRedemption(data) {
+      return data.keys().hasAll(['phoneNumber', 'voucherCode', 'discountAmount', 'usedAt']) &&
+             data.keys().hasOnly(['phoneNumber', 'customerName', 'voucherCode', 'discountAmount', 'orderId', 'usedAt']) &&
+             data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
+             data.voucherCode is string && data.voucherCode.size() >= 1 && data.voucherCode.size() <= 50 &&
+             data.discountAmount is number && data.discountAmount >= 0 &&
+             data.usedAt is string && data.usedAt.size() <= 60 &&
+             (!('customerName' in data) || (data.customerName is string && data.customerName.size() <= 100)) &&
+             (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 100));
     }
 
     // Site settings: public can read custom prices and hidden products
@@ -116,5 +141,20 @@ service cloud.firestore {
       allow update: if isValidId(orderId) && isValidOrder(incoming());
       allow delete: if isValidId(orderId);
     }
+
+    // Customer accounts: customers can register by phone number & fetch their account
+    match /customers/{phoneNumber} {
+      allow get, list: if true;
+      allow create, update: if isValidId(phoneNumber) && isValidCustomer(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Voucher redemptions: tracks 1-voucher-per-phone rule
+    match /voucher_redemptions/{redemptionId} {
+      allow get, list: if true;
+      allow create: if isValidId(redemptionId) && isValidVoucherRedemption(incoming());
+      allow update, delete: if isAdmin();
+    }
   }
 }
+

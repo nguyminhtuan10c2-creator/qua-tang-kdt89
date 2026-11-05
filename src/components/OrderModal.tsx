@@ -28,8 +28,11 @@ import {
   sendOrderEmailNotification,
   generateOrderMailtoUri,
   ADMIN_NOTIFICATION_EMAIL,
+  checkVoucherRedeemed,
+  recordVoucherRedemption,
 } from '../lib/firebase';
 import { ProductItem, ComboItem } from '../data/products';
+import { DEFAULT_VOUCHERS, VoucherItem, CustomerAccount } from '../data/vouchers';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -44,6 +47,9 @@ interface OrderModalProps {
   isRecipientHidden?: boolean;
   isAdmin?: boolean;
   onToggleRecipient?: () => void;
+  customerAccount?: CustomerAccount | null;
+  initialSelectedVoucher?: VoucherItem | null;
+  onOpenCustomerAuth?: () => void;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -58,14 +64,22 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   isRecipientHidden = false,
   isAdmin = false,
   onToggleRecipient,
+  customerAccount,
+  initialSelectedVoucher = null,
+  onOpenCustomerAuth,
 }) => {
-  const [customerName, setCustomerName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [customerName, setCustomerName] = useState(() => customerAccount?.fullName || '');
+  const [phoneNumber, setPhoneNumber] = useState(() => customerAccount?.phoneNumber || '');
   const [address, setAddress] = useState('');
   const [recipient, setRecipient] = useState<'Vợ' | 'Mẹ' | 'Người thân' | 'Tự dùng / Lắp công trình'>('Vợ');
   const [giftCardRequested, setGiftCardRequested] = useState(false);
   const [note, setNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Thanh toán khi nhận hàng & kiểm tra (COD)');
+
+  // Selected Voucher state & validation
+  const [selectedVoucher, setSelectedVoucher] = useState<VoucherItem | null>(initialSelectedVoucher);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isCheckingVoucher, setIsCheckingVoucher] = useState(false);
 
   // Quantities for items
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -74,6 +88,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<StoredOrder | null>(null);
   const [emailStatusMessage, setEmailStatusMessage] = useState<string>('');
+
 
   // Prepare items list
   const orderItems: OrderItem[] = React.useMemo(() => {
@@ -128,6 +143,15 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setSubmitError(null);
       setCompletedOrder(null);
       setEmailStatusMessage('');
+      setVoucherError(null);
+      if (customerAccount) {
+        if (!customerName) setCustomerName(customerAccount.fullName);
+        if (!phoneNumber) setPhoneNumber(customerAccount.phoneNumber);
+        if (customerAccount.address && !address) setAddress(customerAccount.address);
+      }
+      if (initialSelectedVoucher) {
+        setSelectedVoucher(initialSelectedVoucher);
+      }
       // Default quantity 1 for each item
       const initialQty: Record<string, number> = {};
       if (selectedCombo) initialQty[selectedCombo.id] = 1;
@@ -137,25 +161,78 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       });
       setQuantities(initialQty);
     }
-  }, [isOpen, selectedCombo, singleProduct, selectedProducts]);
+  }, [isOpen, selectedCombo, singleProduct, selectedProducts, customerAccount, initialSelectedVoucher]);
 
-  if (!isOpen) return null;
-
-  // Calculate rough subtotal
-  const calculateTotal = (): string => {
+  // Calculate raw numeric subtotal
+  const numericSubtotal = React.useMemo((): number => {
     let sum = 0;
-    let hasNumeric = false;
-
     for (const it of orderItems) {
       const cleanStr = it.price.replace(/[^0-9]/g, '');
       if (cleanStr.length >= 4) {
-        hasNumeric = true;
         sum += parseInt(cleanStr, 10) * it.quantity;
       }
     }
+    return sum;
+  }, [orderItems]);
 
-    if (hasNumeric && sum > 0) {
-      return `${sum.toLocaleString('vi-VN')} đ`;
+  // Calculate voucher discount
+  const voucherDiscountAmount = React.useMemo((): number => {
+    if (!selectedVoucher) return 0;
+    if (numericSubtotal > 0 && numericSubtotal < selectedVoucher.minOrderAmount) {
+      return 0;
+    }
+    return selectedVoucher.discountAmount;
+  }, [selectedVoucher, numericSubtotal]);
+
+  const finalNumericTotal = Math.max(0, numericSubtotal - voucherDiscountAmount);
+
+  // Apply or switch voucher with 1-voucher-per-phone check
+  const handleApplyVoucher = async (voucher: VoucherItem) => {
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 8) {
+      setVoucherError('Vui lòng nhập số điện thoại bên dưới trước để kiểm tra voucher.');
+      return;
+    }
+
+    if (numericSubtotal > 0 && numericSubtotal < voucher.minOrderAmount) {
+      setVoucherError(
+        `Đơn hàng cần tối thiểu ${voucher.minOrderAmount.toLocaleString('vi-VN')}₫ để dùng mã này (Hiện tại: ${numericSubtotal.toLocaleString('vi-VN')}₫).`
+      );
+      return;
+    }
+
+    setIsCheckingVoucher(true);
+    setVoucherError(null);
+
+    try {
+      const alreadyUsed = await checkVoucherRedeemed(cleanPhone, voucher.code);
+      if (alreadyUsed) {
+        setVoucherError(
+          `⚠️ Số điện thoại ${cleanPhone} đã sử dụng mã ${voucher.code} rồi! Mỗi số điện thoại mua 1 lần sẽ được dùng 1 lần.`
+        );
+        setSelectedVoucher(null);
+      } else {
+        setSelectedVoucher(voucher);
+        setVoucherError(null);
+      }
+    } catch {
+      setSelectedVoucher(voucher);
+    } finally {
+      setIsCheckingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setSelectedVoucher(null);
+    setVoucherError(null);
+  };
+
+  if (!isOpen) return null;
+
+  // Calculate formatted total
+  const calculateTotal = (): string => {
+    if (numericSubtotal > 0) {
+      return `${finalNumericTotal.toLocaleString('vi-VN')} đ`;
     }
 
     if (orderItems.length === 1) {
@@ -203,6 +280,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return;
     }
 
+    // Final security check for voucher reuse by phone number
+    if (selectedVoucher) {
+      const cleanPhone = trimmedPhone.replace(/[^0-9]/g, '');
+      const alreadyUsed = await checkVoucherRedeemed(cleanPhone, selectedVoucher.code);
+      if (alreadyUsed) {
+        setSubmitError(
+          `Số điện thoại ${cleanPhone} đã từng dùng mã voucher ${selectedVoucher.code} rồi! Mỗi số điện thoại chỉ được dùng mỗi voucher 1 lần.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -215,6 +304,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         recipient: isRecipientHidden ? undefined : recipient,
         giftCardRequested: isRecipientHidden ? false : giftCardRequested,
         paymentMethod,
+        appliedVoucher: selectedVoucher ? selectedVoucher.code : undefined,
+        voucherDiscount: selectedVoucher ? `-${selectedVoucher.discountAmount.toLocaleString('vi-VN')} đ` : undefined,
         note: note.trim() || undefined,
         status: 'Mới',
       };
@@ -222,17 +313,29 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       // 1. Submit to Firestore
       const orderId = await submitOrderToFirestore(payload);
 
+      // 2. Record voucher redemption in Firestore if applied
+      if (selectedVoucher) {
+        await recordVoucherRedemption(
+          trimmedPhone,
+          trimmedName,
+          selectedVoucher.code,
+          selectedVoucher.discountAmount,
+          orderId
+        );
+      }
+
       const storedOrder: StoredOrder = {
         ...payload,
         id: orderId,
         createdAt: new Date().toISOString(),
       };
 
-      // 2. Dispatch email notification to admin email
+      // 3. Dispatch email notification to admin email
       const emailResult = await sendOrderEmailNotification(storedOrder, ADMIN_NOTIFICATION_EMAIL);
       setEmailStatusMessage(
         emailResult.success
           ? `Đã gửi thông báo đơn hàng tức thì đến email ${ADMIN_NOTIFICATION_EMAIL}`
+
           : 'Đơn hàng đã được lưu trên hệ thống Firestore của KDT-89'
       );
 
@@ -472,10 +575,114 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               <div className="pt-2.5 border-t border-neutral-200 flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-600">Tổng tiền tạm tính:</span>
                 <span className="text-base sm:text-lg font-black text-rose-700 font-mono">
-                  {totalAmount}
+                  {numericSubtotal > 0 ? `${numericSubtotal.toLocaleString('vi-VN')} đ` : totalAmount}
                 </span>
               </div>
             </div>
+
+            {/* VOUCHER SELECTION SECTION (DIỆN MÁY XANH MODEL - MỖI SĐT 1 LẦN) */}
+            <div className="rounded-2xl bg-blue-50/70 border border-blue-200 p-3.5 sm:p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-bold text-blue-950 uppercase tracking-wide flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-red-600" />
+                  <span>Áp Dụng Voucher Giảm Giá (Mỗi SĐT 1 Lần)</span>
+                </div>
+                {selectedVoucher && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveVoucher}
+                    className="text-[11px] font-bold text-red-600 hover:underline cursor-pointer"
+                  >
+                    Bỏ chọn
+                  </button>
+                )}
+              </div>
+
+              {/* Voucher cards list */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {DEFAULT_VOUCHERS.map((v) => {
+                  const isSelected = selectedVoucher?.code === v.code;
+                  return (
+                    <button
+                      key={v.code}
+                      type="button"
+                      disabled={isCheckingVoucher}
+                      onClick={() => handleApplyVoucher(v)}
+                      className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs ring-2 ring-blue-400/30'
+                          : 'bg-white hover:bg-neutral-50 text-neutral-800 border-neutral-300'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-black font-mono ${isSelected ? 'text-yellow-300' : 'text-blue-700'}`}>
+                            {v.code}
+                          </span>
+                          <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-700'}`}>
+                            {v.badge}
+                          </span>
+                        </div>
+                        <div className="text-xs font-bold mt-1 leading-snug">
+                          Giảm -{v.discountAmount.toLocaleString('vi-VN')}₫
+                        </div>
+                      </div>
+                      <div className={`text-[10px] mt-1.5 ${isSelected ? 'text-blue-100' : 'text-neutral-500'}`}>
+                        Đơn từ {(v.minOrderAmount / 1000000).toFixed(0)} triệu
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Voucher status / error alert */}
+              {isCheckingVoucher && (
+                <div className="text-xs text-blue-700 flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span>Đang kiểm tra lịch sử sử dụng voucher của SĐT...</span>
+                </div>
+              )}
+
+              {voucherError && (
+                <div className="p-2.5 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs flex items-start gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span>{voucherError}</span>
+                </div>
+              )}
+
+              {selectedVoucher && !voucherError && (
+                <div className="p-2.5 rounded-xl bg-emerald-100/90 border border-emerald-300 text-emerald-900 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                    <span>Đã áp dụng mã {selectedVoucher.code}: Giảm -{selectedVoucher.discountAmount.toLocaleString('vi-VN')}₫</span>
+                  </div>
+                  <span className="text-[11px] font-medium text-emerald-800">1 lần/SĐT</span>
+                </div>
+              )}
+
+              {/* Price Breakdown Calculation */}
+              {numericSubtotal > 0 && (
+                <div className="pt-2 border-t border-blue-200/80 space-y-1 text-xs">
+                  <div className="flex items-center justify-between text-neutral-600">
+                    <span>Tạm tính hàng hóa:</span>
+                    <span className="font-mono font-medium">{numericSubtotal.toLocaleString('vi-VN')} đ</span>
+                  </div>
+                  {voucherDiscountAmount > 0 && (
+                    <div className="flex items-center justify-between text-red-600 font-bold">
+                      <span>Voucher giảm giá ({selectedVoucher?.code}):</span>
+                      <span className="font-mono">-{voucherDiscountAmount.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-neutral-900 font-bold pt-1 border-t border-blue-200 text-sm">
+                    <span>Tổng thanh toán thực tế:</span>
+                    <span className="text-base sm:text-lg font-black text-rose-700 font-mono">
+                      {finalNumericTotal.toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
 
             {/* 1.5. Recipient / Purpose Selection (Toggleable for campaigns that need/do not need it) */}
             {!isRecipientHidden && (

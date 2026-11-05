@@ -1,7 +1,9 @@
 import React from 'react';
-import { PhoneCall, Heart, Camera, EyeOff } from 'lucide-react';
+import { PhoneCall, Heart, Camera, EyeOff, Gift, User } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
 import { KDTLogo } from './KDTLogo';
+
+import { CustomerAccount } from '../data/vouchers';
 
 interface HeaderProps {
   onOpenConsultation: (prefillProduct?: string) => void;
@@ -13,6 +15,9 @@ interface HeaderProps {
   onLogoutAdmin?: () => void;
   customLogo?: string;
   customTexts?: Record<string, string>;
+  customerAccount?: CustomerAccount | null;
+  onOpenCustomerAuth?: () => void;
+  onOpenVoucherWallet?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,6 +30,9 @@ export const Header: React.FC<HeaderProps> = ({
   onLogoutAdmin,
   customLogo,
   customTexts = {},
+  customerAccount,
+  onOpenCustomerAuth,
+  onOpenVoucherWallet,
 }) => {
   const announcement = customTexts.headerAnnouncement;
   const navProducts = customTexts.navProducts || 'Sản phẩm';
@@ -38,22 +46,22 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="truncate">{announcement}</span>
         </div>
       )}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4 md:gap-8">
+      <div className="w-full max-w-6xl mx-auto px-2 sm:px-6 h-13 sm:h-16 flex items-center justify-between gap-1 sm:gap-4 md:gap-8 overflow-hidden">
         {/* Zone 1: Brand Wordmark with Official Logo */}
-        <div className="flex items-center gap-2 shrink-0">
-          <a href="#hero" className="flex items-center gap-2 group">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink min-w-0">
+          <a href="#hero" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
             <KDTLogo size="md" variant="full" customLogo={customLogo} />
           </a>
           {isAdmin && (
-            <div className="flex items-center gap-1">
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500 text-white shadow-2xs">
+            <div className="hidden sm:flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500 text-white shadow-2xs">
                 👑 Admin
               </span>
               {onOpenImageUpdater && (
                 <button
                   type="button"
                   onClick={() => onOpenImageUpdater('site-logo')}
-                  className="text-[10px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1 cursor-pointer transition-all"
+                  className="text-[10px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 inline-flex items-center gap-1 cursor-pointer transition-all"
                   title="Quyền Admin: Bấm để đổi logo công ty"
                 >
                   <Camera className="w-3 h-3 text-amber-700" />
@@ -65,7 +73,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Zone 2: Navigation Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-neutral-600">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-neutral-600 shrink-0">
           <a href="#combos" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
             Combo gợi ý
           </a>
@@ -83,11 +91,11 @@ export const Header: React.FC<HeaderProps> = ({
           </a>
         </nav>
 
-        {/* Zone 3: Primary Action */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* ONLY Admin sees the Quản lý ẩn/hiện & Cập nhật hình button */}
+        {/* Zone 3: Primary Actions (Guaranteed 100% fit on any mobile width down to 320px) */}
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0 ml-auto">
+          {/* ONLY Admin sees the Quản lý ẩn/hiện & Cập nhật hình button on desktop */}
           {isAdmin && (
-            <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1">
               {onOpenManageVisibility && (
                 <button
                   type="button"
@@ -96,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Quyền Admin: Bấm để quản lý Ẩn / Hiện các sản phẩm"
                 >
                   <EyeOff className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="hidden sm:inline">Ẩn/Hiện</span>
+                  <span>Ẩn/Hiện</span>
                   {hiddenCount > 0 && (
                     <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded-full text-[10px] font-black">
                       {hiddenCount}
@@ -112,18 +120,18 @@ export const Header: React.FC<HeaderProps> = ({
                   title="Quyền Admin: Bấm để mở bảng cập nhật / đổi hình ảnh cho các sản phẩm"
                 >
                   <Camera className="w-4 h-4 text-amber-700 shrink-0 animate-pulse" />
-                  <span className="hidden sm:inline">Cập nhật hình</span>
+                  <span>Cập nhật hình</span>
                 </button>
               )}
             </div>
           )}
 
-          {/* If not logged in as admin, provide a subtle key/login entry point for admin */}
+          {/* Admin key on desktop only */}
           {!isAdmin && onOpenAdminLogin && (
             <button
               type="button"
               onClick={onOpenAdminLogin}
-              className="text-neutral-400 hover:text-neutral-600 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors text-xs"
+              className="hidden sm:inline-flex text-neutral-400 hover:text-neutral-600 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors text-xs"
               title="Dành riêng cho Quản trị viên KDT-89 đăng nhập"
             >
               <span className="sr-only">Đăng nhập Admin</span>
@@ -134,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Quick Zalo Chat / Call Button */}
+          {/* Quick Zalo Chat / Call Button (Desktop) */}
           <a
             href={COMPANY_INFO.zaloLink}
             target="_blank"
@@ -146,13 +154,46 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Zalo: {hotline}</span>
           </a>
 
+          {/* Customer Voucher Button */}
+          {onOpenVoucherWallet && (
+            <button
+              type="button"
+              onClick={onOpenVoucherWallet}
+              className="flex items-center gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 rounded-lg sm:rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+              title="Xem ví voucher giảm giá của bạn"
+            >
+              <Gift className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-red-600 shrink-0" />
+              <span>Voucher</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+            </button>
+          )}
+
+          {/* Customer Account / Login Button */}
+          {onOpenCustomerAuth && (
+            <button
+              type="button"
+              onClick={onOpenCustomerAuth}
+              className={`flex items-center gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 border shrink-0 ${
+                customerAccount
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
+              }`}
+              title={customerAccount ? `Tài khoản: ${customerAccount.fullName} (${customerAccount.phoneNumber})` : 'Đăng nhập hoặc Tạo tài khoản để nhận voucher'}
+            >
+              <User className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-neutral-600 shrink-0" />
+              <span className="max-w-[58px] sm:max-w-[120px] truncate">
+                {customerAccount ? (customerAccount.fullName.split(' ').pop() || customerAccount.fullName) : 'Đăng nhập'}
+              </span>
+            </button>
+          )}
+
+          {/* Desktop Consultation Button (Mobile has MobileStickyCTA) */}
           <button
             onClick={() => onOpenConsultation()}
-            className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-xl shadow-xs transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Heart className="w-4 h-4 fill-white/20" />
-            <span className="hidden xs:inline">{consultBtn}</span>
-            <span className="xs:hidden">Tư vấn</span>
+            <span>{consultBtn}</span>
           </button>
         </div>
       </div>

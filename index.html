@@ -40,10 +40,17 @@
           window.addEventListener('unhandledrejection', function(event) {
             var reason = event && event.reason;
             var stack = (reason && reason.stack) || (typeof reason === 'string' ? reason : '');
+            var code = (reason && reason.code) || '';
+            var message = (reason && reason.message) || '';
             if (
               stack.indexOf('chrome-extension://') !== -1 ||
               stack.indexOf('moz-extension://') !== -1 ||
-              stack.indexOf('safari-extension://') !== -1
+              stack.indexOf('safari-extension://') !== -1 ||
+              code === 'auth/popup-closed-by-user' ||
+              code === 'auth/cancelled-popup-request' ||
+              message.indexOf('auth/popup-closed-by-user') !== -1 ||
+              message.indexOf('auth/cancelled-popup-request') !== -1 ||
+              stack.indexOf('auth/popup-closed-by-user') !== -1
             ) {
               if (event.stopImmediatePropagation) event.stopImmediatePropagation();
               if (event.preventDefault) event.preventDefault();

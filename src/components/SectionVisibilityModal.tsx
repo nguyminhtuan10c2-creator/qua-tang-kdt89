@@ -33,9 +33,16 @@ export const LANDING_PAGE_SECTIONS: SectionConfig[] = [
     icon: <Sparkles className="w-4 h-4 text-amber-500" />,
   },
   {
+    id: 'mega_sale_countdown',
+    name: 'Đồng hồ đếm ngược Chiến Dịch Siêu Sale Lớn (11.11, Black Friday...)',
+    description: 'Đếm đón đầu trước giờ G mở bão sale (teaser) & đếm ngược kết thúc sale',
+    icon: <Clock className="w-4 h-4 text-amber-500" />,
+    badge: 'Chiến dịch lớn',
+  },
+  {
     id: 'flash_sale',
-    name: 'Thanh đồng hồ đếm ngược Flash Sale Giờ Vàng',
-    description: 'Đồng hồ đếm lùi giờ, thanh % đã bán, nút Săn deal ngay',
+    name: 'Thanh đồng hồ đếm ngược Flash Sale Giờ Vàng (Thường nhật)',
+    description: 'Đồng hồ đếm lùi giờ trong ngày, thanh % đã bán, nút Săn deal ngay',
     icon: <Clock className="w-4 h-4 text-red-500" />,
     badge: 'Kích cầu',
   },
@@ -50,6 +57,13 @@ export const LANDING_PAGE_SECTIONS: SectionConfig[] = [
     name: 'Bộ chọn quà tặng & Thiệp chúc mừng',
     description: 'Công cụ chọn người nhận (Mẹ, Vợ, Người thân) và viết lời chúc',
     icon: <HeartHandshake className="w-4 h-4 text-pink-500" />,
+  },
+  {
+    id: 'budget_filter',
+    name: 'Bảng giá ngân sách & Thanh kéo lọc giá (Budget Filter)',
+    description: 'Thanh trượt chọn khoảng giá (Dưới 1tr, 1-2tr...) - Có thể tắt để trang web gọn gàng, tập trung các sản phẩm sale tốt',
+    icon: <Sliders className="w-4 h-4 text-emerald-600" />,
+    badge: 'Tùy chọn',
   },
   {
     id: 'product_catalog',

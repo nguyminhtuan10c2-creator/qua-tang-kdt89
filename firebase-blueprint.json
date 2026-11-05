@@ -194,6 +194,16 @@
           "type": "string",
           "description": "Payment method chosen (COD / Bank transfer)"
         },
+        "appliedVoucher": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Voucher code applied to this order"
+        },
+        "voucherDiscount": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Discount amount formatted"
+        },
         "note": {
           "type": "string",
           "maxLength": 1000,
@@ -217,6 +227,94 @@
         "totalAmount",
         "createdAt"
       ]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer account registered by phone number to login, shop, and manage voucher package",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Customer full name"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 20,
+          "description": "Customer phone number"
+        },
+        "password": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Customer account password or secret PIN"
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Default customer delivery address"
+        },
+        "registeredAt": {
+          "type": "string",
+          "description": "Registration ISO timestamp"
+        },
+        "lastLoginAt": {
+          "type": "string",
+          "description": "Last login ISO timestamp"
+        },
+        "vouchersClaimed": {
+          "type": "array",
+          "description": "List of claimed voucher codes"
+        }
+      },
+      "required": [
+        "fullName",
+        "phoneNumber",
+        "registeredAt"
+      ]
+    },
+    "VoucherRedemption": {
+      "title": "VoucherRedemption",
+      "description": "Voucher redemption record enforcing 1-voucher-per-phone-number rule",
+      "type": "object",
+      "properties": {
+        "phoneNumber": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 20,
+          "description": "Phone number that redeemed the voucher"
+        },
+        "customerName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Customer full name"
+        },
+        "voucherCode": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Redeemed voucher code"
+        },
+        "discountAmount": {
+          "type": "number",
+          "description": "VND discount value applied"
+        },
+        "orderId": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Order ID where voucher was redeemed"
+        },
+        "usedAt": {
+          "type": "string",
+          "description": "ISO timestamp of redemption"
+        }
+      },
+      "required": [
+        "phoneNumber",
+        "voucherCode",
+        "discountAmount",
+        "usedAt"
+      ]
     }
   },
   "firestore": {
@@ -235,6 +333,15 @@
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Customer purchase orders submitted through the website"
+    },
+    "/customers/{phoneNumber}": {
+      "schema": "Customer",
+      "description": "Customer profiles registered with phone number"
+    },
+    "/voucher_redemptions/{redemptionId}": {
+      "schema": "VoucherRedemption",
+      "description": "Voucher usage records enforcing 1 use per phone number"
     }
   }
 }
+

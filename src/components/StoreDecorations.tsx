@@ -35,19 +35,30 @@ export const StoreDecorations: React.FC<StoreDecorationsProps> = ({
   // Surprise Voucher Modal
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
 
-  // Cycle recent order notification every 12 seconds
+  // Cycle recent order notification gently: visible for 5.5s, then pauses for 12.5s
   useEffect(() => {
     if (!showTicker || isTickerDismissed) return;
 
-    const interval = setInterval(() => {
-      setIsTickerVisible(false);
-      setTimeout(() => {
-        setCurrentOrderIndex((prev) => (prev + 1) % SAMPLE_RECENT_ORDERS.length);
-        setIsTickerVisible(true);
-      }, 500);
-    }, 12000);
+    let hideTimeout: ReturnType<typeof setTimeout>;
 
-    return () => clearInterval(interval);
+    // Hide after initial 5 seconds
+    hideTimeout = setTimeout(() => {
+      setIsTickerVisible(false);
+    }, 5500);
+
+    const interval = setInterval(() => {
+      setCurrentOrderIndex((prev) => (prev + 1) % SAMPLE_RECENT_ORDERS.length);
+      setIsTickerVisible(true);
+
+      hideTimeout = setTimeout(() => {
+        setIsTickerVisible(false);
+      }, 5500);
+    }, 18000);
+
+    return () => {
+      clearTimeout(hideTimeout);
+      clearInterval(interval);
+    };
   }, [showTicker, isTickerDismissed]);
 
   // Particle characters based on effect
@@ -122,40 +133,39 @@ export const StoreDecorations: React.FC<StoreDecorationsProps> = ({
         </div>
       )}
 
-      {/* 2. Live Social Proof Toast (Bottom Left) */}
+      {/* 2. Live Social Proof Toast (Bottom Left) - Siêu gọn gàng, tinh tế không che màn hình */}
       {showTicker && !isTickerDismissed && (
         <div
-          className={`fixed bottom-20 sm:bottom-6 left-3 sm:left-6 z-40 transition-all duration-500 max-w-xs sm:max-w-sm ${
+          className={`fixed bottom-16 sm:bottom-5 left-2.5 sm:left-5 z-40 transition-all duration-400 max-w-[270px] sm:max-w-[320px] pointer-events-auto ${
             isTickerVisible
               ? 'opacity-100 translate-y-0 scale-100'
-              : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+              : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
           }`}
         >
-          <div className="bg-white/95 backdrop-blur-md border border-rose-200/90 rounded-2xl p-3 shadow-xl flex items-center gap-3 relative group">
+          <div className="bg-white/95 backdrop-blur-md border border-neutral-200/90 hover:border-rose-300 rounded-full sm:rounded-2xl py-1.5 px-2.5 sm:py-2 sm:px-3 shadow-md hover:shadow-lg flex items-center gap-2 sm:gap-2.5 relative group transition-all">
             <button
               type="button"
               onClick={() => setIsTickerDismissed(true)}
-              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 flex items-center justify-center text-[10px] cursor-pointer transition-colors shadow-2xs"
+              className="absolute -top-1 -right-1 sm:top-1 sm:right-1 w-4 h-4 rounded-full bg-neutral-200/80 hover:bg-neutral-300 text-neutral-600 flex items-center justify-center text-[9px] cursor-pointer transition-colors shadow-2xs opacity-75 group-hover:opacity-100"
               title="Đóng thông báo"
             >
-              <X className="w-3 h-3" />
+              <X className="w-2.5 h-2.5" />
             </button>
 
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-rose-50 border border-rose-200/70 text-rose-600 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </div>
 
-            <div className="min-w-0 pr-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-ping" />
-                <span className="font-bold text-neutral-800">{currentOrder.name}</span>
-                <span>•</span>
-                <span>{currentOrder.location}</span>
+            <div className="min-w-0 pr-3 sm:pr-4 flex-1">
+              <div className="flex items-center gap-1 text-[10px] text-neutral-500 leading-tight">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span className="font-bold text-neutral-800 truncate">{currentOrder.name}</span>
+                <span className="text-neutral-400 text-[9px] truncate">({currentOrder.location.split(',')[0]})</span>
+                <span className="text-[9px] text-neutral-400 shrink-0 ml-auto">• {currentOrder.time}</span>
               </div>
-              <div className="text-xs font-bold text-rose-700 truncate leading-tight mt-0.5">
-                Vừa đặt mua: {currentOrder.product}
+              <div className="text-[10px] sm:text-[11px] font-semibold text-rose-600 truncate leading-tight mt-0.5">
+                Vừa mua {currentOrder.product}
               </div>
-              <div className="text-[10px] text-neutral-400 mt-0.5">{currentOrder.time}</div>
             </div>
           </div>
         </div>

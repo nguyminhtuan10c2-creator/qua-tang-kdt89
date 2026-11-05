@@ -63,6 +63,97 @@ export const BUDGET_TIERS = [
   { id: '>4m', label: 'Trên 4.000.000đ', range: '> 4 triệu' },
 ] as const;
 
+export const MAX_CATALOG_PRICE = 12000000; // 12 triệu VND
+
+export function extractProductPrice(
+  product: ProductItem,
+  customPrice?: { programPrice?: string; referencePrice?: string }
+): { min: number; max: number; rep: number } {
+  const programStr = customPrice?.programPrice || product.programPrice || '';
+  const refStr = customPrice?.referencePrice || product.referencePrice || '';
+
+  const parseNum = (str: string): number | null => {
+    if (!str) return null;
+
+    // Check for explicit "X.Xtr" or "X.X triệu"
+    const trieuMatch = str.match(/(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/i);
+    if (trieuMatch) {
+      const val = parseFloat(trieuMatch[1].replace(',', '.'));
+      if (!isNaN(val)) return Math.round(val * 1000000);
+    }
+
+    // Check for "~X.Xxxk" e.g. ~1.3xxk -> 1,300,000
+    const dotKMatch = str.match(/~?(\d+)[.,](\d+)\s*(?:xx|x)?k/i);
+    if (dotKMatch) {
+      const whole = parseInt(dotKMatch[1], 10);
+      const dec = parseInt(dotKMatch[2], 10);
+      return whole * 1000000 + dec * 100000;
+    }
+
+    // Check for "~Xxxk" or "Xxxk"
+    const kMatch = str.match(/~?(\d+)\s*(?:xx|x)?k/i);
+    if (kMatch) {
+      let num = parseInt(kMatch[1], 10);
+      if (num < 10) num = num * 100;
+      else if (num < 100) num = num * 10;
+      return num * 1000;
+    }
+
+    // Check for standard format e.g. 1.990.000đ or 1,990,000 or 500.000
+    const digitsOnly = str.replace(/[^\d]/g, '');
+    if (digitsOnly.length >= 5) {
+      const val = parseInt(digitsOnly, 10);
+      if (val >= 50000 && val <= 100000000) return val;
+    }
+
+    return null;
+  };
+
+  const parsedProgram = parseNum(programStr);
+  const parsedRef = parseNum(refStr);
+
+  if (parsedProgram !== null) {
+    return { min: parsedProgram, max: parsedProgram, rep: parsedProgram };
+  }
+  if (parsedRef !== null) {
+    return { min: parsedRef, max: parsedRef, rep: parsedRef };
+  }
+
+  // Fallback based on budgetTier
+  switch (product.budgetTier) {
+    case '<1m':
+      return { min: 200000, max: 990000, rep: 650000 };
+    case '1m-2m':
+      return { min: 1000000, max: 2000000, rep: 1500000 };
+    case '2m-4m':
+      return { min: 2000000, max: 4000000, rep: 3000000 };
+    case '>4m':
+    default:
+      if (product.category === 'televisions' || product.category === 'air_conditioners') {
+        return { min: 4000000, max: 12000000, rep: 5800000 };
+      }
+      return { min: 4000000, max: 9000000, rep: 4800000 };
+  }
+}
+
+export function isProductInPriceRange(
+  product: ProductItem,
+  minSlider: number,
+  maxSlider: number,
+  customPrice?: { programPrice?: string; referencePrice?: string }
+): boolean {
+  if (minSlider <= 0 && maxSlider >= MAX_CATALOG_PRICE) {
+    return true;
+  }
+  const { min, max, rep } = extractProductPrice(product, customPrice);
+
+  if (rep >= minSlider && rep <= maxSlider) {
+    return true;
+  }
+
+  return max >= minSlider && min <= maxSlider;
+}
+
 export const CATEGORIES = [
   {
     id: 'rice_cooker_appliances',

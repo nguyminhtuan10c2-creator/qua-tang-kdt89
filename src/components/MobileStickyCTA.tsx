@@ -1,6 +1,7 @@
 import React from 'react';
 import { Phone, Heart, Camera, EyeOff, ShoppingBag } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
+import { trackEvent } from '../lib/tracking';
 
 interface MobileStickyCTAProps {
   onOpenConsultation: () => void;
@@ -65,6 +66,7 @@ export const MobileStickyCTA: React.FC<MobileStickyCTAProps> = ({
           href={COMPANY_INFO.zaloLink}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('click_zalo', { source: 'mobile_sticky' })}
           className="flex flex-col items-center justify-center min-w-[58px] h-11 px-1 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition-colors shrink-0"
           title={`Nhắn Zalo KDT-89: ${hotline}`}
         >

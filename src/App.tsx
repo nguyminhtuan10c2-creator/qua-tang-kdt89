@@ -85,6 +85,7 @@ import {
   StoredOrder,
   SiteDecorSettings,
 } from './lib/firebase';
+import { trackEvent } from './lib/tracking';
 
 export default function App() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -332,7 +333,22 @@ export default function App() {
     return false;
   }, [hiddenSections, customTexts]);
 
+  // Compute category IDs that actually have >= 1 visible product (or all non-deleted if admin)
+  const visibleCategoryIds = useMemo(() => {
+    return allCategories
+      .filter((cat) => !deletedCategoryIds.includes(cat.id))
+      .filter((cat) =>
+        allProducts.some((p) => p.category === cat.id && !hiddenProductIds.includes(p.id))
+      )
+      .map((cat) => cat.id);
+  }, [allCategories, deletedCategoryIds, allProducts, hiddenProductIds]);
+
   const [isCloudSynced, setIsCloudSynced] = useState<boolean>(false);
+
+  // Track landing page view once on mount
+  useEffect(() => {
+    trackEvent('page_view');
+  }, []);
 
   // Real-time synchronization with Firebase Cloud Firestore
   useEffect(() => {
@@ -1302,6 +1318,7 @@ export default function App() {
               isAdmin={isAdmin}
               customHeroImage={customImages['site-hero-image']}
               customTexts={customTexts}
+              visibleCategoryIds={visibleCategoryIds}
             />
           </div>
         )}

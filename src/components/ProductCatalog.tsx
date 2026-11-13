@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { CATEGORIES, PRODUCTS, ProductItem, CategoryItem, MAX_CATALOG_PRICE, isProductInPriceRange } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
@@ -26,7 +26,10 @@ import {
   Zap,
   Sliders,
   FileSpreadsheet,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
+import { trackEvent } from '../lib/tracking';
 
 import type { CategoryOverride, SiteDecorSettings } from '../lib/firebase';
 
@@ -104,6 +107,29 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileLayout, setMobileLayout] = useState<'horizontal' | 'grid'>('grid');
   const [isBulkImportOpen, setIsBulkImportOpen] = useState<boolean>(false);
+  const [showAllCatalog, setShowAllCatalog] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.location.hash.startsWith('#cat-')) {
+      return true;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleExpand = (e: Event) => {
+      const detail = (e as CustomEvent<{ catId?: string }>).detail;
+      setShowAllCatalog(true);
+      setActiveCategoryTab('all');
+      setActiveDealFilter('all');
+      if (detail?.catId) {
+        setTimeout(() => {
+          const el = document.getElementById(`cat-${detail.catId}`) || document.getElementById('products');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      }
+    };
+    window.addEventListener('kdt89:expand-catalog', handleExpand);
+    return () => window.removeEventListener('kdt89:expand-catalog', handleExpand);
+  }, []);
 
   const filteredScrollRef = useRef<HTMLDivElement>(null);
 
@@ -116,11 +142,23 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     televisions: <Tv className="w-4 h-4 text-indigo-600" />,
   };
 
+  // Visible products count per category (never advertise 0-product categories to visitors)
+  const visibleCountByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const p of allProducts) {
+      if (!isAdmin && hiddenProductIds.includes(p.id)) continue;
+      counts[p.category] = (counts[p.category] || 0) + 1;
+    }
+    return counts;
+  }, [allProducts, isAdmin, hiddenProductIds]);
+
   // Dynamically computed categories based on allCategories + customCategories - deletedCategoryIds
+  // For regular visitors, exclude categories with 0 visible products
   const displayedCategories = useMemo(() => {
     const baseList = allCategories && allCategories.length > 0 ? allCategories : CATEGORIES;
     return baseList
       .filter((cat) => !deletedCategoryIds.includes(cat.id))
+      .filter((cat) => isAdmin || (visibleCountByCategory[cat.id] || 0) > 0)
       .map((cat) => {
         const override = customCategories[cat.id];
         if (override) {
@@ -133,7 +171,59 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         }
         return cat;
       });
-  }, [allCategories, deletedCategoryIds, customCategories]);
+  }, [allCategories, deletedCategoryIds, customCategories, isAdmin, visibleCountByCategory]);
+
+  const availableCategoryIds = useMemo(
+    () => displayedCategories.map((c) => c.id),
+    [displayedCategories]
+  );
+
+  // 6 Flagship Deals at top of page: 3 Cuckoo rice cookers + 1 kitchen stove + 1 water heater + 1 TV
+  const flagshipDeals = useMemo(() => {
+    const visiblePool = allProducts.filter((p) => isAdmin || !hiddenProductIds.includes(p.id));
+    const picks: ProductItem[] = [];
+    const pickFirst = (predicate: (p: ProductItem) => boolean) => {
+      const found = visiblePool.find((p) => !picks.some((x) => x.id === p.id) && predicate(p));
+      if (found) picks.push(found);
+    };
+
+    // 3 Cuckoo rice cookers
+    pickFirst((p) => p.id === 'prod-cuckoo-cr1021-white');
+    pickFirst((p) => p.id === 'prod-cuckoo-cr1021-red');
+    pickFirst((p) => p.id === 'prod-cuckoo-cr0671');
+    // Fallback if any of the 3 Cuckoo IDs was hidden/deleted
+    while (picks.length < 3) {
+      const before = picks.length;
+      pickFirst((p) => p.category === 'rice_cooker_appliances' && p.name.toLowerCase().includes('cuckoo'));
+      if (picks.length === before) break;
+    }
+
+    // 1 Kitchen stove
+    pickFirst((p) => p.id === 'prod-ferroli-ic4200bn');
+    if (picks.filter((p) => p.category === 'kitchen_stoves').length === 0) {
+      pickFirst((p) => p.category === 'kitchen_stoves');
+    }
+
+    // 1 Water heater
+    pickFirst((p) => p.id === 'prod-atlantic-lona-lite-4000');
+    if (picks.filter((p) => p.category === 'water_heaters').length === 0) {
+      pickFirst((p) => p.category === 'water_heaters');
+    }
+
+    // 1 Smart TV
+    pickFirst((p) => p.id === 'prod-tivi-casper-43fga610');
+    if (picks.filter((p) => p.category === 'televisions').length === 0) {
+      pickFirst((p) => p.category === 'televisions');
+    }
+
+    // Fill up to 6 if any category was completely hidden
+    for (const p of visiblePool) {
+      if (picks.length >= 6) break;
+      if (!picks.some((x) => x.id === p.id)) picks.push(p);
+    }
+
+    return picks;
+  }, [allProducts, isAdmin, hiddenProductIds]);
 
   // Filter products: For regular customers, completely hide products marked as hidden
   const filteredProducts = useMemo(() => {
@@ -353,12 +443,15 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           </div>
         </div>
 
-        {/* Điện Máy Xanh style Quick Deal Filter Pills ("các tab nhỏ chuyển đổi về các sản phẩm đang sale tốt") */}
+        {/* Điện Máy Xanh style Quick Deal Filter Pills */}
         <div className="mb-4">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1.5">
             <button
               type="button"
-              onClick={() => setActiveDealFilter('all')}
+              onClick={() => {
+                setActiveDealFilter('all');
+                trackEvent('select_deal', { source: 'deal_filter', filter: 'all' });
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeDealFilter === 'all'
                   ? 'bg-neutral-900 text-white shadow-xs'
@@ -373,7 +466,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
             <button
               type="button"
-              onClick={() => setActiveDealFilter('flash_deal')}
+              onClick={() => {
+                setActiveDealFilter('flash_deal');
+                setShowAllCatalog(true);
+                trackEvent('select_deal', { source: 'deal_filter', filter: 'flash_deal' });
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeDealFilter === 'flash_deal'
                   ? 'bg-red-600 text-white shadow-xs ring-2 ring-red-400/30'
@@ -386,7 +483,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
             <button
               type="button"
-              onClick={() => setActiveDealFilter('best_seller')}
+              onClick={() => {
+                setActiveDealFilter('best_seller');
+                setShowAllCatalog(true);
+                trackEvent('select_deal', { source: 'deal_filter', filter: 'best_seller' });
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeDealFilter === 'best_seller'
                   ? 'bg-amber-500 text-neutral-950 shadow-xs ring-2 ring-amber-400/30'
@@ -398,7 +499,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
             <button
               type="button"
-              onClick={() => setActiveDealFilter('deep_discount')}
+              onClick={() => {
+                setActiveDealFilter('deep_discount');
+                setShowAllCatalog(true);
+                trackEvent('select_deal', { source: 'deal_filter', filter: 'deep_discount' });
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeDealFilter === 'deep_discount'
                   ? 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-400/30'
@@ -410,7 +515,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
             <button
               type="button"
-              onClick={() => setActiveDealFilter('new_arrival')}
+              onClick={() => {
+                setActiveDealFilter('new_arrival');
+                setShowAllCatalog(true);
+                trackEvent('select_deal', { source: 'deal_filter', filter: 'new_arrival' });
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeDealFilter === 'new_arrival'
                   ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/30'
@@ -423,22 +532,25 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
 
         {/* =========================================================================
-            KHUNG GIỜ SĂN SALE CHUẨN ĐIỆN MÁY XANH (HIỂN THỊ KHI CHỌN DEAL SỐC HOẶC TẤT CẢ)
-            Phân biệt rõ ràng: Đếm ngược ĐẾN NGÀY SALE vs Trong THỜI GIAN SALE
+            KHUNG GIỜ SĂN SALE (HIỂN THỊ KHI CHỌN DEAL SỐC HOẶC TẤT CẢ)
            ========================================================================= */}
         {(activeDealFilter === 'flash_deal' || activeDealFilter === 'all') && (
           <FlashSaleTimeSlots
             decorSettings={decorSettings}
             activeCategoryTab={activeCategoryTab}
+            availableCategoryIds={availableCategoryIds}
             onSelectCategoryTab={(catId) => {
+              trackEvent('select_deal', { source: 'flash_slot_tab', category: catId });
               if (catId === 'flash_deal') {
                 setActiveDealFilter('flash_deal');
                 setActiveCategoryTab('all');
               } else if (catId === 'discount_50') {
                 setActiveDealFilter('deep_discount');
+                setShowAllCatalog(true);
               } else {
                 setActiveCategoryTab(catId);
-                setActiveDealFilter('flash_deal');
+                setActiveDealFilter('all');
+                setShowAllCatalog(true);
               }
             }}
             isAdmin={isAdmin}
@@ -447,6 +559,51 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             onOpenConsultation={onOpenConsultation}
             onOpenVoucherWallet={onOpenVoucherWallet}
           />
+        )}
+
+        {/* =========================================================================
+            6 DEAL CHỦ LỰC BÁN CHẠY HÔM NAY (HIỂN THỊ NGAY ĐẦU DANH MỤC ĐỂ CHỐT ĐƠN NHANH)
+           ========================================================================= */}
+        {isDefaultFullView && flagshipDeals.length > 0 && (
+          <div id="top-deals" className="mb-8 scroll-mt-24">
+            <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-yellow-200">
+                  <Zap className="w-3.5 h-3.5 fill-yellow-300 text-yellow-300" />
+                  <span>Ưu tiên chốt nhanh hôm nay</span>
+                </div>
+                <h3 className="text-base sm:text-xl font-black tracking-tight">
+                  6 Deal Chủ Lực Giá Sale Tại Kho
+                </h3>
+              </div>
+              <span className="text-xs text-rose-50 font-medium">
+                Bấm &quot;Đặt giữ giá 24h&quot; để sale giữ suất ngay
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3">
+              {flagshipDeals.map((product) => (
+                <div key={`flagship-${product.id}`} className="w-full flex flex-col">
+                  <ProductCard
+                    product={product}
+                    customImage={customImages[product.id]}
+                    customPrice={customPrices[product.id]}
+                    onSelect={onToggleProduct}
+                    onBuyProduct={onBuyProduct}
+                    onConsultProduct={onConsultProduct}
+                    onOpenImageUpdater={onOpenImageUpdater}
+                    onOpenPriceEditor={onOpenPriceEditor}
+                    onEditProduct={onEditProduct}
+                    onDeleteProduct={onDeleteProduct}
+                    isSelected={selectedProductIds.includes(product.id)}
+                    isAdmin={isAdmin}
+                    isHidden={hiddenProductIds.includes(product.id)}
+                    onToggleHide={(p) => onToggleHideProduct?.(p.id)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Budget Filter Bar with Range Slider - Bật/Tắt theo nhu cầu của Admin */}
@@ -486,14 +643,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           {/* Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <button
-              onClick={() => setActiveCategoryTab('all')}
-              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
+              onClick={() => {
+                setActiveCategoryTab('all');
+                trackEvent('select_deal', { source: 'category_tab', category: 'all' });
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                 activeCategoryTab === 'all'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
               }`}
             >
-              Tất cả các nhóm quà ({isAdmin ? allProducts.length : allProducts.filter(p => !hiddenProductIds.includes(p.id)).length})
+              Tất cả các nhóm ({isAdmin ? allProducts.length : allProducts.filter(p => !hiddenProductIds.includes(p.id)).length})
             </button>
 
             {displayedCategories.map((cat) => {
@@ -502,8 +662,12 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategoryTab(cat.id)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 ${
+                  onClick={() => {
+                    setActiveCategoryTab(cat.id);
+                    setShowAllCatalog(true);
+                    trackEvent('select_deal', { source: 'category_tab', category: cat.id });
+                  }}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
                     isActive
                       ? 'bg-rose-600 text-white shadow-xs'
                       : 'bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200'
@@ -572,34 +736,67 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </button>
           </div>
         ) : isDefaultFullView ? (
-          // Full 5 groups with dedicated horizontal swipe per category
-          <div className="space-y-10">
-            {displayedCategories.map((category) => {
-              const catProducts = allProducts.filter((p) => p.category === category.id);
-              return (
-                <CategorySection
-                  key={category.id}
-                  category={category}
-                  products={catProducts}
-                  icon={categoryIcons[category.id] || <Sparkles className="w-4 h-4 text-rose-600" />}
-                  selectedProductIds={selectedProductIds}
-                  customImages={customImages}
-                  customPrices={customPrices}
-                  onToggleProduct={onToggleProduct}
-                  onBuyProduct={onBuyProduct}
-                  onConsultProduct={onConsultProduct}
-                  onOpenImageUpdater={onOpenImageUpdater}
-                  onOpenPriceEditor={onOpenPriceEditor}
-                  onEditProduct={onEditProduct}
-                  onDeleteProduct={onDeleteProduct}
-                  onAddProductToCategory={onOpenAddProduct}
-                  onOpenCategoryEditor={onOpenCategoryManager || onOpenCategoryEditor}
-                  isAdmin={isAdmin}
-                  hiddenProductIds={hiddenProductIds}
-                  onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}
-                />
-              );
-            })}
+          // Expandable Full Catalog behind "Xem thêm toàn bộ deal" so top of page stays focused on 6 flagship deals
+          <div>
+            {!showAllCatalog && !isAdmin ? (
+              <div className="text-center py-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAllCatalog(true);
+                    trackEvent('select_deal', { source: 'expand_full_catalog' });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white hover:bg-rose-50 text-rose-700 border-2 border-rose-300 font-bold text-sm shadow-xs transition-all cursor-pointer active:scale-98"
+                >
+                  <span>
+                    Xem thêm toàn bộ deal (
+                    {Math.max(0, filteredProducts.length - flagshipDeals.length)} sản phẩm khác)
+                  </span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-10">
+                {displayedCategories.map((category) => {
+                  const catProducts = allProducts.filter((p) => p.category === category.id);
+                  return (
+                    <CategorySection
+                      key={category.id}
+                      category={category}
+                      products={catProducts}
+                      icon={categoryIcons[category.id] || <Sparkles className="w-4 h-4 text-rose-600" />}
+                      selectedProductIds={selectedProductIds}
+                      customImages={customImages}
+                      customPrices={customPrices}
+                      onToggleProduct={onToggleProduct}
+                      onBuyProduct={onBuyProduct}
+                      onConsultProduct={onConsultProduct}
+                      onOpenImageUpdater={onOpenImageUpdater}
+                      onOpenPriceEditor={onOpenPriceEditor}
+                      onEditProduct={onEditProduct}
+                      onDeleteProduct={onDeleteProduct}
+                      onAddProductToCategory={onOpenAddProduct}
+                      onOpenCategoryEditor={onOpenCategoryManager || onOpenCategoryEditor}
+                      isAdmin={isAdmin}
+                      hiddenProductIds={hiddenProductIds}
+                      onToggleHideProduct={(product) => onToggleHideProduct?.(product.id)}
+                    />
+                  );
+                })}
+                {!isAdmin && (
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCatalog(false)}
+                      className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold text-xs transition-colors cursor-pointer"
+                    >
+                      <span>Thu gọn bớt – giữ 6 deal chủ lực</span>
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           // Filtered list: supports both mobile horizontal swipe & grid

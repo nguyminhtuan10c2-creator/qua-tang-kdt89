@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, PhoneCall, MessageCircle, Heart, ShieldAlert, Sparkles } from 'lucide-react';
 import { PRODUCTS, COMPANY_INFO } from '../data/products';
 import { submitConsultationLead } from '../lib/firebase';
+import { trackEvent } from '../lib/tracking';
 
 interface ConsultationModalProps {
   isOpen: boolean;
@@ -156,6 +157,7 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
                   href={COMPANY_INFO.zaloLink}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackEvent('click_zalo', { source: 'consultation_modal' })}
                   className="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-xs"
                 >
                   <MessageCircle className="w-4 h-4 text-white" />
@@ -257,7 +259,7 @@ export const ConsultationModal: React.FC<ConsultationModalProps> = ({
                   <option value="Dưới 1.000.000đ">Dưới 1.000.000đ (Bộ nồi, bếp nướng...)</option>
                   <option value="Từ 1.000.000đ đến 2.000.000đ">Từ 1.000.000đ đến 2.000.000đ (Nồi chiên, lò vi sóng...)</option>
                   <option value="Từ 2.000.000đ đến 4.000.000đ">Từ 2.000.000đ đến 4.000.000đ (Nồi Cuckoo, bếp từ đôi...)</option>
-                  <option value="Trên 4.000.000đ">Trên 4.000.000đ (Máy lạnh trọn gói...)</option>
+                  <option value="Trên 4.000.000đ">Trên 4.000.000đ (Smart Tivi, Combo gia dụng...)</option>
                   <option value="Chưa xác định - Nhờ sale tư vấn">Chưa xác định - Nhờ sale tư vấn theo món</option>
                 </select>
               </div>

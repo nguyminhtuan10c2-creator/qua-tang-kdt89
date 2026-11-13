@@ -236,6 +236,16 @@ export const MegaSaleCampaignCountdown: React.FC<MegaSaleCampaignCountdownProps>
   const isUpcoming = stageInfo.stage === 'UPCOMING';
   const isPreTeaser = stageInfo.stage === 'PRE_TEASER';
   const isEnded = stageInfo.stage === 'ENDED';
+  const isFinalDay = useMemo(() => {
+    if (!isLive) return false;
+    const end = new Date(config.endDate);
+    return (
+      !isNaN(end.getTime()) &&
+      now.getFullYear() === end.getFullYear() &&
+      now.getMonth() === end.getMonth() &&
+      now.getDate() === end.getDate()
+    );
+  }, [isLive, config.endDate, now]);
 
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState<boolean>(false);
 
@@ -400,16 +410,16 @@ export const MegaSaleCampaignCountdown: React.FC<MegaSaleCampaignCountdownProps>
           <div className="flex items-center gap-2 min-w-0">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-400 text-neutral-950 text-[10px] font-black uppercase tracking-wider shrink-0 shadow-2xs">
               <Zap className="w-3 h-3 text-neutral-950 fill-neutral-950" />
-              <span>{isUpcoming ? 'SẮP SALE' : 'BÙNG NỔ'}</span>
+              <span>{isUpcoming ? 'SẮP SALE' : isFinalDay ? 'DEAL CUỐI ĐẾN 23:59' : 'BÙNG NỔ'}</span>
             </span>
 
             <span className="font-black text-xs sm:text-sm text-white truncate drop-shadow-xs">
-              {config.title || 'SIÊU DEAL 11.11'}
+              {isFinalDay ? 'DEAL CUỐI CHƯƠNG TRÌNH ĐẾN 23:59 | GIÁ SALE TẠI KHO KDT-89' : config.title || 'SIÊU DEAL 11.11'}
             </span>
 
             <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/35 text-yellow-300 text-[10px] font-semibold border border-yellow-300/30 shrink-0">
               <Calendar className="w-2.5 h-2.5 text-yellow-300" />
-              <span>{formatShortDate(config.startDate)} – {formatShortDate(config.endDate)}</span>
+              <span>{isFinalDay ? 'Hạn cuối: 23:59 hôm nay' : `${formatShortDate(config.startDate)} – ${formatShortDate(config.endDate)}`}</span>
             </span>
           </div>
 
@@ -418,7 +428,7 @@ export const MegaSaleCampaignCountdown: React.FC<MegaSaleCampaignCountdownProps>
             {/* Nhãn đếm ngược */}
             <span className="text-[10px] sm:text-xs font-bold text-yellow-200 hidden sm:inline-flex items-center gap-1">
               <Clock className="w-3 h-3 text-yellow-300" />
-              <span>{isUpcoming ? 'Mở bán sau:' : isLive ? 'Kết thúc sau:' : 'Còn lại:'}</span>
+              <span>{isUpcoming ? 'Mở bán sau:' : isFinalDay ? 'Deal cuối kết thúc sau:' : isLive ? 'Kết thúc sau:' : 'Còn lại:'}</span>
             </span>
 
             {/* Các khối đếm số nhỏ tinh tế */}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Heart, Camera, Gift, User } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
 import { KDTLogo } from './KDTLogo';
+import { trackEvent } from '../lib/tracking';
 
 import { CustomerAccount } from '../data/vouchers';
 
@@ -104,6 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
             href={COMPANY_INFO.zaloLink}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => trackEvent('click_zalo', { source: 'header' })}
             className="hidden md:inline-flex lg:hidden xl:inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
             title={`Bấm để mở Zalo KDT-89: ${hotline}`}
           >

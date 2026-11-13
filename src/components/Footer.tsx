@@ -2,6 +2,7 @@ import React from 'react';
 import { COMPANY_INFO } from '../data/products';
 import { Phone, MessageCircle, MapPin, Calendar, AlertCircle } from 'lucide-react';
 import { KDTLogo } from './KDTLogo';
+import { trackEvent } from '../lib/tracking';
 
 interface FooterProps {
   onOpenAdminLogin?: () => void;
@@ -68,6 +69,7 @@ export const Footer: React.FC<FooterProps> = ({
                     href={COMPANY_INFO.zaloLink}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackEvent('click_zalo', { source: 'footer' })}
                     className="font-bold text-white hover:text-sky-400 transition-colors"
                   >
                     {hotline}

@@ -74,7 +74,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   const productsToRender = isAdmin ? products : visibleProducts;
 
   return (
-    <div className="scroll-mt-24">
+    <div id={`cat-${category.id}`} className="scroll-mt-24">
       {/* Category Header */}
       <div className="mb-3.5 p-3.5 sm:p-4 rounded-2xl bg-white border border-neutral-200/90 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

@@ -47,7 +47,7 @@ export const DEFAULT_DECOR_SETTINGS: SiteDecorSettings = {
   countdownButtonText: 'Săn deal ngay',
   fallingEffect: 'confetti',
   fallingSpeed: 'normal',
-  showLiveOrderTicker: true,
+  showLiveOrderTicker: false,
   showCornerRibbon: true,
   cornerRibbonText: '🔥 DEAL SỐC HÔM NAY',
   enablePulsingCta: true,

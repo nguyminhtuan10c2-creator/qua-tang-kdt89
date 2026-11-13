@@ -27,6 +27,7 @@ export interface TimeSlotItem {
 interface FlashSaleTimeSlotsProps {
   decorSettings?: SiteDecorSettings;
   activeCategoryTab?: string;
+  availableCategoryIds?: string[];
   onSelectCategoryTab?: (catId: string) => void;
   activeSlotId?: string;
   onSelectSlot?: (slot: TimeSlotItem) => void;
@@ -40,6 +41,7 @@ interface FlashSaleTimeSlotsProps {
 export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
   decorSettings,
   activeCategoryTab = 'all',
+  availableCategoryIds,
   onSelectCategoryTab,
   activeSlotId,
   onSelectSlot,
@@ -114,16 +116,31 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
 
   const isDuringSale = effectiveStage === 'LIVE'; // Đang trong thời gian sale
   const isCountdownToSale = effectiveStage === 'UPCOMING'; // Đếm ngược ĐẾN ngày sale
+  const isEnded = effectiveStage === 'ENDED';
+  const isFinalDay = useMemo(() => {
+    if (!isDuringSale) return false;
+    const end = new Date(megaConfig.endDate);
+    return (
+      !isNaN(end.getTime()) &&
+      now.getFullYear() === end.getFullYear() &&
+      now.getMonth() === end.getMonth() &&
+      now.getDate() === end.getDate()
+    );
+  }, [isDuringSale, megaConfig.endDate, now]);
 
   // Target time for countdown:
   // - If countdown to sale: Target is startDate (e.g. 09/11/2026 00:00)
-  // - If during sale: Target is next slot end time or end of day / endDate
+  // - If final day or ended (daily): Target is 23:59:59 today
+  // - If during multi-day sale: Target is next slot end time or end of day
   const targetEndTime = useMemo(() => {
     if (isCountdownToSale) {
       return new Date(megaConfig.startDate).getTime();
     }
-    // During sale: next slot e.g. 12:00, 18:00, or 23:59:59
     const end = new Date(now);
+    if (isFinalDay || isEnded) {
+      end.setHours(23, 59, 59, 999);
+      return end.getTime();
+    }
     const hour = now.getHours();
     if (hour < 9) end.setHours(9, 0, 0, 0);
     else if (hour < 12) end.setHours(12, 0, 0, 0);
@@ -131,7 +148,7 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
     else if (hour < 21) end.setHours(21, 0, 0, 0);
     else end.setHours(23, 59, 59, 999);
     return end.getTime();
-  }, [isCountdownToSale, megaConfig.startDate, now]);
+  }, [isCountdownToSale, isFinalDay, isEnded, megaConfig.startDate, now]);
 
   // Ticking time remaining
   const timeLeft = useMemo(() => {
@@ -144,11 +161,8 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
   }, [targetEndTime, now]);
 
   // Dynamic Time Slots based on stage
-  // Trạng thái 1: Đếm ngược ĐẾN NGÀY SALE (Upcoming 11.11)
-  // Trạng thái 2: Đang trong THỜI GIAN SALE (Chỉ còn [00:20:21] + Ngày mai 09:00, 12:00, 18:00)
   const timeSlots: TimeSlotItem[] = useMemo(() => {
     if (isCountdownToSale) {
-      // Chuỗi mốc đếm ngược đến ngày mở sale 11.11 (Ngắn gọn, chuẩn mobile không bị tràn chữ)
       return [
         {
           id: 'slot_teaser_main',
@@ -177,39 +191,68 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
           timeLabel: '00:00',
         },
       ];
-    } else {
-      // Đang trong thời gian sale - Y HỆT ẢNH CHỤP ĐIỆN MÁY XANH
+    }
+
+    if (isFinalDay || isEnded) {
       return [
         {
-          id: 'slot_live_now',
-          dayLabel: 'Chỉ còn',
+          id: 'slot_live_final',
+          dayLabel: isFinalDay ? 'Deal cuối đến 23:59' : 'Hôm nay đến 23:59',
           timeLabel: 'LIVE',
           isLive: true,
         },
         {
-          id: 'slot_tomorrow_09',
-          dayLabel: 'Ngày mai',
-          timeLabel: '09:00',
-        },
-        {
-          id: 'slot_tomorrow_12',
-          dayLabel: 'Ngày mai',
+          id: 'slot_today_12',
+          dayLabel: 'Hôm nay',
           timeLabel: '12:00',
         },
         {
-          id: 'slot_tomorrow_18',
-          dayLabel: 'Ngày mai',
+          id: 'slot_today_18',
+          dayLabel: 'Hôm nay',
           timeLabel: '18:00',
         },
         {
-          id: 'slot_tomorrow_21',
-          dayLabel: 'Ngày mai',
+          id: 'slot_today_21',
+          dayLabel: 'Hôm nay',
           timeLabel: '21:00',
+        },
+        {
+          id: 'slot_today_2359',
+          dayLabel: 'Đóng cổng',
+          timeLabel: '23:59',
         },
       ];
     }
-  }, [isCountdownToSale]);
 
+    return [
+      {
+        id: 'slot_live_now',
+        dayLabel: 'Chỉ còn',
+        timeLabel: 'LIVE',
+        isLive: true,
+      },
+      {
+        id: 'slot_tomorrow_09',
+        dayLabel: 'Ngày mai',
+        timeLabel: '09:00',
+      },
+      {
+        id: 'slot_tomorrow_12',
+        dayLabel: 'Ngày mai',
+        timeLabel: '12:00',
+      },
+      {
+        id: 'slot_tomorrow_18',
+        dayLabel: 'Ngày mai',
+        timeLabel: '18:00',
+      },
+      {
+        id: 'slot_tomorrow_21',
+        dayLabel: 'Ngày mai',
+        timeLabel: '21:00',
+      },
+    ];
+  }, [isCountdownToSale, isFinalDay, isEnded]);
 
   // Selected slot state
   const [currentSlotId, setCurrentSlotId] = useState<string>(() => {
@@ -221,19 +264,20 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
     if (onSelectSlot) onSelectSlot(slot);
   };
 
-  // Category Deal Tabs (chuẩn DMX như ảnh chụp, gọn gàng trên mobile)
-  const dealCategoryTabs = [
-    { id: 'flash_deal', label: 'FLASH SALE GIÁ SỐC', isHot: true },
-    { id: 'discount_50', label: 'GIẢM ĐẾN 50%', isSpecial: true },
-    { id: 'televisions', label: 'TIVI GIẢM SÂU', isBlueBadge: true },
-    { id: 'refrigerators', label: 'TỦ LẠNH GIẢM SỐC', isOrangeBadge: true },
-    { id: 'air_conditioners', label: 'Máy lạnh' },
-    { id: 'washing_machines', label: 'Máy giặt' },
-    { id: 'vacuum_cleaners', label: 'Hút bụi' },
-    { id: 'rice_cooker_appliances', label: 'Nồi cơm' },
-    { id: 'air_fryers', label: 'Nồi chiên' },
-    { id: 'accessories', label: 'Phụ kiện' },
-  ];
+  // Category Deal Tabs (only keep tabs that actually exist in availableCategoryIds)
+  const dealCategoryTabs = useMemo(() => {
+    const allTabs = [
+      { id: 'flash_deal', label: 'FLASH SALE GIÁ SỐC', isHot: true, alwaysShow: true },
+      { id: 'discount_50', label: 'ƯU ĐÃI GIÁ KHO', isSpecial: true, alwaysShow: true },
+      { id: 'rice_cooker_appliances', label: 'NỒI CƠM CUCKOO', isOrangeBadge: true },
+      { id: 'kitchen_stoves', label: 'BẾP TỪ & HỒNG NGOẠI' },
+      { id: 'water_heaters', label: 'MÁY TẮM NÓNG' },
+      { id: 'televisions', label: 'TIVI GIẢM SÂU', isBlueBadge: true },
+      { id: 'air_conditioners', label: 'Máy lạnh' },
+    ];
+    if (!availableCategoryIds) return allTabs;
+    return allTabs.filter((t) => t.alwaysShow || availableCategoryIds.includes(t.id));
+  }, [availableCategoryIds]);
 
   return (
     <div className="w-full bg-white rounded-2xl border border-neutral-200/90 shadow-sm overflow-hidden mb-6 transition-all">
@@ -312,7 +356,13 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
                 : 'bg-red-100 text-red-700 border border-red-300'
             }`}
           >
-            {isCountdownToSale ? '⏳ Sắp mở bán 11.11' : '🔥 Bùng nổ sale'}
+            {isCountdownToSale
+              ? '⏳ Sắp mở bán'
+              : isFinalDay
+              ? '🔥 Deal cuối đến 23:59'
+              : isEnded
+              ? '⚡ Giá kho hôm nay'
+              : '🔥 Bùng nổ sale'}
           </span>
         </div>
 
@@ -396,9 +446,9 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
                   onClick={() => handleSlotClick(slot)}
                   className="bg-gradient-to-b from-[#2992f0] to-[#1c78e0] text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-sm text-center min-w-[124px] max-w-[140px] cursor-pointer shrink-0 transition-transform active:scale-95 ring-2 ring-blue-400/40 flex flex-col justify-center items-center"
                 >
-                  {/* Dòng 1: 'Chỉ còn' hoặc 'Mở bán sau' */}
+                  {/* Dòng 1: 'Deal cuối đến 23:59' hoặc 'Chỉ còn' hoặc 'Mở bán sau' */}
                   <span className="text-[10px] sm:text-[11px] font-semibold text-white leading-tight">
-                    {isCountdownToSale ? 'Mở bán sau' : 'Chỉ còn'}
+                    {slot.dayLabel}
                   </span>
 
                   {/* Dòng 2: Đồng hồ đếm ngược với các ô trắng gọn gàng */}

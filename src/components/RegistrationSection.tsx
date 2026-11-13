@@ -203,7 +203,7 @@ export const RegistrationSection: React.FC<RegistrationSectionProps> = ({
                     type="text"
                     value={interestedProducts}
                     onChange={(e) => setInterestedProducts(e.target.value)}
-                    placeholder="VD: Nồi Cuckoo, Bếp đôi Ferroli, Máy lạnh Casper..."
+                    placeholder="VD: Nồi Cuckoo, Bếp đôi Ferroli, Smart Tivi Coocaa..."
                     className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-300 text-xs sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 shadow-xs"
                   />
                 </div>

@@ -8,58 +8,17 @@ interface StoreDecorationsProps {
   onOpenOrderModal: () => void;
 }
 
-const SAMPLE_RECENT_ORDERS = [
-  { name: 'Anh Hùng', location: 'Quận 12, TP.HCM', product: 'Smart Tivi Casper 43 inch', time: '2 phút trước' },
-  { name: 'Chị Mai Lan', location: 'Bình Tân, TP.HCM', product: 'Nồi cơm điện Cuckoo 1.8L', time: '5 phút trước' },
-  { name: 'Anh Thắng (Thợ)', location: 'Tân Phú, TP.HCM', product: 'Bếp điện từ đôi Sunhouse', time: '8 phút trước' },
-  { name: 'Anh Tuấn', location: 'Bình Chánh, TP.HCM', product: 'Máy tắm nước nóng Ariston', time: '12 phút trước' },
-  { name: 'Anh Minh', location: 'Quận 6, TP.HCM', product: 'Combo Căn bếp gia đình', time: '15 phút trước' },
-  { name: 'Chị Ngọc', location: 'Hóc Môn, TP.HCM', product: 'Máy lạnh Casper Inverter 1HP', time: '22 phút trước' },
-];
-
 export const StoreDecorations: React.FC<StoreDecorationsProps> = ({
   decorSettings,
   onExploreProducts,
   onOpenOrderModal,
 }) => {
   const effectType = decorSettings?.fallingEffect || 'none';
-  const showTicker = decorSettings?.showLiveOrderTicker ?? true;
   const showCorner = decorSettings?.showCornerRibbon ?? true;
   const ribbonText = decorSettings?.cornerRibbonText || '🔥 DEAL SỐC HÔM NAY';
 
-  // Live order ticker state
-  const [currentOrderIndex, setCurrentOrderIndex] = useState(0);
-  const [isTickerVisible, setIsTickerVisible] = useState(true);
-  const [isTickerDismissed, setIsTickerDismissed] = useState(false);
-
   // Surprise Voucher Modal
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
-
-  // Cycle recent order notification gently: visible for 5.5s, then pauses for 12.5s
-  useEffect(() => {
-    if (!showTicker || isTickerDismissed) return;
-
-    let hideTimeout: ReturnType<typeof setTimeout>;
-
-    // Hide after initial 5 seconds
-    hideTimeout = setTimeout(() => {
-      setIsTickerVisible(false);
-    }, 5500);
-
-    const interval = setInterval(() => {
-      setCurrentOrderIndex((prev) => (prev + 1) % SAMPLE_RECENT_ORDERS.length);
-      setIsTickerVisible(true);
-
-      hideTimeout = setTimeout(() => {
-        setIsTickerVisible(false);
-      }, 5500);
-    }, 18000);
-
-    return () => {
-      clearTimeout(hideTimeout);
-      clearInterval(interval);
-    };
-  }, [showTicker, isTickerDismissed]);
 
   // Particle characters based on effect
   const getParticleIcon = (index: number) => {
@@ -79,8 +38,6 @@ export const StoreDecorations: React.FC<StoreDecorationsProps> = ({
         return ['🎉', '🎊', '✨', '🎈', '⭐'][index % 5];
     }
   };
-
-  const currentOrder = SAMPLE_RECENT_ORDERS[currentOrderIndex];
 
   return (
     <>
@@ -130,44 +87,6 @@ export const StoreDecorations: React.FC<StoreDecorationsProps> = ({
               }
             }
           `}</style>
-        </div>
-      )}
-
-      {/* 2. Live Social Proof Toast (Bottom Left) - Siêu gọn gàng, tinh tế không che màn hình */}
-      {showTicker && !isTickerDismissed && (
-        <div
-          className={`fixed bottom-16 sm:bottom-5 left-2.5 sm:left-5 z-40 transition-all duration-400 max-w-[270px] sm:max-w-[320px] pointer-events-auto ${
-            isTickerVisible
-              ? 'opacity-100 translate-y-0 scale-100'
-              : 'opacity-0 translate-y-2 scale-95 pointer-events-none'
-          }`}
-        >
-          <div className="bg-white/95 backdrop-blur-md border border-neutral-200/90 hover:border-rose-300 rounded-full sm:rounded-2xl py-1.5 px-2.5 sm:py-2 sm:px-3 shadow-md hover:shadow-lg flex items-center gap-2 sm:gap-2.5 relative group transition-all">
-            <button
-              type="button"
-              onClick={() => setIsTickerDismissed(true)}
-              className="absolute -top-1 -right-1 sm:top-1 sm:right-1 w-4 h-4 rounded-full bg-neutral-200/80 hover:bg-neutral-300 text-neutral-600 flex items-center justify-center text-[9px] cursor-pointer transition-colors shadow-2xs opacity-75 group-hover:opacity-100"
-              title="Đóng thông báo"
-            >
-              <X className="w-2.5 h-2.5" />
-            </button>
-
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-rose-50 border border-rose-200/70 text-rose-600 flex items-center justify-center shrink-0">
-              <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            </div>
-
-            <div className="min-w-0 pr-3 sm:pr-4 flex-1">
-              <div className="flex items-center gap-1 text-[10px] text-neutral-500 leading-tight">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span className="font-bold text-neutral-800 truncate">{currentOrder.name}</span>
-                <span className="text-neutral-400 text-[9px] truncate">({currentOrder.location.split(',')[0]})</span>
-                <span className="text-[9px] text-neutral-400 shrink-0 ml-auto">• {currentOrder.time}</span>
-              </div>
-              <div className="text-[10px] sm:text-[11px] font-semibold text-rose-600 truncate leading-tight mt-0.5">
-                Vừa mua {currentOrder.product}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

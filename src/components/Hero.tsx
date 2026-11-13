@@ -10,6 +10,8 @@ interface HeroProps {
   isAdmin?: boolean;
   customHeroImage?: string;
   customTexts?: Record<string, string>;
+  visibleCategoryIds?: string[];
+  onSelectCategoryChip?: (catId: string) => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
@@ -20,19 +22,48 @@ export const Hero: React.FC<HeroProps> = ({
   isAdmin = false,
   customHeroImage,
   customTexts = {},
+  visibleCategoryIds,
+  onSelectCategoryChip,
 }) => {
   const partnerBadge = customTexts.partnerBadge || 'Ưu đãi riêng cho đối tác & khách hàng KDT-89';
   const heroTitle = customTexts.heroTitle || 'Kho Điện Tử KDT-89 | Phân Phối Thiết Bị Điện Máy & Gia Dụng';
-  const heroSubtitle = customTexts.heroSubtitle || 'Chọn món quà thiết thực – dùng được mỗi ngày – giá riêng cho anh em thợ và đối tác.';
+  const rawHeroSubtitle = customTexts.heroSubtitle || 'Giá sale tại kho – số lượng giới hạn – dùng được mỗi ngày.';
+  const heroSubtitle = rawHeroSubtitle.replace(
+    /^Giá rẻ nhất năm\b/i,
+    'Giá sale tại kho – số lượng giới hạn'
+  );
   const heroContext = customTexts.heroContext || 'Hàng sẵn tại kho 89-91 Đường số 1, giao nhanh tận tay, hỗ trợ lắp đặt chu đáo, kiểm tra máy ưng ý mới thanh toán.';
-  const heroHighlights = customTexts.heroHighlights || 'Nồi cơm Cuckoo giá rẻ rẻ · Bếp từ đôi & đơn · Smart Tivi 32-55" · Máy lạnh · Máy nước nóng';
+  const hasAirConditioners = visibleCategoryIds ? visibleCategoryIds.includes('air_conditioners') : false;
+  const rawHighlights = customTexts.heroHighlights || 'Nồi cơm Cuckoo giá kho · Bếp từ đôi & đơn · Smart Tivi 32-55" · Máy tắm nóng';
+  const heroHighlights = hasAirConditioners
+    ? rawHighlights
+    : rawHighlights
+        .replace(/\s*·\s*Máy lạnh[^·]*/gi, '')
+        .replace(/Máy lạnh[^·]*\s*·\s*/gi, '')
+        .trim();
 
   const scrollToCategory = (catId: string) => {
-    const el = document.getElementById(`cat-${catId}`) || document.getElementById('products');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
+    if (onSelectCategoryChip) {
+      onSelectCategoryChip(catId);
     }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('kdt89:expand-catalog', { detail: { catId } }));
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`cat-${catId}`) || document.getElementById('products');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 80);
   };
+
+  const quickCategoryChips = [
+    { id: 'rice_cooker_appliances', label: '🍚 Nồi cơm & Gia dụng' },
+    { id: 'televisions', label: '📺 Smart Tivi' },
+    { id: 'air_conditioners', label: '❄️ Máy lạnh' },
+    { id: 'water_heaters', label: '🚿 Nước nóng' },
+    { id: 'kitchen_stoves', label: '🍳 Bếp điện từ' },
+  ].filter((chip) => !visibleCategoryIds || visibleCategoryIds.includes(chip.id));
 
   return (
     <section id="hero" className="relative pt-3 pb-6 sm:pt-6 sm:pb-12 lg:pt-10 lg:pb-16 bg-gradient-to-b from-rose-50/70 via-stone-50/50 to-neutral-50 overflow-hidden">
@@ -138,30 +169,26 @@ export const Hero: React.FC<HeroProps> = ({
             </div>
 
             {/* Mobile Fast-Jump Category Chips: ONLY ON MOBILE (< lg) */}
-            <div className="mt-3.5 pt-3 border-t border-rose-200/60 lg:hidden">
-              <div className="text-[11px] font-bold text-neutral-600 uppercase tracking-wider mb-2 flex items-center justify-between">
-                <span>⚡ Chọn nhanh danh mục:</span>
-                <span className="text-rose-600 font-normal lowercase">chạm để đến ngay</span>
+            {quickCategoryChips.length > 0 && (
+              <div className="mt-3.5 pt-3 border-t border-rose-200/60 lg:hidden">
+                <div className="text-[11px] font-bold text-neutral-600 uppercase tracking-wider mb-2 flex items-center justify-between">
+                  <span>⚡ Chọn nhanh danh mục:</span>
+                  <span className="text-rose-600 font-normal lowercase">chạm để đến ngay</span>
+                </div>
+                <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -mx-2 px-2">
+                  {quickCategoryChips.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => scrollToCategory(cat.id)}
+                      className="px-2.5 py-1.5 rounded-xl bg-white border border-rose-200 text-neutral-800 text-xs font-bold whitespace-nowrap shadow-xs active:scale-95 transition-all shrink-0 hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -mx-2 px-2">
-                {[
-                  { id: 'rice_cooker_appliances', label: '🍚 Nồi cơm & Gia dụng' },
-                  { id: 'smart_tvs', label: '📺 Smart Tivi' },
-                  { id: 'air_conditioners', label: '❄️ Máy lạnh' },
-                  { id: 'water_heaters', label: '🚿 Nước nóng' },
-                  { id: 'induction_stoves', label: '🍳 Bếp điện từ' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => scrollToCategory(cat.id)}
-                    className="px-2.5 py-1.5 rounded-xl bg-white border border-rose-200 text-neutral-800 text-xs font-bold whitespace-nowrap shadow-xs active:scale-95 transition-all shrink-0 hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Trust points strip */}
             <div className="mt-4 sm:mt-8 pt-3 sm:pt-6 border-t border-neutral-200/80 grid grid-cols-3 gap-2 sm:gap-4 text-[11px] sm:text-xs text-neutral-700">

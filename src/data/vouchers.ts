@@ -25,7 +25,7 @@ export const DEFAULT_VOUCHERS: VoucherItem[] = [
     title: 'VOUCHER GIẢM 100.000₫',
     discountAmount: 100000,
     minOrderAmount: 3500000,
-    description: 'Giảm 100.000₫ trực tiếp cho đơn hàng từ 3.500.000₫ (Tivi, Tủ lạnh, Máy giặt...)',
+    description: 'Giảm 100.000₫ trực tiếp cho đơn hàng từ 3.500.000₫ (Smart Tivi, Bếp đôi, Combo gia dụng...)',
     badge: 'ĐƠN TỪ 3.5 TRIỆU',
     expiryDateText: 'HSD: 30/11/2026',
     iconType: 'special',

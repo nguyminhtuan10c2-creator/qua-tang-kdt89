@@ -45,9 +45,9 @@ export const DEFAULT_SITE_TEXTS: Record<string, string> = {
   // 2. Hero Section
   partnerBadge: 'Ưu đãi riêng cho đối tác & khách hàng KDT-89',
   heroTitle: 'Kho Điện Tử KDT-89 | Thiết Bị Điện Máy & Gia Dụng Chính Hãng Giá Tốt',
-  heroSubtitle: 'Chọn món quà thiết thực – dùng được mỗi ngày – giá tận kho KDT-89.',
+  heroSubtitle: 'Giá sale tại kho – số lượng giới hạn – dùng được mỗi ngày.',
   heroContext: 'Hàng sẵn tại kho 89-91 Đường số 1, giao nhanh tận tay, hỗ trợ lắp đặt chu đáo, kiểm tra hàng ưng ý mới thanh toán.',
-  heroHighlights: 'Nồi cơm Cuckoo giá kho · Bếp từ đôi & đơn · Smart Tivi 32-55" · Máy lạnh · Máy tắm nóng',
+  heroHighlights: 'Nồi cơm Cuckoo giá kho · Bếp từ đôi & đơn · Smart Tivi 32-55" · Máy tắm nóng',
 
   // 3. Combos
   comboBadge: 'Gợi ý quà tặng thiết thực',
@@ -113,9 +113,9 @@ export const createDoubleDayTexts = (day: string = '11.11'): Record<string, stri
   headerConsultationBtn: `Săn deal ${day}`,
   partnerBadge: `Đại hội Siêu Sale Ngày Đôi ${day} KDT-89`,
   heroTitle: `Siêu Sale Ngày Đôi ${day} | Săn Deal Điện Máy & Gia Dụng Chạm Đáy Kho`,
-  heroSubtitle: `Giá rẻ nhất năm – Ưu đãi độc quyền cho anh em thợ & đối tác thân thiết KDT-89.`,
+  heroSubtitle: `Giá sale tại kho – số lượng giới hạn – Ưu đãi độc quyền cho anh em thợ & đối tác thân thiết KDT-89.`,
   heroContext: `Hàng sẵn tại kho 89-91 Đường số 1, giao nhanh hỏa tốc, giữ suất ưu đãi trong 24h, kiểm tra hàng ưng ý mới thanh toán.`,
-  heroHighlights: `Flash Sale Nồi cơm Cuckoo · Bếp từ đôi giá kho · Smart Tivi 32-55" trợ giá sốc · Máy lạnh · Máy tắm nước nóng`,
+  heroHighlights: `Flash Sale Nồi cơm Cuckoo · Bếp từ đôi giá kho · Smart Tivi 32-55" trợ giá sốc · Máy tắm nước nóng`,
   comboBadge: `Combo Siêu Hời Ngày Đôi`,
   comboTitle: `Các combo ngày đôi ${day} – Mua trọn bộ tiết kiệm nhất`,
   comboSubtitle: `Gói Căn bếp hiện đại, Tiện nghi phòng khách – Giảm thêm 10-20% khi chốt combo trong đợt sale ngày đôi.`,

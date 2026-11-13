@@ -566,6 +566,30 @@ export async function updateOrderStatus(
 }
 
 /**
+ * Update delivery address and optional note on an existing order (Step 2 of 2-step hold flow)
+ */
+export async function updateOrderAddressInFirestore(
+  orderId: string,
+  address: string,
+  note?: string
+): Promise<void> {
+  const docRef = doc(db, 'orders', orderId);
+  const path = `orders/${orderId}`;
+  const updates: Record<string, string> = {
+    address: address.trim().slice(0, 300),
+  };
+  if (note && note.trim()) {
+    updates.note = note.trim().slice(0, 500);
+  }
+
+  try {
+    await updateDoc(docRef, updates);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+  }
+}
+
+/**
  * Delete an order from Firestore
  */
 export async function deleteOrderFromFirestore(orderId: string): Promise<void> {

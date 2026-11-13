@@ -810,26 +810,33 @@ export default function App() {
           console.error('Lỗi lưu customProducts lên Firebase', e)
         );
       } else {
-        // Built-in product: store in editedProducts
+        // Built-in product: store in editedProducts (strip undefined for Firestore compatibility)
+        const rawOverride: Partial<ProductItem> = {
+          name: updatedProduct.name,
+          modelCode: updatedProduct.modelCode || '',
+          category: updatedProduct.category,
+          categoryLabel: updatedProduct.categoryLabel,
+          budgetTier: updatedProduct.budgetTier,
+          budgetLabel: updatedProduct.budgetLabel,
+          programPrice: updatedProduct.programPrice,
+          referencePrice: updatedProduct.referencePrice,
+          stockStatus: updatedProduct.stockStatus,
+          warranty: updatedProduct.warranty,
+          deliveryCondition: updatedProduct.deliveryCondition,
+          highlightTag: updatedProduct.highlightTag || '',
+          promoBanner: updatedProduct.promoBanner || '',
+          featureBadge: updatedProduct.featureBadge || '',
+          soldText: updatedProduct.soldText || '',
+          slotText: updatedProduct.slotText || '',
+          practicalValue: updatedProduct.practicalValue,
+          specs: updatedProduct.specs || '',
+          ...(updatedProduct.stockCountNumber !== undefined
+            ? { stockCountNumber: updatedProduct.stockCountNumber }
+            : {}),
+        };
         const updated = {
           ...editedProducts,
-          [updatedProduct.id]: {
-            name: updatedProduct.name,
-            modelCode: updatedProduct.modelCode,
-            category: updatedProduct.category,
-            categoryLabel: updatedProduct.categoryLabel,
-            budgetTier: updatedProduct.budgetTier,
-            budgetLabel: updatedProduct.budgetLabel,
-            programPrice: updatedProduct.programPrice,
-            referencePrice: updatedProduct.referencePrice,
-            stockStatus: updatedProduct.stockStatus,
-            stockCountNumber: updatedProduct.stockCountNumber,
-            warranty: updatedProduct.warranty,
-            deliveryCondition: updatedProduct.deliveryCondition,
-            highlightTag: updatedProduct.highlightTag,
-            practicalValue: updatedProduct.practicalValue,
-            specs: updatedProduct.specs,
-          },
+          [updatedProduct.id]: rawOverride,
         };
         setEditedProducts(updated);
         try {
@@ -1123,7 +1130,7 @@ export default function App() {
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-neutral-50 text-neutral-900">
       {/* Admin Top Notification Strip */}
       {isAdmin && (
-        <aside className="w-full max-w-full overflow-hidden bg-amber-500 text-white px-3 sm:px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm sticky top-0 z-50">
+        <aside className="relative z-40 w-full max-w-full overflow-hidden bg-amber-500 text-white px-3 sm:px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm">
           <div className="flex items-center gap-2 font-bold flex-wrap">
             <span className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-black uppercase tracking-wider">
               👑 Admin KDT-89
@@ -1431,6 +1438,7 @@ export default function App() {
               customTexts={customTexts}
               decorSettings={decorSettings}
               onOpenDecorationModal={() => setIsDecorationModalOpen(true)}
+              onUpdateDecorSettings={handleQuickUpdateDecorSettings}
               showBudgetFilter={
                 !hiddenSections.includes('budget_filter') &&
                 Boolean(decorSettings?.showBudgetFilter)

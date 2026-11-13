@@ -34,6 +34,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const [warranty, setWarranty] = useState('[Chính hãng 24 tháng]');
   const [deliveryCondition, setDeliveryCondition] = useState('');
   const [highlightTag, setHighlightTag] = useState('');
+  const [promoBanner, setPromoBanner] = useState('');
+  const [featureBadge, setFeatureBadge] = useState('');
+  const [soldText, setSoldText] = useState('');
+  const [slotText, setSlotText] = useState('');
   const [practicalValue, setPracticalValue] = useState('');
   const [specs, setSpecs] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -53,6 +57,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setWarranty(initialProduct.warranty || '[Chính hãng]');
       setDeliveryCondition(initialProduct.deliveryCondition || 'Giao nhanh tại kho KDT-89');
       setHighlightTag(initialProduct.highlightTag || '');
+      setPromoBanner(initialProduct.promoBanner || '');
+      setFeatureBadge(initialProduct.featureBadge || '');
+      setSoldText(initialProduct.soldText || '');
+      setSlotText(initialProduct.slotText || '');
       setPracticalValue(initialProduct.practicalValue || '');
       setSpecs(initialProduct.specs || '');
       setImageUrl(initialProduct.imageUrl || '');
@@ -68,7 +76,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       setStockCountNumber(10);
       setWarranty('[Chính hãng 24 tháng]');
       setDeliveryCondition('Giá chương trình đã bao gồm hỗ trợ giao lắp theo khu vực');
-      setHighlightTag('Mới về kho KDT-89');
+      setHighlightTag('');
+      setPromoBanner('');
+      setFeatureBadge('');
+      setSoldText('');
+      setSlotText('');
       setPracticalValue('Món quà thiết thực chất lượng cao cho gia đình.');
       setSpecs('Tiết kiệm điện · Vận hành êm ái · Bảo hành chính hãng');
       setImageUrl('');
@@ -105,7 +117,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     const updatedProduct: ProductItem = {
       id: productId,
       name: name.trim(),
-      modelCode: modelCode.trim() || undefined,
+      ...(modelCode.trim() ? { modelCode: modelCode.trim() } : {}),
       category,
       categoryLabel: categoryObj?.name || 'Sản phẩm',
       budgetTier,
@@ -113,13 +125,19 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       programPrice: programPrice.trim() || '[Liên hệ Sale]',
       referencePrice: referencePrice.trim() || '[Giá hãng]',
       stockStatus: stockStatus.trim() || 'Sẵn kho',
-      stockCountNumber: stockCountNumber ? Number(stockCountNumber) : undefined,
+      ...(stockCountNumber !== undefined && !isNaN(Number(stockCountNumber))
+        ? { stockCountNumber: Number(stockCountNumber) }
+        : {}),
       warranty: warranty.trim() || '[Chính hãng]',
       deliveryCondition: deliveryCondition.trim() || 'Hàng sẵn kho KDT-89',
-      highlightTag: highlightTag.trim() || undefined,
+      highlightTag: highlightTag.trim(),
+      promoBanner: promoBanner.trim(),
+      featureBadge: featureBadge.trim(),
+      soldText: soldText.trim(),
+      slotText: slotText.trim(),
       practicalValue: practicalValue.trim() || 'Món quà thiết thực cho gia đình.',
-      specs: specs.trim() || undefined,
-      imageUrl: imageUrl.trim() || undefined,
+      specs: specs.trim() || '',
+      imageUrl: imageUrl.trim() || '',
     };
 
     onSaveProduct(updatedProduct);
@@ -283,7 +301,129 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Thông số kỹ thuật & Tag nổi bật */}
+          {/* Khuyến mãi & Nhãn hiển thị trên thẻ (Anh tự điền hoặc xóa trống để ẩn) */}
+          <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-extrabold text-amber-950 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Nội dung Khuyến mãi / Nhãn trên thẻ (Để trống = Ẩn)</span>
+              </span>
+              {(promoBanner || featureBadge || soldText || slotText) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPromoBanner('');
+                    setFeatureBadge('');
+                    setSoldText('');
+                    setSlotText('');
+                  }}
+                  className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer shrink-0"
+                >
+                  Xóa sạch toàn bộ nhãn
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-neutral-800">
+                    Dải băng đỏ dưới ảnh (KM / Quà):
+                  </label>
+                  {promoBanner && (
+                    <button
+                      type="button"
+                      onClick={() => setPromoBanner('')}
+                      className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={promoBanner}
+                  onChange={(e) => setPromoBanner(e.target.value)}
+                  placeholder="VD: Bảo hành 24 tháng (Trống = không hiện)"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-medium text-neutral-900 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-neutral-800">
+                    Nhãn nhỏ góc trên trái ảnh:
+                  </label>
+                  {featureBadge && (
+                    <button
+                      type="button"
+                      onClick={() => setFeatureBadge('')}
+                      className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={featureBadge}
+                  onChange={(e) => setFeatureBadge(e.target.value)}
+                  placeholder="VD: Inverter tiết kiệm điện (Trống = ẩn)"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-medium text-neutral-900 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-neutral-800">
+                    Thanh cam số suất / Flash Sale:
+                  </label>
+                  {slotText && (
+                    <button
+                      type="button"
+                      onClick={() => setSlotText('')}
+                      className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={slotText}
+                  onChange={(e) => setSlotText(e.target.value)}
+                  placeholder="VD: Còn 5 suất giá kho (Trống = hiện tồn kho)"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-medium text-neutral-900 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-neutral-800">
+                    Dòng chữ đã bán / Đánh giá:
+                  </label>
+                  {soldText && (
+                    <button
+                      type="button"
+                      onClick={() => setSoldText('')}
+                      className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={soldText}
+                  onChange={(e) => setSoldText(e.target.value)}
+                  placeholder="VD: 5.0 • Đã bán 50+ (Trống = ẩn)"
+                  className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs font-medium text-neutral-900 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Thông số kỹ thuật & Ghi chú nội bộ */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-neutral-800 mb-1">
@@ -300,7 +440,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-neutral-800 mb-1">
-                Tag nổi bật góc ảnh:
+                Từ khóa lọc (Sale / Hot / Mới):
               </label>
               <input
                 type="text"

@@ -21,6 +21,10 @@ export interface ProductItem {
   warranty: string;
   deliveryCondition: string;
   highlightTag?: string;
+  promoBanner?: string;
+  featureBadge?: string;
+  soldText?: string;
+  slotText?: string;
   practicalValue: string;
   imageUrl?: string;
   specs?: string;

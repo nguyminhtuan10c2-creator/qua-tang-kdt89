@@ -42,11 +42,11 @@ export const Hero: React.FC<HeroProps> = ({
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
         {/* Partner Trust Banner */}
-        <div className="inline-flex items-center gap-2 mb-2 sm:mb-4 px-3 py-1 rounded-full bg-white border border-rose-200/70 shadow-xs text-xs text-neutral-700">
+        <div className="inline-flex max-w-full items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4 px-3 py-1 rounded-full bg-white border border-rose-200/70 shadow-xs text-[11px] sm:text-xs text-neutral-700 overflow-hidden">
           <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-          <span className="font-semibold text-rose-800">{COMPANY_INFO.name}</span>
-          <span className="text-neutral-300">|</span>
-          <span className="text-neutral-600 truncate">{partnerBadge}</span>
+          <span className="font-bold text-rose-800 whitespace-nowrap shrink-0">{COMPANY_INFO.name}</span>
+          <span className="text-neutral-300 shrink-0">|</span>
+          <span className="text-neutral-600 truncate min-w-0">{partnerBadge}</span>
         </div>
 
         {/* Hero Grid: Split on desktop, focused on mobile WITHOUT the big banner image */}

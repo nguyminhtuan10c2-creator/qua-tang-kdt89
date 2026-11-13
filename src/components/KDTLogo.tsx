@@ -80,13 +80,13 @@ export const KDTLogo: React.FC<KDTLogoProps> = ({
       )}
 
       {variant === 'full' && (
-        <div className="flex flex-col text-left">
-          <span className="font-extrabold text-sm sm:text-lg text-neutral-900 tracking-tight leading-tight flex items-center gap-1 sm:gap-1.5">
+        <div className="flex flex-col text-left shrink-0">
+          <span className="font-extrabold text-sm sm:text-lg text-neutral-900 tracking-tight leading-tight whitespace-nowrap flex items-center">
             <span className="text-[#F25A24]">KDT</span>
             <span className="text-neutral-800">-89</span>
           </span>
-          <span className="hidden sm:block text-[10px] sm:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider leading-none">
-            Điện máy & Gia dụng
+          <span className="hidden sm:block text-[10px] sm:text-[11px] font-semibold text-neutral-500 uppercase tracking-wider leading-tight whitespace-nowrap">
+            Điện máy &amp; Gia dụng
           </span>
         </div>
       )}

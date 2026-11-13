@@ -65,7 +65,32 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
   }, []);
 
   // Admin Override Mode for previewing (auto, teaser_mode, live_mode)
-  const [adminModeOverride, setAdminModeOverride] = useState<'auto' | 'teaser' | 'live'>('auto');
+  const [adminModeOverride, setAdminModeOverride] = useState<'auto' | 'teaser' | 'live'>(() => {
+    return decorSettings?.flashSaleMode || 'auto';
+  });
+
+  useEffect(() => {
+    if (decorSettings?.flashSaleMode) {
+      setAdminModeOverride(decorSettings.flashSaleMode);
+    }
+  }, [decorSettings?.flashSaleMode]);
+
+  const [modeNotice, setModeNotice] = useState<string | null>(null);
+
+  const handleSelectSaleMode = (mode: 'auto' | 'teaser' | 'live') => {
+    setAdminModeOverride(mode);
+    if (onUpdateDecorSettings) {
+      onUpdateDecorSettings({ flashSaleMode: mode });
+    }
+    const label =
+      mode === 'auto'
+        ? 'Tự động (Theo ngày cài đặt)'
+        : mode === 'teaser'
+        ? 'Đang đếm ngược đến ngày sale (Mở bán sau 3d : ...)'
+        : 'ĐANG DIỄN RA FLASH SALE (Chỉ còn 00:xx:xx)';
+    setModeNotice(`Đã chuyển sang: ${label}`);
+    setTimeout(() => setModeNotice(null), 3000);
+  };
 
   // Determine true campaign stage:
   // Teaser/Upcoming: now < startDate
@@ -231,36 +256,42 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 ml-auto">
-            <span className="text-[11px] text-neutral-400">Xem thử:</span>
+          <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+            {modeNotice && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold text-[10px] animate-pulse">
+                {modeNotice}
+              </span>
+            )}
+            <span className="text-[11px] text-neutral-400">Chế độ hiển thị:</span>
             <button
               type="button"
-              onClick={() => setAdminModeOverride('auto')}
+              onClick={() => handleSelectSaleMode('auto')}
               className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                adminModeOverride === 'auto' ? 'bg-amber-400 text-neutral-950' : 'bg-neutral-800 text-neutral-300'
+                adminModeOverride === 'auto' ? 'bg-amber-400 text-neutral-950 shadow-2xs' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
               }`}
+              title="Tự động theo lịch: Trước 09/11 là đếm ngược mở bán, từ 09/11 là mở bán sale"
             >
-              Tự động
+              Tự động (Lịch 11.11)
             </button>
             <button
               type="button"
-              onClick={() => setAdminModeOverride('teaser')}
+              onClick={() => handleSelectSaleMode('teaser')}
               className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                adminModeOverride === 'teaser' ? 'bg-blue-600 text-white' : 'bg-neutral-800 text-neutral-300'
+                adminModeOverride === 'teaser' ? 'bg-blue-600 text-white shadow-2xs ring-1 ring-blue-300' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
               }`}
-              title="Xem giao diện đếm ngược đón đầu trước ngày sale"
+              title="Đếm ngược đón đầu: Mở bán sau 3d : ... và các mốc 09/11 00:00, 12:00..."
             >
               1. Đếm đến ngày sale
             </button>
             <button
               type="button"
-              onClick={() => setAdminModeOverride('live')}
+              onClick={() => handleSelectSaleMode('live')}
               className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                adminModeOverride === 'live' ? 'bg-red-600 text-white' : 'bg-neutral-800 text-neutral-300'
+                adminModeOverride === 'live' ? 'bg-red-600 text-white shadow-2xs ring-1 ring-red-300' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
               }`}
-              title="Xem giao diện khung giờ đang mở bán sale trực tiếp"
+              title="Đang trong thời gian sale: Chỉ còn [ 00 : 20 : 21 ] và Ngày mai 09:00, 12:00, 18:00..."
             >
-              2. Trong giờ sale bùng nổ
+              2. Đang trong giờ sale (Chỉ còn)
             </button>
           </div>
         </div>

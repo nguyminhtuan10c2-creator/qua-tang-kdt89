@@ -86,62 +86,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     return null;
   }, [programPriceStr, referencePriceStr, product.highlightTag]);
 
-  // Compute realistic rating, sold count, and slot urgency bar (matching Điện Máy Xanh)
+  // Use ONLY explicit admin-provided promo/badge/metrics (never fabricate fake gifts or sales numbers)
   const meta = useMemo(() => {
-    // Generate stable deterministic pseudo-data based on product id
-    let hash = 0;
-    for (let i = 0; i < product.id.length; i++) {
-      hash = (hash << 5) - hash + product.id.charCodeAt(i);
-      hash |= 0;
-    }
-    const absHash = Math.abs(hash);
-
-    // Rating: 4.8 to 5.0
-    const rating = (4.8 + (absHash % 3) * 0.1).toFixed(absHash % 2 === 0 ? 0 : 1);
-
-    // Sold count: e.g. 245, 1,2k, 3,8k, 11,2k
-    const soldPool = ['245', '1,2k', '3,8k', '5,6k', '11,2k', '890', '4,5k'];
-    const sold = soldPool[absHash % soldPool.length];
-
-    // Slots: taken / 5
-    const takenSlots = 2 + (absHash % 4); // 2, 3, 4, or 5
-    const totalSlots = 5;
-
-    // Feature badge like "Tủ lạnh inverter tiết kiệm điện", "Đồng hồ thông minh", etc.
-    let featureBadge = '';
-    if (product.category === 'televisions') {
-      featureBadge = 'Smart TV 4K hình ảnh siêu nét';
-    } else if (product.category === 'air_conditioners') {
-      featureBadge = 'Máy lạnh inverter tiết kiệm điện';
-    } else if (product.category === 'kitchen_stoves') {
-      featureBadge = 'Bếp từ đôi công nghệ tiết kiệm điện';
-    } else if (product.category === 'water_heaters') {
-      featureBadge = 'Bình nước nóng an toàn chống giật';
-    } else {
-      featureBadge = 'Gia dụng chính hãng tiện ích';
-    }
-
-    // Gift promo ribbon like "TẶNG BÌNH ĐUN...", "TẶNG MÁY HÚT BỤI RAPIDO..."
-    let giftPromo = '';
-    if (product.highlightTag && product.highlightTag.toLowerCase().includes('tặng')) {
-      giftPromo = product.highlightTag;
-    } else if (absHash % 3 === 0) {
-      giftPromo = 'TẶNG BÌNH ĐUN TRỊ GIÁ 390.000Đ';
-    } else if (absHash % 3 === 1) {
-      giftPromo = 'TẶNG MÁY HÚT BỤI RAPIDO 1.020.000Đ';
-    } else {
-      giftPromo = 'BẢO HÀNH CHÍNH HÃNG 24 THÁNG';
-    }
+    const featureBadge = (product.featureBadge || '').trim();
+    const giftPromo = (product.promoBanner || '').trim();
+    const soldText = (product.soldText || '').trim();
+    const slotText = (product.slotText || '').trim();
 
     return {
-      rating,
-      sold,
-      takenSlots,
-      totalSlots,
       featureBadge,
       giftPromo,
+      soldText,
+      slotText,
     };
-  }, [product.id, product.category, product.highlightTag]);
+  }, [product.featureBadge, product.promoBanner, product.soldText, product.slotText]);
 
   // Category-specific visual icon/illustration fallback
   const renderProductIllustration = () => {
@@ -359,32 +317,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           </div>
 
-          {/* Rating & Sold count: ★ 5 • Đã bán 3,8k */}
-          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-neutral-600 font-medium">
-            <span className="flex items-center text-amber-500 font-bold">
-              ★ {meta.rating}
-            </span>
-            <span className="text-neutral-300">•</span>
-            <span>Đã bán {meta.sold}</span>
-          </div>
+          {/* Optional Rating & Sold text (only shown if Admin enters it) */}
+          {meta.soldText && (
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-neutral-600 font-medium">
+              <span className="text-amber-500 font-bold">★</span>
+              <span className="truncate">{meta.soldText}</span>
+            </div>
+          )}
 
-          {/* Fire Urgency Slot Bar: 🔥 3/5 Suất (Chuẩn ảnh Điện Máy Xanh) */}
-          <div className="mt-2">
-            <div className="bg-amber-100/90 rounded-full h-4 sm:h-4.5 relative overflow-hidden flex items-center border border-amber-200/80">
-              <div
-                className="bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500 h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min(100, (meta.takenSlots / meta.totalSlots) * 100)}%`,
-                }}
-              />
-              <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-neutral-900 leading-none gap-1">
-                <span>🔥</span>
-                <span>{meta.takenSlots}/{meta.totalSlots} Suất</span>
+          {/* Optional Promo Slot Bar (only shown if Admin enters slotText; otherwise shows honest stock status) */}
+          {meta.slotText ? (
+            <div className="mt-2">
+              <div className="bg-amber-100/90 rounded-full h-4 sm:h-4.5 relative overflow-hidden flex items-center border border-amber-200/80">
+                <div className="bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500 h-full w-3/5 rounded-full" />
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-neutral-900 leading-none gap-1 px-2">
+                  <span>🔥</span>
+                  <span className="truncate">{meta.slotText}</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : product.stockStatus ? (
+            <div className="mt-1.5 text-[11px] text-emerald-700 font-medium truncate">
+              ✓ {product.stockStatus}
+            </div>
+          ) : null}
 
-          {/* Admin Edit Price/Info Row */}
+          {/* Admin Edit Price/Info/Promo Row */}
           {isAdmin && (
             <div className="mt-2 pt-1.5 border-t border-neutral-150 grid grid-cols-2 gap-1">
               {onOpenPriceEditor && (
@@ -397,7 +355,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   className="py-1 px-1.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[10px] flex items-center justify-center gap-1 cursor-pointer"
                   title="Sửa giá"
                 >
-                  <Tag className="w-3 h-3 text-amber-800" />
+                  <Tag className="w-3 h-3 text-amber-800 shrink-0" />
                   <span>Sửa giá</span>
                 </button>
               )}
@@ -409,10 +367,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     onEditProduct(product);
                   }}
                   className="py-1 px-1.5 rounded bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-[10px] flex items-center justify-center gap-1 cursor-pointer"
-                  title="Đổi tên/kho"
+                  title="Sửa tên, kho, dải băng khuyến mãi & nhãn hiển thị"
                 >
-                  <Pencil className="w-3 h-3 text-neutral-700" />
-                  <span>Đổi kho</span>
+                  <Pencil className="w-3 h-3 text-neutral-700 shrink-0" />
+                  <span>Sửa / KM</span>
                 </button>
               )}
             </div>

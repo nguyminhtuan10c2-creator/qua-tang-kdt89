@@ -40,6 +40,7 @@ interface ProductCatalogProps {
   customCategories?: Record<string, CategoryOverride>;
   decorSettings?: SiteDecorSettings;
   onOpenDecorationModal?: () => void;
+  onUpdateDecorSettings?: (partial: Partial<SiteDecorSettings>) => void;
   showBudgetFilter?: boolean;
   onToggleBudgetFilter?: (show: boolean) => void;
   onImportBulkProducts?: (products: ProductItem[]) => void;
@@ -74,6 +75,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   customTexts = {},
   decorSettings,
   onOpenDecorationModal,
+  onUpdateDecorSettings,
   showBudgetFilter = false,
   onToggleBudgetFilter,
   onImportBulkProducts,
@@ -441,6 +443,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
             }}
             isAdmin={isAdmin}
             onOpenDecorationModal={onOpenDecorationModal}
+            onUpdateDecorSettings={onUpdateDecorSettings}
             onOpenConsultation={onOpenConsultation}
             onOpenVoucherWallet={onOpenVoucherWallet}
           />

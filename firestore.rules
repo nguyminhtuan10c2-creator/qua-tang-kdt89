@@ -24,15 +24,34 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'nguyminhtuan10C2@gmail.com' ||
+      return isSignedIn() &&
+             request.auth.token.email_verified == true && (
+        request.auth.token.email.lower() == 'nguyminhtuan10c2@gmail.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
 
     function isValidSiteSetting(data) {
       return data.keys().hasAll(['updatedAt']) &&
-             data.keys().hasOnly(['customImages', 'hiddenProductIds', 'customPrices', 'hiddenComboIds', 'customProducts', 'deletedProductIds', 'editedProducts', 'customCombos', 'deletedComboIds', 'customCategories', 'customTexts', 'customSeo', 'hiddenSections', 'addedCategories', 'deletedCategoryIds', 'decorSettings', 'updatedAt']) &&
+             data.keys().hasOnly([
+               'customImages',
+               'hiddenProductIds',
+               'customPrices',
+               'hiddenComboIds',
+               'customProducts',
+               'deletedProductIds',
+               'editedProducts',
+               'customCombos',
+               'deletedComboIds',
+               'customCategories',
+               'customTexts',
+               'customSeo',
+               'hiddenSections',
+               'addedCategories',
+               'deletedCategoryIds',
+               'decorSettings',
+               'updatedAt'
+             ]) &&
              data.updatedAt is string && data.updatedAt.size() <= 60 &&
              (!('customImages' in data) || data.customImages is map) &&
              (!('hiddenProductIds' in data) || (data.hiddenProductIds is list && data.hiddenProductIds.size() <= 300)) &&
@@ -61,7 +80,16 @@ service cloud.firestore {
 
     function isValidLead(data) {
       return data.keys().hasAll(['fullName', 'phoneNumber', 'createdAt']) &&
-             data.keys().hasOnly(['fullName', 'phoneNumber', 'recipient', 'budgetTier', 'interestedProducts', 'deliveryArea', 'giftNote', 'createdAt']) &&
+             data.keys().hasOnly([
+               'fullName',
+               'phoneNumber',
+               'recipient',
+               'budgetTier',
+               'interestedProducts',
+               'deliveryArea',
+               'giftNote',
+               'createdAt'
+             ]) &&
              data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.createdAt is string && data.createdAt.size() <= 60 &&
@@ -74,7 +102,23 @@ service cloud.firestore {
 
     function isValidOrder(data) {
       return data.keys().hasAll(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'createdAt']) &&
-             data.keys().hasOnly(['customerName', 'phoneNumber', 'address', 'items', 'totalAmount', 'recipient', 'giftCardRequested', 'paymentMethod', 'appliedVoucher', 'voucherDiscount', 'note', 'status', 'createdAt']) &&
+             data.keys().hasOnly([
+               'id',
+               'customerName',
+               'phoneNumber',
+               'address',
+               'items',
+               'totalAmount',
+               'recipient',
+               'giftCardRequested',
+               'paymentMethod',
+               'appliedVoucher',
+               'voucherDiscount',
+               'note',
+               'status',
+               'createdAt'
+             ]) &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
              data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.address is string && data.address.size() >= 1 && data.address.size() <= 300 &&
@@ -83,7 +127,7 @@ service cloud.firestore {
              data.createdAt is string && data.createdAt.size() <= 60 &&
              (!('recipient' in data) || (data.recipient is string && data.recipient.size() <= 100)) &&
              (!('giftCardRequested' in data) || data.giftCardRequested is bool) &&
-             (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 50)) &&
+             (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 80)) &&
              (!('appliedVoucher' in data) || (data.appliedVoucher is string && data.appliedVoucher.size() <= 50)) &&
              (!('voucherDiscount' in data) || (data.voucherDiscount is string && data.voucherDiscount.size() <= 50)) &&
              (!('note' in data) || (data.note is string && data.note.size() <= 1000)) &&
@@ -104,7 +148,8 @@ service cloud.firestore {
 
     function isValidVoucherRedemption(data) {
       return data.keys().hasAll(['phoneNumber', 'voucherCode', 'discountAmount', 'usedAt']) &&
-             data.keys().hasOnly(['phoneNumber', 'customerName', 'voucherCode', 'discountAmount', 'orderId', 'usedAt']) &&
+             data.keys().hasOnly(['id', 'phoneNumber', 'customerName', 'voucherCode', 'discountAmount', 'orderId', 'usedAt']) &&
+             (!('id' in data) || (data.id is string && data.id.size() <= 128)) &&
              data.phoneNumber is string && data.phoneNumber.size() >= 8 && data.phoneNumber.size() <= 25 &&
              data.voucherCode is string && data.voucherCode.size() >= 1 && data.voucherCode.size() <= 50 &&
              data.discountAmount is number && data.discountAmount >= 0 &&
@@ -113,48 +158,64 @@ service cloud.firestore {
              (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 100));
     }
 
-    // Site settings: public can read custom prices and hidden products
+    // Site settings: public can read settings/site, only verified admin can write/delete
     match /settings/{settingId} {
       allow get: if isValidId(settingId);
       allow list: if false;
-      allow create, update: if isValidId(settingId) && isValidSiteSetting(incoming());
-      allow delete: if isValidId(settingId) && isAdmin();
+      allow create, update: if isAdmin() && isValidId(settingId) && isValidSiteSetting(incoming());
+      allow delete: if isAdmin() && isValidId(settingId);
     }
 
-    // Individual custom images per product/asset (prevents 1MB document size limit)
+    // Individual custom images: public storefront reads, only verified admin can write/delete
     match /custom_images/{imageId} {
       allow get, list: if true;
-      allow create, update: if isValidId(imageId) && isValidCustomImage(incoming());
-      allow delete: if isValidId(imageId);
+      allow create, update: if isAdmin() && isValidId(imageId) && isValidCustomImage(incoming());
+      allow delete: if isAdmin() && isValidId(imageId);
     }
 
-    // Customer consultation leads: guests can create with strict validation
+    // Customer consultation leads: guests can create with validation, only admin can read/manage
     match /leads/{leadId} {
       allow create: if isValidId(leadId) && isValidLead(incoming());
-      allow get, list, update, delete: if true;
+      allow get, list, update, delete: if isAdmin();
     }
 
-    // Customer purchase orders: guests can submit orders, admin can manage/read/update/delete
+    // Customer purchase orders:
+    // - Guests can create an order and update address/note in Step 2 while status == 'Mới'
+    // - Only verified admin can read, list, change status, or delete orders
     match /orders/{orderId} {
       allow create: if isValidId(orderId) && isValidOrder(incoming());
-      allow get, list: if true;
-      allow update: if isValidId(orderId) && isValidOrder(incoming());
-      allow delete: if isValidId(orderId);
+      allow get, list, delete: if isAdmin();
+      allow update: if isAdmin() && isValidId(orderId) && isValidOrder(incoming()) || (
+        isValidId(orderId) &&
+        existing().status == 'Mới' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['address', 'note']) &&
+        isValidOrder(incoming())
+      );
     }
 
-    // Customer accounts: customers can register by phone number & fetch their account
+    // Customer accounts (phone-based flow without Firebase Auth):
+    // - Guests can lookup own phone doc (get), register (create), and update non-identity profile fields
+    // - Listing all customers and deleting customers are restricted to verified admin
     match /customers/{phoneNumber} {
-      allow get, list: if true;
-      allow create, update: if isValidId(phoneNumber) && isValidCustomer(incoming());
-      allow delete: if isAdmin();
+      allow get: if isValidId(phoneNumber);
+      allow list, delete: if isAdmin();
+      allow create: if isValidId(phoneNumber) && isValidCustomer(incoming());
+      allow update: if isAdmin() || (
+        isValidId(phoneNumber) &&
+        isValidCustomer(incoming()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['lastLoginAt', 'fullName', 'address', 'vouchersClaimed']) &&
+        incoming().phoneNumber == existing().phoneNumber &&
+        incoming().registeredAt == existing().registeredAt
+      );
     }
 
-    // Voucher redemptions: tracks 1-voucher-per-phone rule
+    // Voucher redemptions (1-voucher-per-phone rule):
+    // - Guests can check single doc by ID ({code}_{phone}) and create redemption
+    // - Listing all redemptions, updating, and deleting are restricted to verified admin
     match /voucher_redemptions/{redemptionId} {
-      allow get, list: if true;
+      allow get: if isValidId(redemptionId);
+      allow list, update, delete: if isAdmin();
       allow create: if isValidId(redemptionId) && isValidVoucherRedemption(incoming());
-      allow update, delete: if isAdmin();
     }
   }
 }
-

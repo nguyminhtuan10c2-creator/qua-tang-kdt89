@@ -14,6 +14,7 @@ interface ProductPriceModalProps {
   customPrices: Record<string, CustomPrice>;
   onSavePrice: (productId: string, price: CustomPrice) => void;
   onResetPrice: (productId: string) => void;
+  productsList?: ProductItem[];
 }
 
 export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
@@ -23,9 +24,11 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   customPrices,
   onSavePrice,
   onResetPrice,
+  productsList,
 }) => {
+  const catalog = productsList && productsList.length > 0 ? productsList : PRODUCTS;
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    targetProduct?.id || PRODUCTS[0]?.id || ''
+    targetProduct?.id || catalog[0]?.id || ''
   );
   const [programPriceInput, setProgramPriceInput] = useState<string>('');
   const [referencePriceInput, setReferencePriceInput] = useState<string>('');
@@ -39,7 +42,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   }, [targetProduct]);
 
   const currentProduct =
-    PRODUCTS.find((p) => p.id === selectedProductId) || targetProduct || PRODUCTS[0];
+    catalog.find((p) => p.id === selectedProductId) || targetProduct || catalog[0];
 
   useEffect(() => {
     if (currentProduct) {
@@ -71,7 +74,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  const filteredProducts = PRODUCTS.filter((p) => {
+  const filteredProducts = catalog.filter((p) => {
     if (!searchFilter.trim()) return true;
     const q = searchFilter.toLowerCase();
     return (

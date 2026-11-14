@@ -83,6 +83,7 @@ interface ImageUpdateModalProps {
   customImages: Record<string, string>;
   onSaveImage: (productId: string, imageDataUrl: string) => void;
   onResetImage: (productId: string) => void;
+  productsList?: ProductItem[];
 }
 
 // Preset library of clean model photos
@@ -150,9 +151,11 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
   customImages,
   onSaveImage,
   onResetImage,
+  productsList,
 }) => {
+  const catalog = productsList && productsList.length > 0 ? productsList : PRODUCTS;
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    targetProduct?.id || PRODUCTS[0].id
+    targetProduct?.id || catalog[0]?.id || ''
   );
   const [filterCat, setFilterCat] = useState<string>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
@@ -184,7 +187,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
   const ALL_ITEMS: CustomizableItem[] = useMemo(() => {
     return [
       ...SPECIAL_SITE_ITEMS,
-      ...PRODUCTS.map((p) => ({
+      ...catalog.map((p) => ({
         id: p.id,
         name: p.name,
         modelCode: p.modelCode,
@@ -195,7 +198,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
         isSpecial: false,
       })),
     ];
-  }, []);
+  }, [catalog]);
 
   if (!isOpen) return null;
 

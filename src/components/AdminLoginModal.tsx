@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Lock, KeyRound, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, CloudCheck, Pencil, ShoppingBag, Type, Sliders, Layers, Palette } from 'lucide-react';
+import { X, Lock, ShieldCheck, CheckCircle2, AlertCircle, LogOut, Camera, EyeOff, Tag, Pencil, ShoppingBag, Type, Sliders, Layers, Palette } from 'lucide-react';
 import { loginAdminWithGoogle } from '../lib/firebase';
 
 interface AdminLoginModalProps {
@@ -39,7 +39,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   hiddenCount = 0,
   adminEmail,
 }) => {
-  const [passcode, setPasscode] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [isGoogleLoading, setIsGoogleLoading] = useState<boolean>(false);
@@ -52,41 +51,22 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     try {
       const res = await loginAdminWithGoogle();
       if (res.cancelled) {
-        // User voluntarily closed the Google popup or cancelled, no error to show
         return;
       }
       if (res.isAdmin) {
-        setSuccessMsg(`Chào anh ${res.email || ''}! Đã xác thực quyền Quản trị qua Google.`);
+        setSuccessMsg(`Chào ${res.email || ''}! Đã xác thực quyền Quản trị qua Google.`);
         setTimeout(() => {
           onLoginSuccess();
           setSuccessMsg('');
           onClose();
         }, 700);
       } else {
-        setErrorMsg(`Tài khoản Google (${res.email || ''}) chưa được cấp quyền Quản trị. Anh có thể nhập mã 89 bên dưới để tiếp tục.`);
+        setErrorMsg(`Tài khoản Google (${res.email || ''}) không có quyền Quản trị.`);
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Không thể đăng nhập Google lúc này. Anh có thể nhập mã quản trị 89 bên dưới.');
+      setErrorMsg(err?.message || 'Không thể đăng nhập Google lúc này. Vui lòng thử lại.');
     } finally {
       setIsGoogleLoading(false);
-    }
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = passcode.trim();
-    // Allow passcode 89, kdt89, 1234, admin, or admin89
-    if (clean === '89' || clean.toLowerCase() === 'kdt89' || clean === '1234' || clean.toLowerCase() === 'admin') {
-      setErrorMsg('');
-      setSuccessMsg('Đăng nhập Quản trị viên thành công!');
-      setTimeout(() => {
-        onLoginSuccess();
-        setSuccessMsg('');
-        setPasscode('');
-        onClose();
-      }, 700);
-    } else {
-      setErrorMsg('Mã quản trị chưa chính xác. Gợi ý: mã của công ty là 89');
     }
   };
 
@@ -324,56 +304,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 </button>
               </div>
 
-              <div className="relative flex items-center justify-center my-2">
-                <div className="border-t border-neutral-200 w-full" />
-                <span className="bg-white px-2 text-[10px] uppercase font-bold text-neutral-400 absolute">
-                  Hoặc nhập mã
-                </span>
-              </div>
-
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase tracking-wide">
-                    Nhập mã quản trị (Passcode):
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      value={passcode}
-                      onChange={(e) => {
-                        setPasscode(e.target.value);
-                        setErrorMsg('');
-                      }}
-                      placeholder="Nhập mã (Mặc định: 89)..."
-                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-neutral-300 text-sm outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                    />
-                    <KeyRound className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
-                  </div>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-[11px] text-neutral-500">
-                      * Mã quản trị của công ty: <strong>89</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPasscode('89');
-                        setErrorMsg('');
-                      }}
-                      className="text-[11px] text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer"
-                    >
-                      Điền nhanh số 89
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-98 text-neutral-950 font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  <span>Xác nhận mở quyền Quản trị</span>
-                </button>
-              </form>
+              <p className="text-xs text-neutral-500 text-center">
+                Chỉ hỗ trợ đăng nhập bằng tài khoản Google Quản trị viên đã được cấp phép.
+              </p>
             </div>
           )}
         </div>

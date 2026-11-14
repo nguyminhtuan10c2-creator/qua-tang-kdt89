@@ -6,6 +6,7 @@ import {
   signOut,
   setPersistence,
   browserLocalPersistence,
+  User,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -344,17 +345,31 @@ export async function submitConsultationLead(lead: ConsultationLeadPayload): Pro
   }
 }
 
+export const ADMIN_OWNER_EMAIL = 'nguyminhtuan10C2@gmail.com';
+export const ADMIN_NOTIFICATION_EMAIL = ADMIN_OWNER_EMAIL;
+
+export function isAuthorizedAdminUser(user: User | null | undefined): boolean {
+  if (!user || !user.email) return false;
+  return (
+    user.email.toLowerCase() === ADMIN_OWNER_EMAIL.toLowerCase() &&
+    user.emailVerified === true
+  );
+}
+
 /**
- * Google Sign-In for Admin
+ * Google Sign-In for Admin (Firebase Google Auth only)
  */
-export async function loginAdminWithGoogle(): Promise<{ email: string | null; isAdmin: boolean; cancelled?: boolean }> {
+export async function loginAdminWithGoogle(): Promise<{
+  email: string | null;
+  isAdmin: boolean;
+  cancelled?: boolean;
+}> {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    const isOwner = user.email === 'nguyminhtuan10C2@gmail.com';
-    return { email: user.email, isAdmin: isOwner };
+    return { email: user.email, isAdmin: isAuthorizedAdminUser(user) };
   } catch (error: any) {
     const code = error?.code || '';
     if (
@@ -362,11 +377,12 @@ export async function loginAdminWithGoogle(): Promise<{ email: string | null; is
       code === 'auth/cancelled-popup-request' ||
       code === 'auth/user-cancelled'
     ) {
-      // User closed the popup window or cancelled. This is expected behavior, not an error.
       return { email: null, isAdmin: false, cancelled: true };
     }
     if (code === 'auth/popup-blocked') {
-      throw new Error('Trình duyệt đã chặn cửa sổ đăng nhập popup. Anh vui lòng cho phép popup hoặc dùng mã 89.');
+      throw new Error(
+        'Trình duyệt đã chặn cửa sổ đăng nhập Google popup. Vui lòng bật cho phép popup rồi thử lại.'
+      );
     }
     console.warn('Google Sign-In status:', error?.message || error);
     throw error;
@@ -384,7 +400,36 @@ export async function logoutFirebaseAuth(): Promise<void> {
   }
 }
 
-export const ADMIN_NOTIFICATION_EMAIL = 'nguyminhtuan10C2@gmail.com';
+export interface StoredLead extends ConsultationLeadPayload {
+  id: string;
+  createdAt: string;
+}
+
+/**
+ * Real-time subscription to consultation leads (Admin only)
+ */
+export function subscribeToLeads(
+  onLeads: (leads: StoredLead[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const leadsRef = collection(db, 'leads');
+  const q = query(leadsRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: StoredLead[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push({ ...docSnap.data(), id: docSnap.id } as StoredLead);
+      });
+      onLeads(list);
+    },
+    (err) => {
+      console.warn('Firestore leads sync:', err);
+      if (onError) onError(err);
+    }
+  );
+}
 
 export interface OrderItem {
   id: string;

@@ -477,17 +477,7 @@ export async function verifyAdminAccess(
     };
   }
 
-  // Any newly created Email/Password user starts with emailVerified === false
-  if (user.emailVerified !== true) {
-    return {
-      email: user.email,
-      uid: user.uid,
-      isAdmin: false,
-      needsVerification: true,
-      diagnosticError: null,
-    };
-  }
-
+  // Check Firestore /admins/{uid} first (safe for Console-created handover accounts)
   const allowlistStatus = await checkAdminAllowlistDoc(user.uid);
   if (allowlistStatus === 'found') {
     return {
@@ -499,13 +489,23 @@ export async function verifyAdminAccess(
     };
   }
 
+  if (isOwnerEmailUnverified(user)) {
+    return {
+      email: user.email,
+      uid: user.uid,
+      isAdmin: false,
+      needsVerification: true,
+      diagnosticError: null,
+    };
+  }
+
   if (allowlistStatus === 'permission_denied') {
     return {
       email: user.email,
       uid: user.uid,
       isAdmin: false,
       needsVerification: false,
-      diagnosticError: `Đã đăng nhập ${user.email} (UID: ${user.uid}), nhưng Firestore Rules trên server chưa cho phép đọc "admins/${user.uid}" (lỗi permission-denied). Hãy cập nhật Firestore Rules trong Firebase Console (thêm match /admins/{adminId}) để hoàn tất kích hoạt.`,
+      diagnosticError: `Đã đăng nhập ${user.email} (UID: ${user.uid}), nhưng Firestore Rules trên server chưa cho phép đọc "admins/${user.uid}" (lỗi permission-denied). Hãy mở Firestore Rules của database "${firebaseConfig.firestoreDatabaseId}" và thêm rule match /admins/{adminId} rồi bấm Publish.`,
     };
   }
 

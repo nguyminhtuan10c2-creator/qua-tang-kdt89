@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import {
   auth,
-  isAuthorizedAdminUser,
+  verifyAdminAccess,
   logoutFirebaseAuth,
   subscribeToSiteSettings,
   saveSiteSettingsToFirestore,
@@ -55,6 +55,7 @@ export default function AdminApp() {
   const [authReady, setAuthReady] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState(false);
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
 
   const [activeTab, setActiveTab] = useState<AdminTabId>('dashboard');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -85,12 +86,18 @@ export default function AdminApp() {
     document.title = 'Quản trị Kho Điện Tử KDT-89';
   }, []);
 
+  const syncAuthState = async (user: typeof auth.currentUser) => {
+    const res = await verifyAdminAccess(user);
+    setCurrentUserEmail(res.email);
+    setIsAuthorizedAdmin(res.isAdmin);
+    setNeedsEmailVerification(res.needsVerification);
+    setAuthReady(true);
+  };
+
   // 1. Firebase Auth subscription (Single Source of Truth)
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((user) => {
-      setCurrentUserEmail(user?.email || null);
-      setIsAuthorizedAdmin(isAuthorizedAdminUser(user));
-      setAuthReady(true);
+      void syncAuthState(user);
     });
     return () => unsub();
   }, []);
@@ -292,12 +299,14 @@ export default function AdminApp() {
     );
   }
 
-  // Strictly block /admin for guests & non-owner Google accounts
+  // Strictly block /admin for guests & non-owner accounts
   if (!isAuthorizedAdmin) {
     return (
       <AdminAuthGate
         currentUserEmail={currentUserEmail}
         isSignedInButUnauthorized={Boolean(currentUserEmail && !isAuthorizedAdmin)}
+        needsEmailVerification={needsEmailVerification}
+        onAuthRefreshed={() => syncAuthState(auth.currentUser)}
       />
     );
   }

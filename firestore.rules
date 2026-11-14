@@ -158,6 +158,12 @@ service cloud.firestore {
              (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 100));
     }
 
+    // Admin handover allowlist: clients can only read their own doc; managed via Firebase Console
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
     // Site settings: public can read settings/site, only verified admin can write/delete
     match /settings/{settingId} {
       allow get: if isValidId(settingId);

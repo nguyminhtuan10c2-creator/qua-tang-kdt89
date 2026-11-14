@@ -3,6 +3,8 @@ import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  sendEmailVerification,
   signOut,
   setPersistence,
   browserLocalPersistence,
@@ -356,12 +358,21 @@ export function isAuthorizedAdminUser(user: User | null | undefined): boolean {
   );
 }
 
+export function isOwnerEmailUnverified(user: User | null | undefined): boolean {
+  if (!user || !user.email) return false;
+  return (
+    user.email.toLowerCase() === ADMIN_OWNER_EMAIL.toLowerCase() &&
+    user.emailVerified !== true
+  );
+}
+
 /**
- * Google Sign-In for Admin (Firebase Google Auth only)
+ * Google Sign-In for Admin
  */
 export async function loginAdminWithGoogle(): Promise<{
   email: string | null;
   isAdmin: boolean;
+  needsVerification?: boolean;
   cancelled?: boolean;
 }> {
   const provider = new GoogleAuthProvider();
@@ -369,7 +380,11 @@ export async function loginAdminWithGoogle(): Promise<{
   try {
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    return { email: user.email, isAdmin: isAuthorizedAdminUser(user) };
+    return {
+      email: user.email,
+      isAdmin: isAuthorizedAdminUser(user),
+      needsVerification: isOwnerEmailUnverified(user),
+    };
   } catch (error: any) {
     const code = error?.code || '';
     if (
@@ -384,9 +399,133 @@ export async function loginAdminWithGoogle(): Promise<{
         'Trình duyệt đã chặn cửa sổ đăng nhập Google popup. Vui lòng bật cho phép popup rồi thử lại.'
       );
     }
+    if (code === 'auth/unauthorized-domain') {
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      throw new Error(
+        `Domain "${host}" chưa được thêm vào Authorized domains trong Firebase Authentication. Bạn có thể đăng nhập bằng Email/Mật khẩu ở trên hoặc thêm domain này trong Firebase Console.`
+      );
+    }
     console.warn('Google Sign-In status:', error?.message || error);
     throw error;
   }
+}
+
+export function resolveAdminLoginIdentifier(identifier: string): string {
+  const clean = identifier.trim();
+  if (!clean) {
+    throw new Error('Vui lòng nhập tên đăng nhập (ví dụ: admin) hoặc email.');
+  }
+  if (clean.toLowerCase() === 'admin') {
+    return ADMIN_OWNER_EMAIL;
+  }
+  if (clean.includes('@')) {
+    return clean;
+  }
+  throw new Error(
+    `Tên đăng nhập "${clean}" không hợp lệ. Vui lòng nhập "admin" hoặc địa chỉ email đầy đủ.`
+  );
+}
+
+/**
+ * Optional handover check against Firestore /admins/{uid}
+ */
+export async function checkAdminAllowlistDoc(uid: string): Promise<boolean> {
+  try {
+    const snap = await getDoc(doc(db, 'admins', uid));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Email/Username + Password Sign-In for Admin (Firebase Auth)
+ */
+export async function loginAdminWithEmailPassword(
+  identifier: string,
+  password: string
+): Promise<{
+  email: string | null;
+  isAdmin: boolean;
+  needsVerification: boolean;
+}> {
+  const resolvedEmail = resolveAdminLoginIdentifier(identifier);
+  try {
+    const result = await signInWithEmailAndPassword(auth, resolvedEmail, password);
+    const user = result.user;
+    const isOwner = isAuthorizedAdminUser(user);
+    const isListedAdmin =
+      !isOwner && user.emailVerified === true
+        ? await checkAdminAllowlistDoc(user.uid)
+        : false;
+    return {
+      email: user.email,
+      isAdmin: isOwner || isListedAdmin,
+      needsVerification: isOwnerEmailUnverified(user),
+    };
+  } catch (error: any) {
+    const code = error?.code || '';
+    if (code === 'auth/operation-not-allowed') {
+      throw new Error(
+        'Phương thức Email/Password chưa được bật trong Firebase Console (Authentication → Sign-in method → Email/Password).'
+      );
+    }
+    if (
+      code === 'auth/invalid-credential' ||
+      code === 'auth/wrong-password' ||
+      code === 'auth/user-not-found' ||
+      code === 'auth/invalid-email'
+    ) {
+      throw new Error('Tên đăng nhập hoặc mật khẩu quản trị chưa đúng. Vui lòng kiểm tra lại.');
+    }
+    if (code === 'auth/too-many-requests') {
+      throw new Error('Nhập sai quá nhiều lần. Vui lòng đợi vài phút rồi thử lại.');
+    }
+    if (code === 'auth/user-disabled') {
+      throw new Error('Tài khoản này đã bị vô hiệu hóa trong Firebase Authentication.');
+    }
+    throw new Error(error?.message || 'Đăng nhập bằng Tài khoản/Mật khẩu thất bại.');
+  }
+}
+
+export async function sendAdminVerificationEmail(): Promise<void> {
+  if (!auth.currentUser) {
+    throw new Error('Chưa có phiên đăng nhập hiện tại.');
+  }
+  await sendEmailVerification(auth.currentUser);
+}
+
+export async function verifyAdminAccess(user: User | null | undefined): Promise<{
+  email: string | null;
+  isAdmin: boolean;
+  needsVerification: boolean;
+}> {
+  if (!user) {
+    return { email: null, isAdmin: false, needsVerification: false };
+  }
+  const isOwner = isAuthorizedAdminUser(user);
+  if (isOwner) {
+    return { email: user.email, isAdmin: true, needsVerification: false };
+  }
+  const isListedAdmin =
+    user.emailVerified === true ? await checkAdminAllowlistDoc(user.uid) : false;
+  return {
+    email: user.email,
+    isAdmin: isListedAdmin,
+    needsVerification: !isListedAdmin && isOwnerEmailUnverified(user),
+  };
+}
+
+export async function reloadAdminAuthUser(): Promise<{
+  email: string | null;
+  isAdmin: boolean;
+  needsVerification: boolean;
+}> {
+  if (!auth.currentUser) {
+    return { email: null, isAdmin: false, needsVerification: false };
+  }
+  await auth.currentUser.reload();
+  return verifyAdminAccess(auth.currentUser);
 }
 
 /**

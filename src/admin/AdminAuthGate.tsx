@@ -24,6 +24,7 @@ interface AdminAuthGateProps {
   currentUserEmail: string | null;
   isSignedInButUnauthorized: boolean;
   needsEmailVerification?: boolean;
+  diagnosticError?: string | null;
   onAuthRefreshed?: () => void;
 }
 
@@ -31,9 +32,10 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
   currentUserEmail,
   isSignedInButUnauthorized,
   needsEmailVerification = false,
+  diagnosticError = null,
   onAuthRefreshed,
 }) => {
-  const [identifier, setIdentifier] = useState('admin');
+  const [identifier, setIdentifier] = useState(currentUserEmail || 'admin');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
@@ -57,8 +59,10 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
       const res = await loginAdminWithEmailPassword(identifier, password);
       if (res.needsVerification) {
         setInfoMsg(
-          `Đã đăng nhập (${res.email}), nhưng email này chưa được xác minh trong Firebase Auth.`
+          `Đã đăng nhập (${res.email}), nhưng email này chưa xác minh (emailVerified = false). Hãy bấm "Gửi email xác minh" bên dưới.`
         );
+      } else if (res.diagnosticError) {
+        setErrorMsg(res.diagnosticError);
       } else if (!res.isAdmin) {
         setErrorMsg(
           `Tài khoản ${res.email || 'này'} chưa được cấp quyền quản trị hệ thống KDT-89.`
@@ -204,13 +208,14 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
           </div>
         )}
 
-        {((isSignedInButUnauthorized && !needsEmailVerification) || errorMsg) && (
+        {((isSignedInButUnauthorized && !needsEmailVerification) || errorMsg || diagnosticError) && (
           <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-semibold">Không thể đăng nhập quản trị</p>
               <p className="break-words">
                 {errorMsg ||
+                  diagnosticError ||
                   `Tài khoản hiện tại (${currentUserEmail}) chưa được cấp quyền admin. Chỉ tài khoản chủ sở hữu (${ADMIN_OWNER_EMAIL}) hoặc tài khoản được cấp quyền trong /admins mới được phép truy cập.`}
               </p>
             </div>

@@ -56,6 +56,7 @@ export default function AdminApp() {
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [isAuthorizedAdmin, setIsAuthorizedAdmin] = useState(false);
   const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [authDiagnosticError, setAuthDiagnosticError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<AdminTabId>('dashboard');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -91,6 +92,7 @@ export default function AdminApp() {
     setCurrentUserEmail(res.email);
     setIsAuthorizedAdmin(res.isAdmin);
     setNeedsEmailVerification(res.needsVerification);
+    setAuthDiagnosticError(res.diagnosticError);
     setAuthReady(true);
   };
 
@@ -306,7 +308,8 @@ export default function AdminApp() {
         currentUserEmail={currentUserEmail}
         isSignedInButUnauthorized={Boolean(currentUserEmail && !isAuthorizedAdmin)}
         needsEmailVerification={needsEmailVerification}
-        onAuthRefreshed={() => syncAuthState(auth.currentUser)}
+        diagnosticError={authDiagnosticError}
+        onAuthRefreshed={() => void syncAuthState(auth.currentUser)}
       />
     );
   }

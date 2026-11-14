@@ -426,16 +426,96 @@ export function resolveAdminLoginIdentifier(identifier: string): string {
   );
 }
 
+export interface AdminAccessVerificationResult {
+  email: string | null;
+  uid: string | null;
+  isAdmin: boolean;
+  needsVerification: boolean;
+  diagnosticError: string | null;
+}
+
 /**
  * Optional handover check against Firestore /admins/{uid}
  */
-export async function checkAdminAllowlistDoc(uid: string): Promise<boolean> {
+export async function checkAdminAllowlistDoc(
+  uid: string
+): Promise<'found' | 'not_found' | 'permission_denied'> {
   try {
     const snap = await getDoc(doc(db, 'admins', uid));
-    return snap.exists();
-  } catch {
-    return false;
+    return snap.exists() ? 'found' : 'not_found';
+  } catch (err: any) {
+    const code = err?.code || '';
+    const msg = String(err?.message || '').toLowerCase();
+    if (code === 'permission-denied' || msg.includes('permission')) {
+      return 'permission_denied';
+    }
+    return 'not_found';
   }
+}
+
+export async function verifyAdminAccess(
+  user: User | null | undefined
+): Promise<AdminAccessVerificationResult> {
+  if (!user) {
+    return {
+      email: null,
+      uid: null,
+      isAdmin: false,
+      needsVerification: false,
+      diagnosticError: null,
+    };
+  }
+
+  const isOwner = isAuthorizedAdminUser(user);
+  if (isOwner) {
+    return {
+      email: user.email,
+      uid: user.uid,
+      isAdmin: true,
+      needsVerification: false,
+      diagnosticError: null,
+    };
+  }
+
+  // Any newly created Email/Password user starts with emailVerified === false
+  if (user.emailVerified !== true) {
+    return {
+      email: user.email,
+      uid: user.uid,
+      isAdmin: false,
+      needsVerification: true,
+      diagnosticError: null,
+    };
+  }
+
+  const allowlistStatus = await checkAdminAllowlistDoc(user.uid);
+  if (allowlistStatus === 'found') {
+    return {
+      email: user.email,
+      uid: user.uid,
+      isAdmin: true,
+      needsVerification: false,
+      diagnosticError: null,
+    };
+  }
+
+  if (allowlistStatus === 'permission_denied') {
+    return {
+      email: user.email,
+      uid: user.uid,
+      isAdmin: false,
+      needsVerification: false,
+      diagnosticError: `Đã đăng nhập ${user.email} (UID: ${user.uid}), nhưng Firestore Rules trên server chưa cho phép đọc "admins/${user.uid}" (lỗi permission-denied). Hãy cập nhật Firestore Rules trong Firebase Console (thêm match /admins/{adminId}) để hoàn tất kích hoạt.`,
+    };
+  }
+
+  return {
+    email: user.email,
+    uid: user.uid,
+    isAdmin: false,
+    needsVerification: false,
+    diagnosticError: `Tài khoản ${user.email} chưa có document "admins/${user.uid}" trong database "${firebaseConfig.firestoreDatabaseId}". Hãy kiểm tra lại đúng Database ID và Document ID = ${user.uid}.`,
+  };
 }
 
 /**
@@ -444,25 +524,11 @@ export async function checkAdminAllowlistDoc(uid: string): Promise<boolean> {
 export async function loginAdminWithEmailPassword(
   identifier: string,
   password: string
-): Promise<{
-  email: string | null;
-  isAdmin: boolean;
-  needsVerification: boolean;
-}> {
+): Promise<AdminAccessVerificationResult> {
   const resolvedEmail = resolveAdminLoginIdentifier(identifier);
   try {
     const result = await signInWithEmailAndPassword(auth, resolvedEmail, password);
-    const user = result.user;
-    const isOwner = isAuthorizedAdminUser(user);
-    const isListedAdmin =
-      !isOwner && user.emailVerified === true
-        ? await checkAdminAllowlistDoc(user.uid)
-        : false;
-    return {
-      email: user.email,
-      isAdmin: isOwner || isListedAdmin,
-      needsVerification: isOwnerEmailUnverified(user),
-    };
+    return verifyAdminAccess(result.user);
   } catch (error: any) {
     const code = error?.code || '';
     if (code === 'auth/operation-not-allowed') {
@@ -495,34 +561,15 @@ export async function sendAdminVerificationEmail(): Promise<void> {
   await sendEmailVerification(auth.currentUser);
 }
 
-export async function verifyAdminAccess(user: User | null | undefined): Promise<{
-  email: string | null;
-  isAdmin: boolean;
-  needsVerification: boolean;
-}> {
-  if (!user) {
-    return { email: null, isAdmin: false, needsVerification: false };
-  }
-  const isOwner = isAuthorizedAdminUser(user);
-  if (isOwner) {
-    return { email: user.email, isAdmin: true, needsVerification: false };
-  }
-  const isListedAdmin =
-    user.emailVerified === true ? await checkAdminAllowlistDoc(user.uid) : false;
-  return {
-    email: user.email,
-    isAdmin: isListedAdmin,
-    needsVerification: !isListedAdmin && isOwnerEmailUnverified(user),
-  };
-}
-
-export async function reloadAdminAuthUser(): Promise<{
-  email: string | null;
-  isAdmin: boolean;
-  needsVerification: boolean;
-}> {
+export async function reloadAdminAuthUser(): Promise<AdminAccessVerificationResult> {
   if (!auth.currentUser) {
-    return { email: null, isAdmin: false, needsVerification: false };
+    return {
+      email: null,
+      uid: null,
+      isAdmin: false,
+      needsVerification: false,
+      diagnosticError: null,
+    };
   }
   await auth.currentUser.reload();
   return verifyAdminAccess(auth.currentUser);

@@ -242,7 +242,7 @@ export const AdminAuthGate: React.FC<AdminAuthGateProps> = ({
             </div>
             <p className="mt-1 text-[11px] text-slate-500">
               Nhập ngắn <code className="bg-slate-100 px-1 rounded">admin</code> (ứng với{' '}
-              {ADMIN_OWNER_EMAIL}) hoặc email nhân sự được cấp quyền.
+              ngmtuan241@gmail.com) hoặc email quản trị được cấp quyền.
             </p>
           </div>
 

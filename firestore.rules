@@ -29,6 +29,7 @@ service cloud.firestore {
           request.auth.token.email_verified == true &&
           request.auth.token.email.lower() == 'nguyminhtuan10c2@gmail.com'
         ) ||
+        request.auth.uid == '3STmRAtnyWgEupbAxIkbzfC7vSk1' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }

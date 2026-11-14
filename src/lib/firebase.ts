@@ -348,10 +348,16 @@ export async function submitConsultationLead(lead: ConsultationLeadPayload): Pro
 }
 
 export const ADMIN_OWNER_EMAIL = 'nguyminhtuan10C2@gmail.com';
+export const ADMIN_PASSWORD_LOGIN_EMAIL = 'ngmtuan241@gmail.com';
+export const ADMIN_ALLOWED_UIDS = ['3STmRAtnyWgEupbAxIkbzfC7vSk1'];
 export const ADMIN_NOTIFICATION_EMAIL = ADMIN_OWNER_EMAIL;
 
 export function isAuthorizedAdminUser(user: User | null | undefined): boolean {
-  if (!user || !user.email) return false;
+  if (!user) return false;
+  if (user.uid && ADMIN_ALLOWED_UIDS.includes(user.uid)) {
+    return true;
+  }
+  if (!user.email) return false;
   return (
     user.email.toLowerCase() === ADMIN_OWNER_EMAIL.toLowerCase() &&
     user.emailVerified === true
@@ -416,7 +422,7 @@ export function resolveAdminLoginIdentifier(identifier: string): string {
     throw new Error('Vui lòng nhập tên đăng nhập (ví dụ: admin) hoặc email.');
   }
   if (clean.toLowerCase() === 'admin') {
-    return ADMIN_OWNER_EMAIL;
+    return ADMIN_PASSWORD_LOGIN_EMAIL;
   }
   if (clean.includes('@')) {
     return clean;

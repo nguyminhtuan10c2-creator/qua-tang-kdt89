@@ -50,10 +50,25 @@ const ACTION_OPTIONS: Array<{ value: HeroSlideAction; label: string }> = [
 ];
 
 const ASPECT_RATIO_OPTIONS: Array<{ value: HeroAspectRatio; label: string }> = [
-  { value: '16/7', label: '16:7 Chuẩn ngang ĐMX' },
-  { value: '2/1', label: '2:1 Khung rộng' },
-  { value: '16/9', label: '16:9 Khung cao' },
+  { value: '16/7', label: '16:7 (1600×700 px)' },
+  { value: '2/1', label: '2:1 (1600×800 px)' },
+  { value: '16/9', label: '16:9 (1600×900 px)' },
 ];
+
+const SLIDE_PIXEL_GUIDE: Record<HeroAspectRatio, { banner: string; memberLeft: string }> = {
+  '16/7': {
+    banner: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
+    memberLeft: '800 × 600 px (tỉ lệ 4:3 · vừa khít nửa trái Slide #1)',
+  },
+  '2/1': {
+    banner: '1600 × 800 px (hoặc 1280 × 640 px · tỉ lệ ngang 2:1)',
+    memberLeft: '800 × 660 px (tỉ lệ 5:4 · vừa khít nửa trái Slide #1)',
+  },
+  '16/9': {
+    banner: '1600 × 900 px (hoặc 1280 × 720 px · tỉ lệ ngang 16:9)',
+    memberLeft: '800 × 750 px (gần vuông 1:1 · vừa khít nửa trái Slide #1)',
+  },
+};
 
 const FIT_OPTIONS: Array<{ value: HeroSlideFit; label: string }> = [
   { value: 'smart', label: 'Tự động chống cắt chữ/người (Khuyên dùng)' },
@@ -351,6 +366,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                         : 'Tải ảnh mới cho bên trái Slide #1'}
                     </span>
                   </button>
+                  <div className="text-[11px] text-sky-900 bg-white/80 border border-sky-200 rounded-md px-2 py-1 font-medium">
+                    📐 Size chuẩn: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].memberLeft}</strong>
+                  </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">
                       Cách hiển thị ảnh bên trái Slide #1:
@@ -472,6 +490,10 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                             : 'Tải ảnh Banner từ máy'}
                         </span>
                       </button>
+
+                      <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 font-medium">
+                        📐 Size chuẩn: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].banner}</strong>
+                      </div>
 
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-600 mb-1">

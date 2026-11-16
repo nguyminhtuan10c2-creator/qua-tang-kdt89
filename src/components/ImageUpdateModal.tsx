@@ -43,6 +43,7 @@ export interface CustomizableItem {
   stockStatus?: string;
   imageUrl?: string;
   isSpecial?: boolean;
+  recommendedSize?: string;
 }
 
 export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
@@ -52,7 +53,8 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     modelCode: 'SLIDE-01',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
-    stockStatus: 'Ảnh slide đầu tiên hiển thị trên cả Mobile & Máy tính (tỷ lệ ngang 21:7 hoặc 16:6)',
+    stockStatus: 'Ảnh slide đầu tiên hiển thị trên cả Mobile & Máy tính',
+    recommendedSize: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
     imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
     isSpecial: true,
   },
@@ -63,6 +65,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
     stockStatus: 'Ảnh slide thứ 2 trên thanh trượt đầu trang',
+    recommendedSize: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
     imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-2'],
     isSpecial: true,
   },
@@ -73,6 +76,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
     stockStatus: 'Thêm slide thứ 3 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    recommendedSize: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -83,6 +87,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
     stockStatus: 'Thêm slide thứ 4 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    recommendedSize: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -93,6 +98,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Ảnh bìa đầu trang',
     stockStatus: 'Dùng khi bật chế độ Hero truyền thống trên máy tính',
+    recommendedSize: '1200 × 900 px (tỉ lệ ngang 4:3)',
     imageUrl: HERO_IMAGE,
     isSpecial: true,
   },
@@ -103,6 +109,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Logo thương hiệu',
     stockStatus: 'Hiển thị trên thanh Header trên cùng & chân trang Footer',
+    recommendedSize: '400 × 400 px (vuông) hoặc 400 × 160 px (ngang · PNG nền trong)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -113,6 +120,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Ảnh Slide #1 đầu trang',
     stockStatus: 'Hiển thị bên trái form Đăng nhập SĐT nhận Voucher ở đầu trang (cả PC & Điện thoại)',
+    recommendedSize: '800 × 600 px (tỉ lệ 4:3 · vừa khít nửa trái Slide #1)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -123,6 +131,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Mascot góc màn hình',
     stockStatus: 'Hiển thị ở nút nổi góc phải màn hình & pop-up nhận Voucher',
+    recommendedSize: '512 × 512 px (hình vuông 1:1 · khuyến khích PNG nền trong)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -133,6 +142,7 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'combos',
     categoryLabel: 'Combo quà tặng',
     stockStatus: c.priceNote,
+    recommendedSize: '800 × 600 px (tỉ lệ ngang 4:3)',
     imageUrl: c.image,
     isSpecial: true,
   })),
@@ -258,6 +268,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
         stockStatus: p.stockStatus,
         imageUrl: p.imageUrl,
         isSpecial: false,
+        recommendedSize: '800 × 800 px (hình vuông 1:1)',
       })),
     ];
   }, [catalog]);
@@ -409,6 +420,9 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
                   <span className="text-xs text-neutral-600 block mt-1.5 font-medium">
                     📦 {currentProduct.stockStatus}
                   </span>
+                  <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-semibold">
+                    📐 Size chuẩn: {currentProduct.recommendedSize || '800 × 800 px (hình vuông 1:1)'}
+                  </span>
                 </div>
 
                 {customImages[currentProduct.id] && (
@@ -493,7 +507,10 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
                     Bấm vào đây để Chụp ảnh hoặc Chọn từ thư viện ảnh máy
                   </div>
                   <div className="text-xs text-neutral-600 mt-1 max-w-sm mx-auto">
-                    Hỗ trợ tất cả ảnh chụp JPG, PNG, WEBP. Ảnh sẽ hiển thị ngay trên landing page của anh.
+                    Hỗ trợ tất cả ảnh JPG, PNG, WEBP.{' '}
+                    <span className="font-semibold text-amber-800">
+                      Kích thước khuyên dùng: {currentProduct.recommendedSize || '800 × 800 px (hình vuông 1:1)'}.
+                    </span>
                   </div>
                   <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-bold shadow-xs">
                     <Upload className="w-3.5 h-3.5" />

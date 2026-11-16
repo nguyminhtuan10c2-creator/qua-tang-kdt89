@@ -482,9 +482,14 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
           {/* Hình ảnh sản phẩm */}
           <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200">
-            <label className="block text-xs font-bold text-neutral-800 mb-2">
-              Hình ảnh sản phẩm:
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-1 mb-2">
+              <label className="text-xs font-bold text-neutral-800">
+                Hình ảnh sản phẩm:
+              </label>
+              <span className="text-[11px] text-slate-500 font-medium">
+                📐 Size chuẩn: <strong className="text-slate-700">800 × 800 px</strong> (vuông 1:1)
+              </span>
+            </div>
             <div className="flex flex-col sm:flex-row items-center gap-3">
               {imageUrl ? (
                 <div className="w-20 h-20 rounded-xl overflow-hidden border border-neutral-200 bg-white shrink-0 relative">

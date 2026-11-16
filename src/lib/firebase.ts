@@ -97,6 +97,8 @@ export async function testConnection() {
   }
 }
 import type { ProductItem, ComboItem, CategoryItem } from '../data/products';
+import type { VoucherItem } from '../data/vouchers';
+import type { HeroSlideConfig, HeroAspectRatio } from '../data/heroSlides';
 
 export interface CategoryOverride {
   name?: string;
@@ -143,6 +145,12 @@ export interface SiteDecorSettings {
   flashSaleMode?: 'auto' | 'teaser' | 'live'; // 'auto': tự động theo ngày | 'teaser': đếm đến ngày sale | 'live': đang diễn ra flash sale ngay bây giờ
   showFlagshipDeals?: boolean; // Bật / Tắt khối Deal Chủ Lực / Flash Sale đầu danh mục
   flagshipProductIds?: string[]; // Danh sách ID sản phẩm hiển thị trong khối Deal Chủ Lực / Flash Sale (theo thứ tự)
+  showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
+  customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
+  heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh
+  heroAspectRatio?: HeroAspectRatio; // Tỉ lệ khung slide đồng bộ mobile & desktop ('16/7' | '2/1' | '16/9')
+  showMemberHeroSlide?: boolean; // Hiện Slide #1 Mascot Đăng nhập & Nhận Voucher ở đầu tiên
+  heroSlides?: HeroSlideConfig[]; // Danh sách Slide ảnh banner đầu trang
 }
 
 export interface SiteSettingsData {
@@ -858,6 +866,7 @@ export async function registerCustomerAccount(data: {
   phoneNumber: string;
   password?: string;
   address?: string;
+  voucherCodes?: string[];
 }): Promise<CustomerAccount> {
   const cleanPhone = data.phoneNumber.replace(/[^0-9]/g, '');
   const docRef = doc(db, 'customers', cleanPhone);
@@ -867,12 +876,17 @@ export async function registerCustomerAccount(data: {
     throw new Error('Số điện thoại này đã được đăng ký tài khoản trước đó. Vui lòng bấm sang tab Đăng Nhập!');
   }
 
+  const claimedCodes =
+    data.voucherCodes && data.voucherCodes.length > 0
+      ? data.voucherCodes
+      : ['KDT89-50K', 'KDT89-100K', 'KDT89-200K'];
+
   const newAccount: CustomerAccount = {
     fullName: data.fullName.trim(),
     phoneNumber: cleanPhone,
     registeredAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
-    vouchersClaimed: ['KDT89-50K', 'KDT89-100K', 'KDT89-200K', 'KDT89-500K'],
+    vouchersClaimed: claimedCodes,
   };
 
   if (data.password && data.password.trim()) {
@@ -1016,9 +1030,15 @@ export async function recordVoucherRedemption(
 /**
  * Get all redeemed vouchers for a specific phone number
  */
-export async function getCustomerRedeemedVouchers(phoneNumber: string): Promise<string[]> {
+export async function getCustomerRedeemedVouchers(
+  phoneNumber: string,
+  voucherCodes?: string[]
+): Promise<string[]> {
   const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
-  const vouchersToCheck = ['KDT89-50K', 'KDT89-100K', 'KDT89-200K', 'KDT89-500K'];
+  const vouchersToCheck =
+    voucherCodes && voucherCodes.length > 0
+      ? voucherCodes
+      : ['KDT89-50K', 'KDT89-100K', 'KDT89-200K', 'KDT89-500K'];
   const redeemed: string[] = [];
 
   for (const vCode of vouchersToCheck) {
@@ -1065,5 +1085,32 @@ export async function resetVoucherRedemption(redemptionId: string): Promise<void
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
+
+/**
+ * Admin: Real-time subscription to registered customer accounts (First-party customer data)
+ */
+export function subscribeToCustomers(
+  onCustomers: (customers: CustomerAccount[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const customersRef = collection(db, 'customers');
+  const q = query(customersRef, orderBy('registeredAt', 'desc'));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const list: CustomerAccount[] = [];
+      snapshot.forEach((docSnap) => {
+        list.push(docSnap.data() as CustomerAccount);
+      });
+      onCustomers(list);
+    },
+    (err) => {
+      console.warn('Firestore customers sync:', err);
+      if (onError) onError(err);
+    }
+  );
+}
+
 
 

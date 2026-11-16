@@ -28,6 +28,7 @@ interface AdminDashboardProps {
   allCategories: CategoryItem[];
   deletedCategoryIds: string[];
   orders: StoredOrder[];
+  customersCount?: number;
   customImagesCount: number;
   lastUpdatedAt?: string;
   onNavigateTab: (tab: AdminTabId) => void;
@@ -39,6 +40,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   allCategories,
   deletedCategoryIds,
   orders,
+  customersCount = 0,
   customImagesCount,
   lastUpdatedAt,
   onNavigateTab,
@@ -71,11 +73,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       targetTab: 'products' as AdminTabId,
     },
     {
-      label: 'Đơn hàng trên hệ thống',
+      label: 'Đơn hàng & Khách đăng ký',
       value: orders.length,
-      meta: `${newOrdersCount} đơn mới chờ liên hệ`,
+      meta: `${newOrdersCount} đơn mới · ${customersCount} KH đã đăng ký`,
       icon: ShoppingBag,
-      actionLabel: 'Xử lý đơn hàng',
+      actionLabel: 'Xem đơn & data KH',
       targetTab: 'orders' as AdminTabId,
     },
     {

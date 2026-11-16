@@ -18,7 +18,11 @@ import {
   Ticket,
 } from 'lucide-react';
 import { registerCustomerAccount, loginCustomerAccount } from '../lib/firebase';
-import { CustomerAccount } from '../data/vouchers';
+import {
+  CustomerAccount,
+  DEFAULT_VOUCHERS,
+  VoucherItem,
+} from '../data/vouchers';
 
 interface CustomerAuthModalProps {
   isOpen: boolean;
@@ -30,6 +34,7 @@ interface CustomerAuthModalProps {
   onOpenVoucherWallet?: () => void;
   initialPhone?: string;
   initialName?: string;
+  vouchers?: VoucherItem[];
 }
 
 export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
@@ -42,7 +47,9 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   onOpenVoucherWallet,
   initialPhone = '',
   initialName = '',
+  vouchers = DEFAULT_VOUCHERS,
 }) => {
+  const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialMode);
 
   // Form fields
@@ -108,6 +115,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         phoneNumber: cleanPhone,
         password: cleanPass,
         address: address.trim() || undefined,
+        voucherCodes: activeVouchers.map((v) => v.code),
       });
 
       // Save locally
@@ -319,35 +327,23 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   <span>Voucher Giảm Giá Theo Giá Trị Đơn Hàng Đã Kích Hoạt:</span>
                 </div>
                 <div className="space-y-1.5 text-xs">
-                  <div className="bg-white p-2 rounded-xl border border-amber-200/80 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-red-600 font-mono">KDT89-50K</div>
-                      <div className="text-[11px] text-neutral-500">Giảm 50.000₫ cho đơn từ 1.500.000₫</div>
+                  {activeVouchers.map((v) => (
+                    <div
+                      key={v.code}
+                      className="bg-white p-2 rounded-xl border border-amber-200/80 flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="font-bold text-red-600 font-mono">{v.code}</div>
+                        <div className="text-[11px] text-neutral-500">
+                          Giảm {v.discountAmount.toLocaleString('vi-VN')}₫ cho đơn từ{' '}
+                          {v.minOrderAmount.toLocaleString('vi-VN')}₫
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">
+                        Đã kích hoạt
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Đã kích hoạt
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2 rounded-xl border border-amber-200/80 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-red-600 font-mono">KDT89-100K</div>
-                      <div className="text-[11px] text-neutral-500">Giảm 100.000₫ cho đơn từ 3.500.000₫</div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Đã kích hoạt
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2 rounded-xl border border-amber-200/80 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-red-600 font-mono">KDT89-200K</div>
-                      <div className="text-[11px] text-neutral-500">Giảm 200.000₫ cho đơn từ 7.000.000₫</div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      Đã kích hoạt
-                    </span>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="text-[10px] text-neutral-500 italic pt-1">

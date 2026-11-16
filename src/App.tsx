@@ -24,9 +24,18 @@ import { CustomPrice } from './components/ProductPriceModal';
 import { OrderModal } from './components/OrderModal';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { VoucherWalletModal } from './components/VoucherWalletModal';
+import { CartDrawerModal } from './components/CartDrawerModal';
+import { WelcomeOnboardingModal } from './components/WelcomeOnboardingModal';
+import { FloatingWelcomeMascot } from './components/FloatingWelcomeMascot';
 import { DEFAULT_SITE_TEXTS, DEFAULT_SITE_SEO } from './components/SiteTextEditorModal';
 import { PRODUCTS, CATEGORIES, ComboItem, ProductItem, CategoryItem } from './data/products';
-import { CustomerAccount, VoucherItem } from './data/vouchers';
+import {
+  CustomerAccount,
+  VoucherItem,
+  resolveVouchers,
+  formatShortVnd,
+  getTotalVoucherAmount,
+} from './data/vouchers';
 import {
   subscribeToSiteSettings,
   subscribeToCustomImages,
@@ -37,7 +46,25 @@ import {
 import { trackEvent } from './lib/tracking';
 
 export default function App() {
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [customerAccount, setCustomerAccount] = useState<CustomerAccount | null>(() => {
+    try {
+      const saved = localStorage.getItem('kdt89_customer_account');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>(() => {
+    try {
+      const savedAccRaw = localStorage.getItem('kdt89_customer_account');
+      const savedAcc = savedAccRaw ? (JSON.parse(savedAccRaw) as CustomerAccount) : null;
+      const key = savedAcc?.phoneNumber ? `kdt89_cart_${savedAcc.phoneNumber}` : 'kdt89_cart_guest';
+      const savedCart = localStorage.getItem(key);
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isConsultationOpen, setIsConsultationOpen] = useState<boolean>(false);
   const [consultationPrefill, setConsultationPrefill] = useState<string>('');
   const [consultationRecipient, setConsultationRecipient] = useState<'Vợ' | 'Mẹ' | 'Người thân'>('Vợ');
@@ -178,23 +205,35 @@ export default function App() {
   const [orderSingleProduct, setOrderSingleProduct] = useState<ProductItem | null>(null);
   const [orderSelectedCombo, setOrderSelectedCombo] = useState<ComboItem | null>(null);
 
-  // Customer Account & Voucher Wallet State (Kho KDT-89)
-  const [customerAccount, setCustomerAccount] = useState<CustomerAccount | null>(() => {
-    try {
-      const saved = localStorage.getItem('kdt89_customer_account');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
   const [isCustomerAuthOpen, setIsCustomerAuthOpen] = useState<boolean>(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register'>('login');
+  const [authInitialPhone, setAuthInitialPhone] = useState<string>('');
   const [isVoucherWalletOpen, setIsVoucherWalletOpen] = useState<boolean>(false);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState<boolean>(false);
   const [selectedVoucherForOrder, setSelectedVoucherForOrder] = useState<VoucherItem | null>(null);
+
+  const handleCustomerLoginSuccess = (acc: CustomerAccount) => {
+    setCustomerAccount(acc);
+    try {
+      const userCartKey = `kdt89_cart_${acc.phoneNumber}`;
+      const savedUserCartRaw = localStorage.getItem(userCartKey);
+      const savedUserCart = savedUserCartRaw ? (JSON.parse(savedUserCartRaw) as string[]) : [];
+      const mergedCart = Array.from(new Set([...savedUserCart, ...selectedProductIds]));
+      setSelectedProductIds(mergedCart);
+      localStorage.setItem(userCartKey, JSON.stringify(mergedCart));
+      localStorage.setItem('kdt89_welcome_seen_v1', '1');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const handleLogoutCustomer = () => {
     setCustomerAccount(null);
     try {
       localStorage.removeItem('kdt89_customer_account');
+      const guestCartRaw = localStorage.getItem('kdt89_cart_guest');
+      setSelectedProductIds(guestCartRaw ? JSON.parse(guestCartRaw) : []);
     } catch (e) {
       console.error(e);
     }
@@ -210,6 +249,16 @@ export default function App() {
       return DEFAULT_DECOR_SETTINGS;
     }
   });
+
+  // Dynamic vouchers configured by Admin (fallback to defaults)
+  const activeVouchers = useMemo(
+    () => resolveVouchers(decorSettings?.customVouchers),
+    [decorSettings?.customVouchers]
+  );
+  const voucherTotalLabel = useMemo(
+    () => formatShortVnd(getTotalVoucherAmount(activeVouchers)),
+    [activeVouchers]
+  );
 
   // Combined all categories (CATEGORIES + addedCategories)
   const allCategories = useMemo(() => {
@@ -264,6 +313,18 @@ export default function App() {
     trackEvent('page_view');
     testConnection();
   }, []);
+
+  // Persist personal cart per logged-in customer phone (or guest)
+  useEffect(() => {
+    try {
+      const key = customerAccount?.phoneNumber
+        ? `kdt89_cart_${customerAccount.phoneNumber}`
+        : 'kdt89_cart_guest';
+      localStorage.setItem(key, JSON.stringify(selectedProductIds));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [selectedProductIds, customerAccount?.phoneNumber]);
 
   // Real-time synchronization with Firebase Cloud Firestore (public customer read-only)
   useEffect(() => {
@@ -522,20 +583,40 @@ export default function App() {
         customLogo={customImages['site-logo']}
         customTexts={customTexts}
         customerAccount={customerAccount}
-        onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
+        onOpenCustomerAuth={() => {
+          setAuthInitialMode('login');
+          setAuthInitialPhone('');
+          setIsCustomerAuthOpen(true);
+        }}
         onOpenVoucherWallet={() => setIsVoucherWalletOpen(true)}
+        cartCount={selectedProductIds.length}
+        onOpenCartDrawer={() => setIsCartOpen(true)}
+        onOpenWelcomeGuide={() => setIsWelcomeOpen(true)}
+        voucherTotalLabel={voucherTotalLabel}
       />
 
       <main className="flex-1">
-        {/* 2. Hero Section */}
+        {/* 2. Hero Section (Slide ảnh & Mascot đầu trang kiểu ĐMX) */}
         {!hiddenSections.includes('hero') && (
           <div className="relative">
             <Hero
               onOpenConsultation={handleOpenConsultation}
               onExploreProducts={handleExploreProducts}
+              onOpenVoucherWallet={() => setIsVoucherWalletOpen(true)}
+              onOpenWelcomeGuide={() => setIsWelcomeOpen(true)}
+              onOpenCartDrawer={() => setIsCartOpen(true)}
+              onQuickPhoneContinue={(phone, mode) => {
+                setAuthInitialPhone(phone);
+                setAuthInitialMode(mode || 'login');
+                setIsCustomerAuthOpen(true);
+              }}
               isAdmin={false}
+              customerAccount={customerAccount}
+              voucherTotalLabel={voucherTotalLabel}
               customHeroImage={customImages['site-hero-image']}
+              customImages={customImages}
               customTexts={customTexts}
+              decorSettings={decorSettings}
               visibleCategoryIds={visibleCategoryIds}
             />
           </div>
@@ -700,6 +781,7 @@ export default function App() {
         customerAccount={customerAccount}
         initialSelectedVoucher={selectedVoucherForOrder}
         onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
+        vouchers={activeVouchers}
         onOrderSuccess={() => {
           setSelectedProductIds([]);
           setSelectedVoucherForOrder(null);
@@ -710,14 +792,17 @@ export default function App() {
       <CustomerAuthModal
         isOpen={isCustomerAuthOpen}
         onClose={() => setIsCustomerAuthOpen(false)}
+        initialMode={authInitialMode}
+        initialPhone={authInitialPhone}
         currentAccount={customerAccount}
         onLogoutCustomer={handleLogoutCustomer}
+        vouchers={activeVouchers}
         onOpenVoucherWallet={() => {
           setIsCustomerAuthOpen(false);
           setIsVoucherWalletOpen(true);
         }}
         onLoginSuccess={(acc) => {
-          setCustomerAccount(acc);
+          handleCustomerLoginSuccess(acc);
           setIsVoucherWalletOpen(true);
         }}
       />
@@ -727,6 +812,7 @@ export default function App() {
         isOpen={isVoucherWalletOpen}
         onClose={() => setIsVoucherWalletOpen(false)}
         customerAccount={customerAccount}
+        vouchers={activeVouchers}
         onOpenLogin={() => {
           setIsVoucherWalletOpen(false);
           setIsCustomerAuthOpen(true);
@@ -737,6 +823,56 @@ export default function App() {
           setIsVoucherWalletOpen(false);
           handleExploreProducts();
         }}
+      />
+
+      {/* 15. Personal Cart Drawer Modal */}
+      <CartDrawerModal
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartProducts={allProducts.filter((p) => selectedProductIds.includes(p.id))}
+        customPrices={customPrices}
+        customImages={customImages}
+        customerAccount={customerAccount}
+        vouchers={activeVouchers}
+        onRemoveProduct={(product) => handleToggleProduct(product)}
+        onClearCart={() => setSelectedProductIds([])}
+        onCheckout={handleOpenOrderCart}
+        onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
+        onExploreProducts={handleExploreProducts}
+      />
+
+      {/* 16. First-Visit Welcome Onboarding Slide / Popup */}
+      <WelcomeOnboardingModal
+        isOpen={isWelcomeOpen}
+        onClose={() => setIsWelcomeOpen(false)}
+        onDismissForever={() => {
+          try {
+            localStorage.setItem('kdt89_welcome_seen_v1', '1');
+          } catch (e) {
+            console.error(e);
+          }
+        }}
+        onLoginSuccess={(acc) => {
+          handleCustomerLoginSuccess(acc);
+        }}
+        customTexts={customTexts}
+        customHeroImage={customImages['site-hero-image']}
+        customMascotImage={customImages['site-welcome-mascot']}
+        vouchers={activeVouchers}
+      />
+
+      {/* 17. Floating Welcome Mascot (Tụt vào mép màn hình khi lướt mobile, bấm để mở Voucher & Đăng ký) */}
+      <FloatingWelcomeMascot
+        onOpenWelcome={() => setIsWelcomeOpen(true)}
+        onOpenVoucherWallet={() => setIsVoucherWalletOpen(true)}
+        customerAccount={customerAccount}
+        customMascotImage={customImages['site-welcome-mascot']}
+        customTexts={customTexts}
+        vouchers={activeVouchers}
+        enabled={
+          decorSettings?.showWelcomePopup !== false &&
+          !hiddenSections.includes('welcome_popup')
+        }
       />
     </div>
   );

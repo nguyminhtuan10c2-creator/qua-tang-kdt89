@@ -23,6 +23,7 @@ interface VoucherWalletModalProps {
   onOpenLogin: () => void;
   onLogoutCustomer: () => void;
   onSelectVoucherToShop?: (voucher: VoucherItem) => void;
+  vouchers?: VoucherItem[];
 }
 
 export const VoucherWalletModal: React.FC<VoucherWalletModalProps> = ({
@@ -32,19 +33,24 @@ export const VoucherWalletModal: React.FC<VoucherWalletModalProps> = ({
   onOpenLogin,
   onLogoutCustomer,
   onSelectVoucherToShop,
+  vouchers = DEFAULT_VOUCHERS,
 }) => {
   const [usedVouchers, setUsedVouchers] = useState<string[]>([]);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
 
   useEffect(() => {
     if (customerAccount?.phoneNumber) {
-      getCustomerRedeemedVouchers(customerAccount.phoneNumber).then((redeemed) => {
+      getCustomerRedeemedVouchers(
+        customerAccount.phoneNumber,
+        activeVouchers.map((v) => v.code)
+      ).then((redeemed) => {
         setUsedVouchers(redeemed);
       });
     } else {
       setUsedVouchers([]);
     }
-  }, [customerAccount?.phoneNumber, isOpen]);
+  }, [customerAccount?.phoneNumber, isOpen, activeVouchers]);
 
   if (!isOpen) return null;
 
@@ -150,7 +156,7 @@ export const VoucherWalletModal: React.FC<VoucherWalletModalProps> = ({
             </span>
           </div>
 
-          {DEFAULT_VOUCHERS.map((voucher) => {
+          {activeVouchers.map((voucher) => {
             const isRedeemed = usedVouchers.includes(voucher.code);
             return (
               <div

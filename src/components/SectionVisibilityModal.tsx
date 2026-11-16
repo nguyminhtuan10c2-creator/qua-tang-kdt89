@@ -27,6 +27,13 @@ export interface SectionConfig {
 
 export const LANDING_PAGE_SECTIONS: SectionConfig[] = [
   {
+    id: 'welcome_popup',
+    name: 'Pop-up Slide Chào Mừng Khách Mới (Đăng ký nhận Voucher 350K)',
+    description: 'Tự động bật 1 lần cho khách mới vào trang để hướng dẫn đăng nhập, Giỏ hàng riêng và thu SĐT khách hàng (First Data)',
+    icon: <Sparkles className="w-4 h-4 text-rose-500" />,
+    badge: 'Thu First Data',
+  },
+  {
     id: 'hero',
     name: 'Banner mở đầu & Tiêu đề chính (Hero Banner)',
     description: 'Tiêu đề KDT-89, lời chào, hàng sẵn kho & ảnh bìa trên máy tính',

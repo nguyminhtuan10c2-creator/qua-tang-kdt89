@@ -48,6 +48,8 @@ export const DEFAULT_SITE_TEXTS: Record<string, string> = {
   heroSubtitle: 'Giá sale tại kho – số lượng giới hạn – dùng được mỗi ngày.',
   heroContext: 'Hàng sẵn tại kho 89-91 Đường số 1, giao nhanh tận tay, hỗ trợ lắp đặt chu đáo, kiểm tra hàng ưng ý mới thanh toán.',
   heroHighlights: 'Nồi cơm Cuckoo giá kho · Bếp từ đôi & đơn · Smart Tivi 32-55" · Máy tắm nóng',
+  welcomePopupTitle: 'Đăng Ký Thành Viên KDT-89 — Nhận Ngay Bộ Voucher 350.000đ',
+  welcomePopupSubtitle: 'Tạo tài khoản bằng SĐT chỉ mất 10 giây để mở khóa Giỏ hàng riêng, giữ giá 24h và áp mã giảm trực tiếp.',
 
   // 3. Combos
   comboBadge: 'Gợi ý quà tặng thiết thực',
@@ -865,6 +867,36 @@ export const SiteTextEditorModal: React.FC<SiteTextEditorModalProps> = ({
                     placeholder="Vd: Nồi cơm Cuckoo giá kho · Bếp từ đôi & đơn · Smart Tivi 32-55 inch · Máy lạnh · Máy tắm nóng"
                     className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
                   />
+                </div>
+
+                <div className="pt-3 border-t border-neutral-100 space-y-3 bg-rose-50/40 p-3.5 rounded-2xl border">
+                  <div className="text-xs font-bold text-rose-900">
+                    Pop-up Slide Chào Mừng Khách Mới (Thu data SĐT & hướng dẫn Giỏ hàng riêng)
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-800 mb-1">
+                      Tiêu đề lớn Pop-up chào mừng:
+                    </label>
+                    <input
+                      type="text"
+                      value={texts.welcomePopupTitle || ''}
+                      onChange={(e) => handleTextChange('welcomePopupTitle', e.target.value)}
+                      placeholder="Vd: Đăng Ký Thành Viên KDT-89 — Nhận Ngay Bộ Voucher 350.000đ"
+                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-800 mb-1">
+                      Mô tả ngắn hướng dẫn trong Pop-up:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={texts.welcomePopupSubtitle || ''}
+                      onChange={(e) => handleTextChange('welcomePopupSubtitle', e.target.value)}
+                      placeholder="Vd: Tạo tài khoản bằng SĐT chỉ mất 10 giây để mở khóa Giỏ hàng riêng, giữ giá 24h và áp mã giảm trực tiếp."
+                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

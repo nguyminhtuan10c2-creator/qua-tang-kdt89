@@ -21,11 +21,13 @@ import {
   saveCustomImageToFirestore,
   deleteCustomImageFromFirestore,
   subscribeToOrders,
+  subscribeToCustomers,
   SiteSettingsData,
   SiteDecorSettings,
   CategoryOverride,
   StoredOrder,
 } from '../lib/firebase';
+import type { CustomerAccount } from '../data/vouchers';
 import { CATEGORIES, ProductItem, CategoryItem } from '../data/products';
 import { buildResolvedAdminProducts, ResolvedAdminProduct } from '../lib/productImportExport';
 import { DEFAULT_SITE_TEXTS, DEFAULT_SITE_SEO, SiteTextEditorModal } from '../components/SiteTextEditorModal';
@@ -42,6 +44,10 @@ import { AdminImportExportPanel } from './AdminImportExportPanel';
 import { AdminOrdersPanel } from './AdminOrdersPanel';
 import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
 import { FlashSaleShowcaseModal } from './FlashSaleShowcaseModal';
+import { VoucherEditorModal } from './VoucherEditorModal';
+import { HeroSlidesModal } from './HeroSlidesModal';
+import { resolveVouchers } from '../data/vouchers';
+import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
 
 const NAV_ITEMS: Array<{ id: AdminTabId; label: string; icon: React.ComponentType<any> }> = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -68,6 +74,9 @@ export default function AdminApp() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [customers, setCustomers] = useState<CustomerAccount[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(true);
+  const [customersError, setCustomersError] = useState<string | null>(null);
 
   // Sub-modals inside /admin
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
@@ -84,6 +93,8 @@ export default function AdminApp() {
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isSectionVisOpen, setIsSectionVisOpen] = useState(false);
   const [isFlashSaleShowcaseOpen, setIsFlashSaleShowcaseOpen] = useState(false);
+  const [isVoucherEditorOpen, setIsVoucherEditorOpen] = useState(false);
+  const [isHeroSlidesOpen, setIsHeroSlidesOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Quản trị Kho Điện Tử KDT-89';
@@ -135,10 +146,24 @@ export default function AdminApp() {
       }
     );
 
+    setCustomersLoading(true);
+    const unsubCustomers = subscribeToCustomers(
+      (list) => {
+        setCustomers(list);
+        setCustomersLoading(false);
+        setCustomersError(null);
+      },
+      (err) => {
+        setCustomersError(err?.message || 'Không thể tải danh sách khách hàng đăng ký.');
+        setCustomersLoading(false);
+      }
+    );
+
     return () => {
       unsubSettings();
       unsubImages();
       unsubOrders();
+      unsubCustomers();
     };
   }, [isAuthorizedAdmin]);
 
@@ -462,6 +487,7 @@ export default function AdminApp() {
               allCategories={allCategories}
               deletedCategoryIds={deletedCategoryIds}
               orders={orders}
+              customersCount={customers.length}
               customImagesCount={Object.keys(customImages).length}
               lastUpdatedAt={rawSettings.updatedAt}
               onNavigateTab={setActiveTab}
@@ -547,6 +573,9 @@ export default function AdminApp() {
               orders={orders}
               loading={ordersLoading}
               loadError={ordersError}
+              customers={customers}
+              customersLoading={customersLoading}
+              customersError={customersError}
             />
           )}
 
@@ -560,6 +589,23 @@ export default function AdminApp() {
               onOpenDecorationModal={() => setIsDecorOpen(true)}
               onOpenSectionVisibility={() => setIsSectionVisOpen(true)}
               onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
+              onOpenVoucherEditor={() => setIsVoucherEditorOpen(true)}
+              onOpenHeroSlidesModal={() => setIsHeroSlidesOpen(true)}
+              onToggleWelcomePopup={() => {
+                const currentlyEnabled =
+                  decorSettings?.showWelcomePopup !== false &&
+                  !hiddenSections.includes('welcome_popup');
+                const nextHidden = currentlyEnabled
+                  ? Array.from(new Set([...hiddenSections, 'welcome_popup']))
+                  : hiddenSections.filter((s) => s !== 'welcome_popup');
+                void persistSettings({
+                  hiddenSections: nextHidden,
+                  decorSettings: {
+                    ...decorSettings,
+                    showWelcomePopup: !currentlyEnabled,
+                  },
+                });
+              }}
               onOpenBrandingImages={(targetId) => {
                 const special = SPECIAL_SITE_ITEMS.find((s) => s.id === targetId);
                 setImageModalTarget(special || resolvedProducts[0]);
@@ -682,6 +728,48 @@ export default function AdminApp() {
               ...decorSettings,
               showFlagshipDeals,
               flagshipProductIds,
+            },
+          });
+        }}
+      />
+
+      <VoucherEditorModal
+        isOpen={isVoucherEditorOpen}
+        onClose={() => setIsVoucherEditorOpen(false)}
+        vouchers={resolveVouchers(decorSettings?.customVouchers)}
+        onSaveVouchers={async (nextVouchers) => {
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              customVouchers: nextVouchers,
+            },
+          });
+        }}
+      />
+
+      <HeroSlidesModal
+        isOpen={isHeroSlidesOpen}
+        onClose={() => setIsHeroSlidesOpen(false)}
+        layoutMode={decorSettings?.heroLayoutMode || 'slider'}
+        showMemberSlide={decorSettings?.showMemberHeroSlide !== false}
+        aspectRatio={decorSettings?.heroAspectRatio || '16/7'}
+        slides={
+          decorSettings?.heroSlides && decorSettings.heroSlides.length > 0
+            ? decorSettings.heroSlides
+            : DEFAULT_HERO_SLIDES
+        }
+        customImages={customImages}
+        onUploadSlideImage={async (imageKey, dataUrl) => {
+          await handleSaveCustomImage(imageKey, dataUrl);
+        }}
+        onSaveConfig={async (nextMode, nextSlides, nextShowMemberSlide, nextAspectRatio) => {
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              heroLayoutMode: nextMode,
+              heroSlides: nextSlides,
+              showMemberHeroSlide: nextShowMemberSlide !== false,
+              heroAspectRatio: nextAspectRatio || '16/7',
             },
           });
         }}

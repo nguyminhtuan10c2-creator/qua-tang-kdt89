@@ -42,6 +42,42 @@ export const DEFAULT_VOUCHERS: VoucherItem[] = [
   },
 ];
 
+export function resolveVouchers(customVouchers?: VoucherItem[]): VoucherItem[] {
+  if (Array.isArray(customVouchers) && customVouchers.length > 0) {
+    return customVouchers.map((v) => ({
+      code: (v.code || 'KDT89').trim(),
+      title:
+        v.title ||
+        `VOUCHER GIẢM ${Number(v.discountAmount || 0).toLocaleString('vi-VN')}₫`,
+      discountAmount: Number(v.discountAmount) || 0,
+      minOrderAmount: Number(v.minOrderAmount) || 0,
+      description:
+        v.description ||
+        `Giảm ${Number(v.discountAmount || 0).toLocaleString('vi-VN')}₫ trực tiếp cho đơn hàng từ ${Number(v.minOrderAmount || 0).toLocaleString('vi-VN')}₫ tại kho KDT-89`,
+      badge:
+        v.badge ||
+        (v.minOrderAmount > 0
+          ? `ĐƠN TỪ ${(v.minOrderAmount / 1000000).toFixed(1).replace('.0', '')} TRIỆU`
+          : 'ƯU ĐÃI KDT-89'),
+      expiryDateText: v.expiryDateText || 'HSD: 30/11/2026',
+      iconType: v.iconType || 'discount',
+    }));
+  }
+  return DEFAULT_VOUCHERS;
+}
+
+export function formatShortVnd(amount: number): string {
+  if (amount >= 1000000) {
+    const tr = amount / 1000000;
+    return `${Number.isInteger(tr) ? tr : tr.toFixed(1).replace(/\.0$/, '')}TR`;
+  }
+  return `${Math.round(amount / 1000)}K`;
+}
+
+export function getTotalVoucherAmount(vouchers: VoucherItem[]): number {
+  return vouchers.reduce((sum, v) => sum + (Number(v.discountAmount) || 0), 0);
+}
+
 export interface CustomerAccount {
   fullName: string;
   phoneNumber: string;

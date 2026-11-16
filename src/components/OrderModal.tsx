@@ -30,7 +30,12 @@ import {
   recordVoucherRedemption,
 } from '../lib/firebase';
 import { ProductItem, ComboItem, COMPANY_INFO } from '../data/products';
-import { DEFAULT_VOUCHERS, VoucherItem, CustomerAccount } from '../data/vouchers';
+import {
+  DEFAULT_VOUCHERS,
+  VoucherItem,
+  CustomerAccount,
+  formatShortVnd,
+} from '../data/vouchers';
 import { trackEvent } from '../lib/tracking';
 
 interface OrderModalProps {
@@ -48,6 +53,7 @@ interface OrderModalProps {
   customerAccount?: CustomerAccount | null;
   initialSelectedVoucher?: VoucherItem | null;
   onOpenCustomerAuth?: () => void;
+  vouchers?: VoucherItem[];
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -64,7 +70,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   onToggleRecipient,
   customerAccount,
   initialSelectedVoucher = null,
+  vouchers = DEFAULT_VOUCHERS,
 }) => {
+  const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
   const [customerName, setCustomerName] = useState(() => customerAccount?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState(() => customerAccount?.phoneNumber || '');
   const [step2Address, setStep2Address] = useState(() => customerAccount?.address || '');
@@ -201,11 +209,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   // Next eligible voucher hint (e.g. "Mua thêm 600.000đ để giảm 50.000đ")
   const nextVoucherHint = React.useMemo(() => {
     if (numericSubtotal <= 0) return null;
-    const unmet = DEFAULT_VOUCHERS.find((v) => numericSubtotal < v.minOrderAmount);
+    const unmet = [...activeVouchers]
+      .sort((a, b) => a.minOrderAmount - b.minOrderAmount)
+      .find((v) => numericSubtotal < v.minOrderAmount);
     if (!unmet) return null;
     const diff = unmet.minOrderAmount - numericSubtotal;
     return `Mua thêm ${diff.toLocaleString('vi-VN')}đ để giảm ${unmet.discountAmount.toLocaleString('vi-VN')}đ`;
-  }, [numericSubtotal]);
+  }, [numericSubtotal, activeVouchers]);
 
   const handleApplyVoucher = async (voucher: VoucherItem) => {
     if (numericSubtotal > 0 && numericSubtotal < voucher.minOrderAmount) {
@@ -704,7 +714,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 {showVouchers && (
                   <div className="pt-2 border-t border-blue-200/70 space-y-2">
                     <div className="grid grid-cols-3 gap-1.5">
-                      {DEFAULT_VOUCHERS.map((v) => {
+                      {activeVouchers.map((v) => {
                         const isSelected = selectedVoucher?.code === v.code;
                         const isBelowMin = numericSubtotal > 0 && numericSubtotal < v.minOrderAmount;
                         return (
@@ -725,10 +735,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                               {v.code}
                             </div>
                             <div className="text-[11px] font-bold mt-0.5">
-                              -{(v.discountAmount / 1000).toFixed(0)}k
+                              -{formatShortVnd(v.discountAmount)}
                             </div>
                             <div className={`text-[9px] mt-0.5 ${isSelected ? 'text-blue-100' : 'text-neutral-500'}`}>
-                              Từ {(v.minOrderAmount / 1000000).toFixed(1).replace('.0', '')}tr
+                              Từ {v.minOrderAmount >= 1000000 ? `${(v.minOrderAmount / 1000000).toFixed(1).replace('.0', '')}tr` : `${Math.round(v.minOrderAmount / 1000)}k`}
                             </div>
                           </button>
                         );

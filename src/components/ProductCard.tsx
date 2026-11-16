@@ -425,23 +425,56 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span>Đặt giữ giá 24h</span>
           </button>
 
-          <a
-            href={COMPANY_INFO.zaloLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() =>
-              trackEvent('click_zalo', {
-                source: 'product_card',
-                productId: product.id,
-                productName: product.name,
-              })
-            }
-            className="w-full py-1.5 px-2 rounded-lg text-[11px] font-semibold text-sky-700 bg-sky-50/80 hover:bg-sky-100 border border-sky-200/70 transition-colors flex items-center justify-center gap-1 text-center"
-            title={`Hỏi nhanh ${product.name} qua Zalo ${COMPANY_INFO.hotline}`}
-          >
-            <MessageCircle className="w-3 h-3 shrink-0" />
-            <span>Hỏi nhanh qua Zalo</span>
-          </a>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                trackEvent('toggle_cart', {
+                  productId: product.id,
+                  productName: product.name,
+                  inCart: !isSelected,
+                });
+                onSelect(product);
+              }}
+              className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all flex items-center justify-center gap-1 text-center cursor-pointer ${
+                isSelected
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
+              }`}
+              title={isSelected ? 'Bấm để bỏ khỏi giỏ hàng riêng' : 'Thêm sản phẩm vào giỏ hàng riêng'}
+            >
+              {isSelected ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  <span className="truncate">Trong giỏ</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-3 h-3 shrink-0" />
+                  <span className="truncate">+ Giỏ hàng</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href={COMPANY_INFO.zaloLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                trackEvent('click_zalo', {
+                  source: 'product_card',
+                  productId: product.id,
+                  productName: product.name,
+                })
+              }
+              className="py-1.5 px-2 rounded-lg text-[11px] font-semibold text-sky-700 bg-sky-50/80 hover:bg-sky-100 border border-sky-200/70 transition-colors flex items-center justify-center gap-1 text-center"
+              title={`Hỏi nhanh ${product.name} qua Zalo ${COMPANY_INFO.hotline}`}
+            >
+              <MessageCircle className="w-3 h-3 shrink-0" />
+              <span className="truncate">Hỏi Zalo</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>

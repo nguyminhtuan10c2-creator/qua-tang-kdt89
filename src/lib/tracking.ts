@@ -2,6 +2,7 @@ export type TrackingEventName =
   | 'page_view'
   | 'select_deal'
   | 'click_hold_price'
+  | 'toggle_cart'
   | 'open_checkout'
   | 'click_zalo'
   | 'submit_hold_success';
@@ -29,6 +30,7 @@ const FBQ_STANDARD_MAP: Record<TrackingEventName, string> = {
   page_view: 'PageView',
   select_deal: 'ViewContent',
   click_hold_price: 'AddToCart',
+  toggle_cart: 'AddToCart',
   open_checkout: 'InitiateCheckout',
   click_zalo: 'Contact',
   submit_hold_success: 'Lead',

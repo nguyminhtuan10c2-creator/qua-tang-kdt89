@@ -32,6 +32,8 @@ import {
 } from '../data/products';
 import { compressImageFile } from '../lib/firebase';
 
+import { HERO_SLIDE_FALLBACK_MAP } from '../data/heroSlides';
+
 export interface CustomizableItem {
   id: string;
   name: string;
@@ -45,12 +47,52 @@ export interface CustomizableItem {
 
 export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
   {
+    id: 'site-hero-slide-1',
+    name: '🖼️ Banner Slide 1 (Đầu trang kiểu ĐMX)',
+    modelCode: 'SLIDE-01',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang',
+    stockStatus: 'Ảnh slide đầu tiên hiển thị trên cả Mobile & Máy tính (tỷ lệ ngang 21:7 hoặc 16:6)',
+    imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
+    isSpecial: true,
+  },
+  {
+    id: 'site-hero-slide-2',
+    name: '🖼️ Banner Slide 2 (Đầu trang kiểu ĐMX)',
+    modelCode: 'SLIDE-02',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang',
+    stockStatus: 'Ảnh slide thứ 2 trên thanh trượt đầu trang',
+    imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-2'],
+    isSpecial: true,
+  },
+  {
+    id: 'site-hero-slide-3',
+    name: '🖼️ Banner Slide 3 (Tùy chọn thêm)',
+    modelCode: 'SLIDE-03',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang',
+    stockStatus: 'Thêm slide thứ 3 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    imageUrl: '',
+    isSpecial: true,
+  },
+  {
+    id: 'site-hero-slide-4',
+    name: '🖼️ Banner Slide 4 (Tùy chọn thêm)',
+    modelCode: 'SLIDE-04',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang',
+    stockStatus: 'Thêm slide thứ 4 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    imageUrl: '',
+    isSpecial: true,
+  },
+  {
     id: 'site-hero-image',
-    name: '🌟 Ảnh bìa chính đầu trang (Hero Banner)',
+    name: '🌟 Ảnh bìa chế độ Classic (Chữ + Ảnh)',
     modelCode: 'HERO-BANNER',
     category: 'site_branding',
     categoryLabel: 'Ảnh bìa đầu trang',
-    stockStatus: 'Hiển thị ngay đầu trang khi mở web trên máy tính',
+    stockStatus: 'Dùng khi bật chế độ Hero truyền thống trên máy tính',
     imageUrl: HERO_IMAGE,
     isSpecial: true,
   },
@@ -61,6 +103,16 @@ export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
     category: 'site_branding',
     categoryLabel: 'Logo thương hiệu',
     stockStatus: 'Hiển thị trên thanh Header trên cùng & chân trang Footer',
+    imageUrl: '',
+    isSpecial: true,
+  },
+  {
+    id: 'site-welcome-mascot',
+    name: '🤖 Hình con Mascot chào mừng & nhận Voucher',
+    modelCode: 'MASCOT-KDT89',
+    category: 'site_branding',
+    categoryLabel: 'Mascot chào mừng',
+    stockStatus: 'Hiển thị ở nút nổi góc phải màn hình & pop-up nhận Voucher',
     imageUrl: '',
     isSpecial: true,
   },

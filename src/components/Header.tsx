@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Camera, Gift, User } from 'lucide-react';
+import { Heart, Camera, Gift, User, ShoppingCart } from 'lucide-react';
 import { COMPANY_INFO } from '../data/products';
 import { KDTLogo } from './KDTLogo';
 import { trackEvent } from '../lib/tracking';
@@ -19,6 +19,10 @@ interface HeaderProps {
   customerAccount?: CustomerAccount | null;
   onOpenCustomerAuth?: () => void;
   onOpenVoucherWallet?: () => void;
+  cartCount?: number;
+  onOpenCartDrawer?: () => void;
+  onOpenWelcomeGuide?: () => void;
+  voucherTotalLabel?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +35,10 @@ export const Header: React.FC<HeaderProps> = ({
   customerAccount,
   onOpenCustomerAuth,
   onOpenVoucherWallet,
+  cartCount = 0,
+  onOpenCartDrawer,
+  onOpenWelcomeGuide,
+  voucherTotalLabel = '350K',
 }) => {
   const announcement = customTexts.headerAnnouncement;
   const navProducts = customTexts.navProducts || 'Sản phẩm';
@@ -44,9 +52,9 @@ export const Header: React.FC<HeaderProps> = ({
           <span className="truncate max-w-full">{announcement}</span>
         </div>
       )}
-      <div className="w-full max-w-7xl mx-auto px-2.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-5">
         {/* Zone 1: Brand Wordmark with Official Logo */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <a href="#hero" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
             <KDTLogo size="md" variant="full" customLogo={customLogo} />
           </a>
@@ -63,33 +71,27 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Zone 2: Navigation Links (only visible at lg+ so tablet/small desktop never crowds or wraps) */}
-        <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-medium text-neutral-600 min-w-0">
-          <a href="#combos" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
+        {/* Zone 2: Clean Single-Line Navigation Links (never shrinks or overlaps Zone 3) */}
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-[13px] xl:text-sm font-medium text-neutral-600 shrink-0">
+          <a href="#combos" className="hover:text-rose-600 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">
             Combo gợi ý
           </a>
-          <a href="#products" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
+          <a href="#products" className="hover:text-rose-600 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">
             {navProducts}
           </a>
-          <a href="#budget" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
+          <a href="#budget" className="hover:text-rose-600 hover:underline underline-offset-4 transition-colors whitespace-nowrap shrink-0">
             Theo ngân sách
-          </a>
-          <a href="#why-kdt" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
-            Lợi thế KDT-89
-          </a>
-          <a href="#order-steps" className="hover:text-rose-600 transition-colors whitespace-nowrap shrink-0">
-            Cách đặt hàng
           </a>
         </nav>
 
-        {/* Zone 3: Primary Actions (Fits cleanly on mobile, tablet, and desktop without wrapping or clipping) */}
+        {/* Zone 3: Primary Actions (Spacious layout from 320px mobile to 1280px+ desktop) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto">
           {/* Admin key on desktop only */}
           {!isAdmin && onOpenAdminLogin && (
             <button
               type="button"
               onClick={onOpenAdminLogin}
-              className="hidden sm:inline-flex text-neutral-400 hover:text-neutral-600 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors text-xs shrink-0"
+              className="hidden sm:inline-flex text-neutral-400 hover:text-neutral-600 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors text-xs shrink-0 cursor-pointer"
               title="Dành riêng cho Quản trị viên KDT-89 đăng nhập"
             >
               <span className="sr-only">Đăng nhập Admin</span>
@@ -100,16 +102,15 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Quick Zalo Chat / Call Button (Desktop xl+ or md before nav appears) */}
+          {/* Quick Zalo Chat / Call Button (Desktop xl+ only so tablet 768px-1023px stays spacious) */}
           <a
             href={COMPANY_INFO.zaloLink}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackEvent('click_zalo', { source: 'header' })}
-            className="hidden md:inline-flex lg:hidden xl:inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
+            className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-800 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all cursor-pointer shadow-2xs whitespace-nowrap shrink-0"
             title={`Bấm để mở Zalo KDT-89: ${hotline}`}
           >
-            <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
             <span>Zalo: {hotline}</span>
           </a>
 
@@ -119,11 +120,28 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               onClick={onOpenVoucherWallet}
               className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 rounded-lg sm:rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap shrink-0"
-              title="Xem ví voucher giảm giá của bạn"
+              title={`Xem ví voucher giảm giá ${voucherTotalLabel} của bạn`}
             >
               <Gift className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-red-600 shrink-0" />
-              <span>Voucher</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shrink-0"></span>
+              <span className="hidden sm:inline">Voucher</span>
+            </button>
+          )}
+
+          {/* Personal Cart Drawer Button */}
+          {onOpenCartDrawer && (
+            <button
+              type="button"
+              onClick={onOpenCartDrawer}
+              className="relative flex items-center gap-1 px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg sm:rounded-xl transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap shrink-0"
+              title="Mở Giỏ hàng riêng của bạn"
+            >
+              <ShoppingCart className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-rose-600 shrink-0" />
+              <span className="hidden sm:inline">Giỏ hàng</span>
+              {cartCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white text-[10px] font-black leading-tight tabular-nums">
+                  {cartCount}
+                </span>
+              )}
             </button>
           )}
 

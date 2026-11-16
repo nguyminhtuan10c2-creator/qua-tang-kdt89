@@ -62,10 +62,13 @@ export const DEFAULT_SITE_TEXTS: Record<string, string> = {
   giftCardTagMe: 'Tặng Mẹ',
   giftCardTagNguoiThan: 'Người thân',
 
-  // 5. Catalog
+  // 5. Catalog & Flagship Flash Sale Banner
   catalogBadge: 'Danh mục sản phẩm có sẵn tại kho',
   catalogTitle: 'Thiết bị điện máy & gia dụng giá tốt tại kho',
   catalogSubtitle: 'Ưu đãi riêng cho đối tác – Hàng chính hãng 100% – Hỗ trợ giao tận nơi & lắp đặt chu đáo',
+  flagshipBadge: 'Ưu tiên chốt nhanh hôm nay',
+  flagshipTitle: '6 Deal Chủ Lực Giá Sale Tại Kho',
+  flagshipHint: 'Bấm "Đặt giữ giá 24h" để sale giữ suất ngay',
 
   // 6. Why Choose KDT
   whyBadge: 'Đồng hành cùng anh em kỹ thuật',
@@ -1021,6 +1024,52 @@ export const SiteTextEditorModal: React.FC<SiteTextEditorModalProps> = ({
                     value={texts.catalogSubtitle || ''}
                     onChange={(e) => handleTextChange('catalogSubtitle', e.target.value)}
                     placeholder="Vd: Ưu đãi riêng cho đối tác – Hàng chính hãng 100% – Hỗ trợ giao tận nơi & lắp đặt"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 space-y-3">
+                <h4 className="font-bold text-sm text-neutral-900 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-rose-600" />
+                  <span>Thanh tiêu đề Deal Chủ Lực / Flash Sale (Banner đỏ cam)</span>
+                </h4>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Dòng chữ nhỏ phía trên (Badge):
+                  </label>
+                  <input
+                    type="text"
+                    value={texts.flagshipBadge || ''}
+                    onChange={(e) => handleTextChange('flagshipBadge', e.target.value)}
+                    placeholder="Vd: Ưu tiên chốt nhanh hôm nay"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Tiêu đề chính Banner Deal Chủ Lực / Flash Sale:
+                  </label>
+                  <input
+                    type="text"
+                    value={texts.flagshipTitle || ''}
+                    onChange={(e) => handleTextChange('flagshipTitle', e.target.value)}
+                    placeholder="Vd: 6 Deal Chủ Lực Giá Sale Tại Kho"
+                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-1">
+                    Ghi chú bên phải Banner:
+                  </label>
+                  <input
+                    type="text"
+                    value={texts.flagshipHint || ''}
+                    onChange={(e) => handleTextChange('flagshipHint', e.target.value)}
+                    placeholder='Vd: Bấm "Đặt giữ giá 24h" để sale giữ suất ngay'
                     className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
                   />
                 </div>

@@ -71,6 +71,15 @@ export const BUDGET_TIERS = [
 
 export const MAX_CATALOG_PRICE = 12000000; // 12 triệu VND
 
+export const DEFAULT_FLAGSHIP_PRODUCT_IDS: string[] = [
+  'prod-cuckoo-cr1021-white',
+  'prod-cuckoo-cr1021-red',
+  'prod-cuckoo-cr0671',
+  'prod-ferroli-ic4200bn',
+  'prod-atlantic-lona-lite-4000',
+  'prod-tivi-casper-43fga610',
+];
+
 export function extractProductPrice(
   product: ProductItem,
   customPrice?: { programPrice?: string; referencePrice?: string }

@@ -13,6 +13,7 @@ import {
   Check,
   X,
   FileSpreadsheet,
+  Zap,
 } from 'lucide-react';
 import type { CategoryItem, ProductItem } from '../data/products';
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
@@ -34,6 +35,7 @@ interface AdminProductTableProps {
   onSoftDelete: (productId: string) => void;
   onRestoreProduct: (productId: string) => void;
   onGoImportExport: () => void;
+  onOpenFlashSaleShowcase?: () => void;
 }
 
 export const AdminProductTable: React.FC<AdminProductTableProps> = ({
@@ -49,6 +51,7 @@ export const AdminProductTable: React.FC<AdminProductTableProps> = ({
   onSoftDelete,
   onRestoreProduct,
   onGoImportExport,
+  onOpenFlashSaleShowcase,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -150,6 +153,17 @@ export const AdminProductTable: React.FC<AdminProductTableProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {onOpenFlashSaleShowcase && (
+            <button
+              type="button"
+              onClick={onOpenFlashSaleShowcase}
+              className="px-3.5 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Zap className="w-4 h-4 text-rose-600" />
+              <span>Chỉnh tiêu đề &amp; SP Flash Sale</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={onGoImportExport}

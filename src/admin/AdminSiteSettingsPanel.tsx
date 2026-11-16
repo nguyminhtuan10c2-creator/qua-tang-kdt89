@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight } from 'lucide-react';
+import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap } from 'lucide-react';
 import type { SiteDecorSettings } from '../lib/firebase';
 
 interface AdminSiteSettingsPanelProps {
@@ -10,6 +10,7 @@ interface AdminSiteSettingsPanelProps {
   onOpenSiteTextEditor: () => void;
   onOpenDecorationModal: () => void;
   onOpenSectionVisibility: () => void;
+  onOpenFlashSaleShowcase: () => void;
   onOpenBrandingImages: (targetId: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
   onOpenSiteTextEditor,
   onOpenDecorationModal,
   onOpenSectionVisibility,
+  onOpenFlashSaleShowcase,
   onOpenBrandingImages,
 }) => {
   return (
@@ -33,6 +35,43 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white border-2 border-rose-200 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <Zap className="w-4 h-4 text-rose-600 fill-rose-600" />
+                <span>Tiêu đề &amp; Sản phẩm Khung Deal Chủ Lực / Flash Sale (Banner đỏ cam)</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Sửa trực tiếp tiêu đề (&quot;6 Deal Chủ Lực Giá Sale Tại Kho&quot;), dòng chữ nhỏ, ghi chú và chọn/sắp xếp các sản phẩm hiển thị trong khối Flash Sale đầu danh mục.
+              </p>
+              <div className="pt-1 text-xs text-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>
+                  <span className="text-slate-400">Tiêu đề hiện tại:</span>{' '}
+                  <strong>{customTexts?.flagshipTitle || '6 Deal Chủ Lực Giá Sale Tại Kho'}</strong>
+                </span>
+                <span>
+                  <span className="text-slate-400">Số SP đang chọn:</span>{' '}
+                  <strong>
+                    {decorSettings?.flagshipProductIds?.length
+                      ? `${decorSettings.flagshipProductIds.length} SP tùy chọn`
+                      : '6 SP mặc định'}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenFlashSaleShowcase}
+              className="py-2.5 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <span>Sửa tiêu đề &amp; chọn SP Flash Sale</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
         <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-900">

@@ -141,6 +141,8 @@ export interface SiteDecorSettings {
   showBudgetFilter?: boolean; // Bật / Tắt bộ lọc bảng giá ngân sách (Price Range Slider)
   megaSaleConfig?: MegaSaleCampaignConfig;
   flashSaleMode?: 'auto' | 'teaser' | 'live'; // 'auto': tự động theo ngày | 'teaser': đếm đến ngày sale | 'live': đang diễn ra flash sale ngay bây giờ
+  showFlagshipDeals?: boolean; // Bật / Tắt khối Deal Chủ Lực / Flash Sale đầu danh mục
+  flagshipProductIds?: string[]; // Danh sách ID sản phẩm hiển thị trong khối Deal Chủ Lực / Flash Sale (theo thứ tự)
 }
 
 export interface SiteSettingsData {

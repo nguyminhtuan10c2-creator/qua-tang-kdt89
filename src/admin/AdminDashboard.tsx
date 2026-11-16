@@ -9,6 +9,7 @@ import {
   ArrowRight,
   EyeOff,
   Trash2,
+  Zap,
 } from 'lucide-react';
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
 import type { StoredOrder } from '../lib/firebase';
@@ -30,6 +31,7 @@ interface AdminDashboardProps {
   customImagesCount: number;
   lastUpdatedAt?: string;
   onNavigateTab: (tab: AdminTabId) => void;
+  onOpenFlashSaleShowcase?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -40,6 +42,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   customImagesCount,
   lastUpdatedAt,
   onNavigateTab,
+  onOpenFlashSaleShowcase,
 }) => {
   const activeProducts = resolvedProducts.filter((p) => !p.isDeleted);
   const visibleProducts = activeProducts.filter((p) => !p.isHidden);
@@ -226,6 +229,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </span>
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </button>
+
+              {onOpenFlashSaleShowcase && (
+                <button
+                  type="button"
+                  onClick={onOpenFlashSaleShowcase}
+                  className="w-full py-2.5 px-4 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-50 text-left flex items-center justify-between text-sm font-semibold text-rose-800 transition-colors cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-rose-600" />
+                    <span>Chỉnh tiêu đề &amp; sản phẩm Flash Sale</span>
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-rose-400" />
+                </button>
+              )}
 
               <button
                 type="button"

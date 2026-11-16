@@ -41,6 +41,7 @@ import { AdminCategoriesPanel } from './AdminCategoriesPanel';
 import { AdminImportExportPanel } from './AdminImportExportPanel';
 import { AdminOrdersPanel } from './AdminOrdersPanel';
 import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
+import { FlashSaleShowcaseModal } from './FlashSaleShowcaseModal';
 
 const NAV_ITEMS: Array<{ id: AdminTabId; label: string; icon: React.ComponentType<any> }> = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -82,6 +83,7 @@ export default function AdminApp() {
   const [isSiteTextOpen, setIsSiteTextOpen] = useState(false);
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isSectionVisOpen, setIsSectionVisOpen] = useState(false);
+  const [isFlashSaleShowcaseOpen, setIsFlashSaleShowcaseOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'Quản trị Kho Điện Tử KDT-89';
@@ -463,6 +465,7 @@ export default function AdminApp() {
               customImagesCount={Object.keys(customImages).length}
               lastUpdatedAt={rawSettings.updatedAt}
               onNavigateTab={setActiveTab}
+              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
             />
           )}
 
@@ -494,6 +497,7 @@ export default function AdminApp() {
               onSoftDelete={handleSoftDeleteProduct}
               onRestoreProduct={handleRestoreProduct}
               onGoImportExport={() => setActiveTab('import_export')}
+              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
             />
           )}
 
@@ -555,6 +559,7 @@ export default function AdminApp() {
               onOpenSiteTextEditor={() => setIsSiteTextOpen(true)}
               onOpenDecorationModal={() => setIsDecorOpen(true)}
               onOpenSectionVisibility={() => setIsSectionVisOpen(true)}
+              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
               onOpenBrandingImages={(targetId) => {
                 const special = SPECIAL_SITE_ITEMS.find((s) => s.id === targetId);
                 setImageModalTarget(special || resolvedProducts[0]);
@@ -645,6 +650,41 @@ export default function AdminApp() {
           persistSettings({ hiddenSections: next });
         }}
         onShowAllSections={() => persistSettings({ hiddenSections: [] })}
+      />
+
+      <FlashSaleShowcaseModal
+        isOpen={isFlashSaleShowcaseOpen}
+        onClose={() => setIsFlashSaleShowcaseOpen(false)}
+        products={resolvedProducts}
+        categories={allCategories}
+        deletedCategoryIds={deletedCategoryIds}
+        customTexts={customTexts}
+        decorSettings={decorSettings}
+        onEditPrice={(prod) => {
+          setPriceModalTarget(prod);
+          setIsPriceModalOpen(true);
+        }}
+        onSaveShowcase={async ({
+          flagshipBadge,
+          flagshipTitle,
+          flagshipHint,
+          showFlagshipDeals,
+          flagshipProductIds,
+        }) => {
+          await persistSettings({
+            customTexts: {
+              ...customTexts,
+              flagshipBadge,
+              flagshipTitle,
+              flagshipHint,
+            },
+            decorSettings: {
+              ...decorSettings,
+              showFlagshipDeals,
+              flagshipProductIds,
+            },
+          });
+        }}
       />
     </div>
   );

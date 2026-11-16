@@ -139,6 +139,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     kitchen_stoves: <Flame className="w-4 h-4 text-rose-600" />,
     water_heaters: <Droplets className="w-4 h-4 text-sky-600" />,
     air_conditioners: <Wind className="w-4 h-4 text-teal-600" />,
+    cooling_fans: <Wind className="w-4 h-4 text-cyan-600" />,
     televisions: <Tv className="w-4 h-4 text-indigo-600" />,
   };
 

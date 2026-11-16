@@ -761,6 +761,9 @@ function resolveCategoryForImport(
   if (nameLower.includes('nước nóng') || nameLower.includes('máy tắm') || nameLower.includes('ariston')) {
     return { id: 'water_heaters', label: 'Máy Nước Nóng Gia Đình' };
   }
+  if (nameLower.includes('quạt') || nameLower.includes('hơi nước') || nameLower.includes('neta') || nameLower.includes('daichipro')) {
+    return { id: 'cooling_fans', label: 'Quạt hơi nước – Làm mát tiết kiệm' };
+  }
   if (nameLower.includes('tivi') || nameLower.includes('tv')) {
     return { id: 'televisions', label: 'Smart Tivi & Màn Hình' };
   }

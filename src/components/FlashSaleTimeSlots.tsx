@@ -269,6 +269,7 @@ export const FlashSaleTimeSlots: React.FC<FlashSaleTimeSlotsProps> = ({
     const allTabs = [
       { id: 'flash_deal', label: 'FLASH SALE GIÁ SỐC', isHot: true, alwaysShow: true },
       { id: 'discount_50', label: 'ƯU ĐÃI GIÁ KHO', isSpecial: true, alwaysShow: true },
+      { id: 'cooling_fans', label: 'QUẠT HƠI NƯỚC', isBlueBadge: true },
       { id: 'rice_cooker_appliances', label: 'NỒI CƠM CUCKOO', isOrangeBadge: true },
       { id: 'kitchen_stoves', label: 'BẾP TỪ & HỒNG NGOẠI' },
       { id: 'water_heaters', label: 'MÁY TẮM NÓNG' },

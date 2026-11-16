@@ -58,6 +58,8 @@ export const IMG_SANAKY_INFRARED = '/images/sanaky_infrared_stove_1791984756980.
 export const IMG_LADOMAX_INDUCTION = '/images/ladomax_induction_stove_1791984757414.jpg';
 export const IMG_FERROLI_IC4200BN = '/images/combo_warm_kitchen_induction_1791983321206.jpg';
 export const IMG_MICROWAVE_OVEN = '/images/microwave_oven_kitchen_1792046904538.jpg';
+export const IMG_QUAT_NETA_NT8800 = '/images/quat_neta_nt8800.png';
+export const IMG_QUAT_DAICHIPRO_DCP68 = '/images/quat_daichipro_dcp68.png';
 
 export const BUDGET_TIERS = [
   { id: 'all', label: 'Tất cả ngân sách', range: 'Mọi mức giá' },
@@ -182,6 +184,12 @@ export const CATEGORIES = [
     name: 'Máy lạnh – nâng cấp không gian sống',
     subTitle: 'Giá chương trình đã bao gồm phần hỗ trợ công lắp và vận chuyển theo khu vực áp dụng.',
     tagline: 'Không gian mát lành, êm ái cho giấc ngủ trọn vẹn của cả gia đình.',
+  },
+  {
+    id: 'cooling_fans',
+    name: 'Quạt hơi nước – Làm mát tiết kiệm',
+    subTitle: 'Động cơ 100% lõi đồng bền bỉ, lưu lượng gió mạnh, bình chứa nước lớn dùng cả ngày.',
+    tagline: 'Hạ nhiệt nhanh cho phòng khách, sân vườn, quán xá mà không lo tốn điện.',
   },
   {
     id: 'televisions',
@@ -935,6 +943,50 @@ export const PRODUCTS: ProductItem[] = [
     practicalValue: 'Màn hình lớn 55 inch thỏa mãn mọi nhu cầu xem bóng đá của anh em và xem phim truyền hình chất lượng cao của vợ mẹ.',
     imageUrl: IMG_SMART_TV_LIVING_ROOM,
     specs: '55 inch · Màn hình 4K HDR vô cực · Âm thanh vòm sống động · Chip xử lý 4 nhân',
+  },
+
+  // 6. QUẠT HƠI NƯỚC LÀM MÁT LÕI ĐỒNG
+  {
+    id: 'prod-neta-nt8800',
+    name: 'Quạt hơi nước NETA NT8800 - 80Lit - lõi đồng',
+    modelCode: 'NT8800',
+    category: 'cooling_fans',
+    categoryLabel: 'Quạt hơi nước Neta',
+    budgetTier: '1m-2m',
+    budgetLabel: '1 – 2 triệu',
+    programPrice: '1.890.000đ',
+    referencePrice: '2.500.000đ',
+    stockStatus: 'Sẵn kho · Giao nhanh HCM & lân cận',
+    stockCountNumber: 10,
+    warranty: 'Chính hãng 12 tháng (Motor lõi đồng)',
+    deliveryCondition: 'Hàng mới 100% · Hỗ trợ giao hàng khu vực HCM và lân cận',
+    highlightTag: 'Sale hot -24% · Bình lớn 80 Lít · Lõi đồng',
+    featureBadge: 'GIÁ SALE KHO -24%',
+    promoBanner: 'MOTOR 100% LÕI ĐỒNG · BÌNH 80 LÍT',
+    practicalValue: 'Lưu lượng gió siêu mạnh 6000 - 6500 m³/h làm mát tức thì diện tích rộng đến 65m² cho phòng khách, quán cafe, nhà xưởng; bình chứa 80L dùng cả ngày.',
+    imageUrl: IMG_QUAT_NETA_NT8800,
+    specs: 'Công suất 220W · Bình nước 80 Lít · Lưu lượng gió 6000 - 6500 m³/h · Diện tích 40 - 65m² · Motor lõi đồng',
+  },
+  {
+    id: 'prod-daichipro-dcp68',
+    name: 'Quạt hơi nước DAICHIPRO DCP 68',
+    modelCode: 'DCP-68',
+    category: 'cooling_fans',
+    categoryLabel: 'Quạt hơi nước Daichipro',
+    budgetTier: '1m-2m',
+    budgetLabel: '1 – 2 triệu',
+    programPrice: '1.290.000đ',
+    referencePrice: '1.990.000đ',
+    stockStatus: 'Sẵn kho · Giao nhanh HCM & lân cận',
+    stockCountNumber: 12,
+    warranty: 'Chính hãng (Động cơ 100% lõi đồng)',
+    deliveryCondition: 'Hàng mới 100% · Hỗ trợ giao hàng khu vực HCM và lân cận',
+    highlightTag: 'Sale sốc -35% · Tiết kiệm điện 100W · Lõi đồng',
+    featureBadge: 'GIẢM SỐC -35%',
+    promoBanner: 'TIẾT KIỆM ĐIỆN 100W · LÕI ĐỒNG BỀN BỈ',
+    practicalValue: 'Giải pháp hạ nhiệt tự nhiên tiết kiệm điện tối đa cho phòng khách, sân vườn, cửa hàng 25 - 40m². Bình chứa 28 - 30L, núm vặn cơ 3 tốc độ bền bỉ dễ dùng.',
+    imageUrl: IMG_QUAT_DAICHIPRO_DCP68,
+    specs: 'Công suất 100W · Bình nước 28 - 30 Lít · Lưu lượng gió 5500 m³/h · Diện tích 25 - 40m² · Động cơ 100% lõi đồng',
   },
 ];
 

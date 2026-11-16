@@ -59,6 +59,7 @@ export const Hero: React.FC<HeroProps> = ({
 
   const quickCategoryChips = [
     { id: 'rice_cooker_appliances', label: '🍚 Nồi cơm & Gia dụng' },
+    { id: 'cooling_fans', label: '💨 Quạt hơi nước' },
     { id: 'televisions', label: '📺 Smart Tivi' },
     { id: 'air_conditioners', label: '❄️ Máy lạnh' },
     { id: 'water_heaters', label: '🚿 Nước nóng' },

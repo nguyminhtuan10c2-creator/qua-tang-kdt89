@@ -160,6 +160,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span className="text-[10px] font-medium text-teal-900 tracking-tight">Máy lạnh làm mát</span>
           </div>
         );
+      case 'cooling_fans':
+        return (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-cyan-50 to-sky-100/40 p-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white shadow-xs border border-cyan-200/60 flex items-center justify-center text-cyan-600 mb-2">
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2" />
+                <circle cx="12" cy="10" r="4" />
+                <line x1="8" y1="17" x2="16" y2="17" />
+              </svg>
+            </div>
+            <span className="text-[10px] font-medium text-cyan-900 tracking-tight">Quạt hơi nước</span>
+          </div>
+        );
       case 'televisions':
         return (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100/40 p-4 text-center">

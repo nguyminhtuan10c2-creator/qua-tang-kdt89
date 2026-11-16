@@ -50,12 +50,17 @@ const ACTION_OPTIONS: Array<{ value: HeroSlideAction; label: string }> = [
 ];
 
 const ASPECT_RATIO_OPTIONS: Array<{ value: HeroAspectRatio; label: string }> = [
+  { value: '5/1', label: '5:1 (1200×240 px · ĐMX)' },
   { value: '16/7', label: '16:7 (1600×700 px)' },
   { value: '2/1', label: '2:1 (1600×800 px)' },
   { value: '16/9', label: '16:9 (1600×900 px)' },
 ];
 
 const SLIDE_PIXEL_GUIDE: Record<HeroAspectRatio, { banner: string; memberLeft: string }> = {
+  '5/1': {
+    banner: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
+    memberLeft: '720 × 220 px (hoặc 1080 × 330 px · vừa khít nửa trái Slide #1)',
+  },
   '16/7': {
     banner: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
     memberLeft: '800 × 600 px (tỉ lệ 4:3 · vừa khít nửa trái Slide #1)',
@@ -77,6 +82,7 @@ const FIT_OPTIONS: Array<{ value: HeroSlideFit; label: string }> = [
 ];
 
 const PREVIEW_ASPECT_CLASS: Record<HeroAspectRatio, string> = {
+  '5/1': 'aspect-[5/1]',
   '16/7': 'aspect-[16/7]',
   '2/1': 'aspect-[2/1]',
   '16/9': 'aspect-[16/9]',
@@ -87,7 +93,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   onClose,
   layoutMode,
   showMemberSlide = true,
-  aspectRatio = '16/7',
+  aspectRatio = '5/1',
   memberVisualFit = 'smart',
   slides,
   customImages,
@@ -109,7 +115,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     if (isOpen) {
       setDraftMode(layoutMode || 'slider');
       setDraftShowMember(showMemberSlide !== false);
-      setDraftAspectRatio(aspectRatio || '16/7');
+      setDraftAspectRatio(aspectRatio || '5/1');
       setDraftMemberFit(memberVisualFit || 'smart');
       setDraftSlides(
         slides && slides.length > 0
@@ -186,7 +192,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   const handleReset = () => {
     setDraftMode('slider');
     setDraftShowMember(true);
-    setDraftAspectRatio('16/7');
+    setDraftAspectRatio('5/1');
     setDraftMemberFit('smart');
     setDraftSlides(DEFAULT_HERO_SLIDES.map((s) => ({ ...s })));
   };

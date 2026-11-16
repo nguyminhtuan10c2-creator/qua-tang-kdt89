@@ -3,7 +3,7 @@ import heroSlideVoucherCombo from '../assets/images/hero_slide_voucher_combo_179
 import kdtMascotWelcome from '../assets/images/kdt_mascot_welcome_1794803049679.jpg';
 
 export type HeroSlideAction = 'products' | 'voucher' | 'welcome' | 'consult' | 'none';
-export type HeroAspectRatio = '16/7' | '2/1' | '16/9';
+export type HeroAspectRatio = '5/1' | '16/7' | '2/1' | '16/9';
 export type HeroSlideFit = 'smart' | 'contain' | 'cover';
 
 export const DEFAULT_WELCOME_MASCOT_IMAGE = kdtMascotWelcome;

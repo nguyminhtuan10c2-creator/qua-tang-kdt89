@@ -26,12 +26,14 @@ import type { SiteDecorSettings } from '../lib/firebase';
 import type { CustomerAccount } from '../data/vouchers';
 
 const ASPECT_CLASS_MAP: Record<HeroAspectRatio, string> = {
+  '5/1': 'aspect-[5/1]',
   '16/7': 'aspect-[16/7]',
   '2/1': 'aspect-[2/1]',
   '16/9': 'aspect-[16/9]',
 };
 
 const ASPECT_NUMERIC_MAP: Record<HeroAspectRatio, number> = {
+  '5/1': 5,
   '16/7': 16 / 7,
   '2/1': 2,
   '16/9': 16 / 9,
@@ -158,9 +160,9 @@ export const Hero: React.FC<HeroProps> = ({
   onSelectCategoryChip,
 }) => {
   const layoutMode = decorSettings?.heroLayoutMode || 'slider';
-  const aspectKey: HeroAspectRatio = decorSettings?.heroAspectRatio || '16/7';
-  const slideAspectClass = ASPECT_CLASS_MAP[aspectKey] || 'aspect-[16/7]';
-  const slideAspectNumber = ASPECT_NUMERIC_MAP[aspectKey] || 16 / 7;
+  const aspectKey: HeroAspectRatio = decorSettings?.heroAspectRatio || '5/1';
+  const slideAspectClass = ASPECT_CLASS_MAP[aspectKey] || 'aspect-[5/1]';
+  const slideAspectNumber = ASPECT_NUMERIC_MAP[aspectKey] || 5;
 
   const showMemberSlide = decorSettings?.showMemberHeroSlide !== false;
   const imageSlides = resolveHeroSlides(decorSettings?.heroSlides, customImages);
@@ -316,7 +318,7 @@ export const Hero: React.FC<HeroProps> = ({
       <section id="hero" className="relative bg-neutral-50 pt-2.5 sm:pt-4 pb-2 sm:pb-3">
         <h1 className="sr-only">{heroTitle}</h1>
 
-        <div className="max-w-6xl mx-auto px-2.5 sm:px-6">
+        <div className="max-w-[1232px] mx-auto px-2.5 sm:px-4">
           {/* Slider Frame */}
           <div
             className="relative rounded-2xl overflow-hidden bg-[#F4F7FB] shadow-sm border border-neutral-200/80 group"
@@ -333,12 +335,12 @@ export const Hero: React.FC<HeroProps> = ({
               {/* SLIDE 1: Single Replaceable Left Promo Visual + Quick Phone Login Card */}
               {showMemberSlide && (
                 <div
-                  className={`w-full shrink-0 ${slideAspectClass} bg-[#F4F7FB] px-2.5 sm:px-5 lg:px-6 py-2 sm:py-3.5 lg:py-4 flex items-center overflow-hidden`}
+                  className={`w-full shrink-0 min-h-[84px] md:min-h-0 ${slideAspectClass} bg-[#F4F7FB] px-2 sm:px-3.5 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 flex items-center overflow-hidden`}
                 >
-                  {/* DESKTOP & TABLET (md+): 2-Column Split (Replaceable Image Left | White Login Card Right) */}
-                  <div className="hidden md:grid md:grid-cols-12 gap-4 lg:gap-5 items-stretch w-full h-full">
+                  {/* DESKTOP & TABLET (md+): 2-Column Split (Replaceable Image Left | Compact White Login Card Right) */}
+                  <div className="hidden md:grid md:grid-cols-12 gap-3 lg:gap-4 items-stretch w-full h-full">
                     {/* Left: Single Replaceable Promo Image */}
-                    <div className="md:col-span-7 relative h-full rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
+                    <div className="md:col-span-7 relative h-full rounded-xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
                       <HeroSlideImage
                         src={memberVisualSrc}
                         alt="Ưu đãi thành viên KDT-89 & Bộ Voucher chào mừng"
@@ -354,17 +356,17 @@ export const Hero: React.FC<HeroProps> = ({
                             e.stopPropagation();
                             onOpenImageUpdater('site-member-slide-visual');
                           }}
-                          className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-1.5 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1.5 shadow-sm border border-white/25 cursor-pointer"
+                          className="absolute bottom-2 left-2 z-20 px-2 py-1 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-sm border border-white/25 cursor-pointer"
                         >
-                          <Camera className="w-3.5 h-3.5 text-amber-300" />
+                          <Camera className="w-3 h-3 text-amber-300" />
                           <span>Đổi ảnh bên này</span>
                         </button>
                       )}
                     </div>
 
-                    {/* Right: Clean White Quick Login / Onboarding Card */}
+                    {/* Right: Compact White Quick Login / Onboarding Card */}
                     <div className="md:col-span-5 flex items-center justify-center">
-                      <div className="w-full max-w-[360px] bg-white rounded-2xl shadow-md border border-slate-200/80 p-4 lg:p-6">
+                      <div className="w-full max-w-[380px] bg-white rounded-xl shadow-sm border border-slate-200/80 px-3.5 py-2.5 lg:px-4 lg:py-3">
                         {customerAccount ? (
                           <div className="text-center space-y-3">
                             <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-black text-base">
@@ -403,16 +405,18 @@ export const Hero: React.FC<HeroProps> = ({
                           </div>
                         ) : (
                           <div>
-                            <h2 className="text-lg lg:text-2xl font-bold text-slate-800 text-center">
-                              Đăng nhập
-                            </h2>
-                            <p className="text-[11px] lg:text-xs text-slate-500 text-center mt-0.5 mb-3">
-                              Mở Giỏ hàng riêng &amp; nhận bộ Voucher {voucherTotalLabel}
-                            </p>
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <h2 className="text-sm lg:text-base font-bold text-slate-900 leading-tight">
+                                Đăng nhập thành viên
+                              </h2>
+                              <span className="text-[11px] font-bold text-blue-600 shrink-0">
+                                Tặng {voucherTotalLabel}
+                              </span>
+                            </div>
 
-                            <form onSubmit={handleQuickPhoneSubmit} className="space-y-2.5">
-                              <div className="relative">
-                                <Smartphone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <form onSubmit={handleQuickPhoneSubmit} className="flex flex-row lg:flex-col gap-1.5 lg:gap-2">
+                              <div className="relative flex-1">
+                                <Smartphone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <input
                                   type="tel"
                                   value={quickPhone}
@@ -423,25 +427,25 @@ export const Hero: React.FC<HeroProps> = ({
                                     if (quickPhoneError) setQuickPhoneError(null);
                                   }}
                                   placeholder="Nhập số điện thoại mua hàng"
-                                  className="w-full h-10 lg:h-11 pl-9 pr-3 rounded-xl border border-slate-300 text-xs lg:text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                  className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                 />
                               </div>
 
-                              {quickPhoneError && (
-                                <p className="text-[11px] text-rose-600 font-medium leading-tight">
-                                  {quickPhoneError}
-                                </p>
-                              )}
-
                               <button
                                 type="submit"
-                                className="w-full h-10 lg:h-11 rounded-xl bg-[#4A90E2] hover:bg-[#357ABD] active:scale-[0.99] text-white font-bold text-xs lg:text-sm tracking-wide uppercase shadow-xs transition-all cursor-pointer"
+                                className="h-9 px-3.5 lg:w-full rounded-lg bg-[#4A90E2] hover:bg-[#357ABD] active:scale-[0.99] text-white font-bold text-xs tracking-wide uppercase shadow-xs transition-all shrink-0 cursor-pointer"
                               >
                                 TIẾP TỤC
                               </button>
                             </form>
 
-                            <div className="mt-2.5 text-center">
+                            {quickPhoneError && (
+                              <p className="text-[10.5px] text-rose-600 font-medium leading-tight mt-1">
+                                {quickPhoneError}
+                              </p>
+                            )}
+
+                            <div className="mt-1.5 text-center">
                               <button
                                 type="button"
                                 onClick={() => {

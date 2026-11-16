@@ -20,7 +20,7 @@ import {
   HeroSlideAction,
   HeroSlideFit,
   HeroAspectRatio,
-  DEFAULT_WELCOME_MASCOT_IMAGE,
+  DEFAULT_MEMBER_SLIDE_IMAGE,
 } from '../data/heroSlides';
 import type { SiteDecorSettings } from '../lib/firebase';
 import type { CustomerAccount } from '../data/vouchers';
@@ -43,6 +43,7 @@ interface HeroSlideImageProps {
   fitMode?: HeroSlideFit;
   targetAspect: number;
   eager?: boolean;
+  backdropTone?: 'dark' | 'light';
 }
 
 const HeroSlideImage: React.FC<HeroSlideImageProps> = ({
@@ -51,6 +52,7 @@ const HeroSlideImage: React.FC<HeroSlideImageProps> = ({
   fitMode = 'smart',
   targetAspect,
   eager = false,
+  backdropTone = 'dark',
 }) => {
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
 
@@ -62,16 +64,24 @@ const HeroSlideImage: React.FC<HeroSlideImageProps> = ({
 
   if (shouldUseContain) {
     return (
-      <div className="relative w-full h-full overflow-hidden bg-slate-900 flex items-center justify-center">
+      <div
+        className={`relative w-full h-full overflow-hidden flex items-center justify-center ${
+          backdropTone === 'light' ? 'bg-[#EEF3FA]' : 'bg-slate-900'
+        }`}
+      >
         {/* Ambient blurred backdrop matching the uploaded poster edges */}
         <img
           src={src}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none select-none"
+          className={`absolute inset-0 w-full h-full object-cover scale-110 blur-xl pointer-events-none select-none ${
+            backdropTone === 'light' ? 'opacity-35' : 'opacity-65'
+          }`}
           referrerPolicy="no-referrer"
         />
-        <div className="absolute inset-0 bg-black/15 pointer-events-none" />
+        {backdropTone === 'dark' && (
+          <div className="absolute inset-0 bg-black/15 pointer-events-none" />
+        )}
         <img
           src={src}
           alt={alt}
@@ -294,7 +304,9 @@ export const Hero: React.FC<HeroProps> = ({
     setIsPaused(false);
   };
 
-  const mascotSrc = customImages['site-welcome-mascot'] || DEFAULT_WELCOME_MASCOT_IMAGE;
+  const memberVisualSrc =
+    customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
+  const memberVisualFit: HeroSlideFit = decorSettings?.memberVisualFit || 'smart';
 
   /* ============================================================================
      MODE 1 (DEFAULT): ĐMX-STYLE HERO CAROUSEL (ĐỒNG BỘ TỈ LỆ MOBILE & DESKTOP)
@@ -318,66 +330,36 @@ export const Hero: React.FC<HeroProps> = ({
               className="flex transition-transform duration-300 ease-out"
               style={{ transform: `translateX(-${activeSlideIdx * 100}%)` }}
             >
-              {/* SLIDE 1: Mascot & Quick Phone Login / Member Voucher Card (đồng bộ tỉ lệ ngang cả ĐT & PC) */}
+              {/* SLIDE 1: Single Replaceable Left Promo Visual + Quick Phone Login Card */}
               {showMemberSlide && (
                 <div
-                  className={`w-full shrink-0 ${slideAspectClass} bg-[#F4F7FB] px-2.5 sm:px-6 lg:px-8 py-2 sm:py-4 flex items-center overflow-hidden`}
+                  className={`w-full shrink-0 ${slideAspectClass} bg-[#F4F7FB] px-2.5 sm:px-5 lg:px-6 py-2 sm:py-3.5 lg:py-4 flex items-center overflow-hidden`}
                 >
-                  {/* DESKTOP & TABLET (md+): 2-Column Split with Zero-Overlap Layout */}
-                  <div className="hidden md:grid md:grid-cols-12 gap-4 lg:gap-6 items-center w-full h-full">
-                    {/* Left: Non-overlapping 3-part Grid (Left Bubbles | Center Mascot | Right Bubbles) */}
-                    <div className="md:col-span-7 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 lg:gap-3 h-full">
-                      {/* Left Column: 2 Benefit Bubbles */}
-                      <div className="flex flex-col justify-center gap-3 lg:gap-5">
-                        <div className="bg-[#FFE619] text-slate-900 rounded-xl px-2.5 py-2 shadow-sm border border-amber-300/70 -rotate-2">
-                          <div className="text-[11px] lg:text-xs font-extrabold leading-tight">
-                            Đăng nhập ngay
-                          </div>
-                          <div className="text-[10px] lg:text-[11px] font-medium text-slate-800 leading-tight mt-0.5">
-                            Trải nghiệm mua sắm thuận tiện hơn
-                          </div>
-                        </div>
-
-                        <div className="bg-[#0074E4] text-white rounded-xl px-2.5 py-2 shadow-sm rotate-1">
-                          <div className="text-[11px] lg:text-xs font-extrabold leading-tight">
-                            Nhận ưu đãi đúng gu
-                          </div>
-                          <div className="text-[10px] lg:text-[11px] text-sky-100 leading-tight mt-0.5">
-                            Voucher {voucherTotalLabel} dành riêng cho bạn
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Center: Mascot Artwork (Never covered by bubbles) */}
-                      <div className="flex items-center justify-center shrink-0">
-                        <img
-                          src={mascotSrc}
-                          alt="Mascot KDT-89 hướng dẫn đăng nhập nhận ưu đãi"
-                          className="h-[155px] lg:h-[225px] xl:h-[260px] w-auto object-contain mix-blend-multiply select-none pointer-events-none"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-
-                      {/* Right Column: 2 Benefit Bubbles */}
-                      <div className="flex flex-col justify-center gap-3 lg:gap-5">
-                        <div className="bg-[#0074E4] text-white rounded-xl px-2.5 py-2 shadow-sm rotate-2">
-                          <div className="text-[11px] lg:text-xs font-extrabold leading-tight">
-                            Theo dõi đơn dễ dàng
-                          </div>
-                          <div className="text-[10px] lg:text-[11px] text-sky-100 leading-tight mt-0.5">
-                            Cập nhật trạng thái mọi lúc mọi nơi
-                          </div>
-                        </div>
-
-                        <div className="bg-[#FFE619] text-slate-900 rounded-xl px-2.5 py-2 shadow-sm border border-amber-300/70 -rotate-1">
-                          <div className="text-[11px] lg:text-xs font-extrabold leading-tight">
-                            Giỏ hàng riêng nhanh gọn
-                          </div>
-                          <div className="text-[10px] lg:text-[11px] font-medium text-slate-800 leading-tight mt-0.5">
-                            Lưu sản phẩm &amp; giữ giá 24h vài giây
-                          </div>
-                        </div>
-                      </div>
+                  {/* DESKTOP & TABLET (md+): 2-Column Split (Replaceable Image Left | White Login Card Right) */}
+                  <div className="hidden md:grid md:grid-cols-12 gap-4 lg:gap-5 items-stretch w-full h-full">
+                    {/* Left: Single Replaceable Promo Image */}
+                    <div className="md:col-span-7 relative h-full rounded-2xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
+                      <HeroSlideImage
+                        src={memberVisualSrc}
+                        alt="Ưu đãi thành viên KDT-89 & Bộ Voucher chào mừng"
+                        fitMode={memberVisualFit}
+                        targetAspect={slideAspectNumber * (7 / 12)}
+                        backdropTone="light"
+                        eager
+                      />
+                      {isAdmin && onOpenImageUpdater && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenImageUpdater('site-member-slide-visual');
+                          }}
+                          className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-1.5 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1.5 shadow-sm border border-white/25 cursor-pointer"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Đổi ảnh bên này</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Right: Clean White Quick Login / Onboarding Card */}
@@ -481,22 +463,21 @@ export const Hero: React.FC<HeroProps> = ({
                   </div>
 
                   {/* MOBILE & SMALL TABLET (< md): Horizontal 2-column layout matching desktop banner aspect */}
-                  <div className="grid md:hidden grid-cols-12 gap-2 sm:gap-3 items-center w-full h-full">
-                    {/* Left: Mascot + Badge */}
-                    <div className="col-span-4 flex flex-col items-center justify-center text-center">
-                      <img
-                        src={mascotSrc}
-                        alt="Mascot KDT-89"
-                        className="h-20 sm:h-28 w-auto object-contain mix-blend-multiply"
-                        referrerPolicy="no-referrer"
+                  <div className="grid md:hidden grid-cols-12 gap-2 sm:gap-3 items-stretch w-full h-full">
+                    {/* Left: Single Replaceable Image */}
+                    <div className="col-span-5 relative h-full rounded-xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
+                      <HeroSlideImage
+                        src={memberVisualSrc}
+                        alt="Ưu đãi thành viên KDT-89"
+                        fitMode={memberVisualFit}
+                        targetAspect={slideAspectNumber * (5 / 12)}
+                        backdropTone="light"
+                        eager
                       />
-                      <span className="text-[10px] sm:text-xs font-extrabold text-blue-700 leading-none">
-                        Voucher {voucherTotalLabel}
-                      </span>
                     </div>
 
                     {/* Right: White Quick Phone Login Card */}
-                    <div className="col-span-8 bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-slate-200/80">
+                    <div className="col-span-7 bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-slate-200/80 flex flex-col justify-center">
                       {customerAccount ? (
                         <div className="space-y-1.5">
                           <div className="text-xs font-extrabold text-slate-900 truncate">

@@ -12,6 +12,9 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   collection,
   getDoc,
@@ -22,14 +25,29 @@ import {
   onSnapshot,
   query,
   orderBy,
+  Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
-// CRITICAL: Must pass firestoreDatabaseId according to Firebase Skill
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// CRITICAL: Must pass firestoreDatabaseId according to Firebase Skill; enable local persistence to reduce repeated reads
+let firestoreInstance: Firestore;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch {
+  firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreInstance;
 export const auth = getAuth(app);
 
 // Persist login state in browser local storage across tabs and sessions
@@ -65,6 +83,12 @@ export interface FirestoreErrorInfo {
   };
 }
 
+export function isFirestoreQuotaError(error: unknown): boolean {
+  const code = (error as any)?.code || '';
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return code === 'resource-exhausted' || msg.includes('quota') || msg.includes('resource-exhausted');
+}
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -98,7 +122,7 @@ export async function testConnection() {
 }
 import type { ProductItem, ComboItem, CategoryItem } from '../data/products';
 import type { VoucherItem } from '../data/vouchers';
-import type { HeroSlideConfig, HeroAspectRatio } from '../data/heroSlides';
+import type { HeroSlideConfig, HeroAspectRatio, HeroSlideFit } from '../data/heroSlides';
 
 export interface CategoryOverride {
   name?: string;
@@ -149,7 +173,8 @@ export interface SiteDecorSettings {
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh
   heroAspectRatio?: HeroAspectRatio; // Tỉ lệ khung slide đồng bộ mobile & desktop ('16/7' | '2/1' | '16/9')
-  showMemberHeroSlide?: boolean; // Hiện Slide #1 Mascot Đăng nhập & Nhận Voucher ở đầu tiên
+  memberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh bên trái Slide #1 ('smart' | 'contain' | 'cover')
+  showMemberHeroSlide?: boolean; // Hiện Slide #1 Ảnh minh họa & Đăng nhập SĐT ở đầu tiên
   heroSlides?: HeroSlideConfig[]; // Danh sách Slide ảnh banner đầu trang
 }
 
@@ -192,6 +217,11 @@ export function subscribeToSiteSettings(
       }
     },
     (error) => {
+      if (isFirestoreQuotaError(error)) {
+        console.warn('Firestore daily read quota reached on settings/site; falling back to local cache.');
+        if (onError) onError(error);
+        return;
+      }
       try {
         handleFirestoreError(error, OperationType.GET, SETTINGS_DOC_PATH);
       } catch (e) {
@@ -240,6 +270,11 @@ export function subscribeToCustomImages(
       onUpdate(images);
     },
     (error) => {
+      if (isFirestoreQuotaError(error)) {
+        console.warn('Firestore daily read quota reached on custom_images; falling back to local cache.');
+        if (onError) onError(error);
+        return;
+      }
       try {
         handleFirestoreError(error, OperationType.LIST, 'custom_images');
       } catch (e) {

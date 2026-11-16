@@ -14,7 +14,7 @@ import {
 import {
   DEFAULT_HERO_SLIDES,
   HERO_SLIDE_FALLBACK_MAP,
-  DEFAULT_WELCOME_MASCOT_IMAGE,
+  DEFAULT_MEMBER_SLIDE_IMAGE,
   HeroAspectRatio,
   HeroSlideAction,
   HeroSlideConfig,
@@ -28,6 +28,7 @@ interface HeroSlidesModalProps {
   layoutMode: 'slider' | 'classic';
   showMemberSlide?: boolean;
   aspectRatio?: HeroAspectRatio;
+  memberVisualFit?: HeroSlideFit;
   slides: HeroSlideConfig[];
   customImages: Record<string, string>;
   onUploadSlideImage: (imageKey: string, dataUrl: string) => Promise<void>;
@@ -35,7 +36,8 @@ interface HeroSlidesModalProps {
     nextMode: 'slider' | 'classic',
     nextSlides: HeroSlideConfig[],
     nextShowMemberSlide?: boolean,
-    nextAspectRatio?: HeroAspectRatio
+    nextAspectRatio?: HeroAspectRatio,
+    nextMemberVisualFit?: HeroSlideFit
   ) => Promise<void>;
 }
 
@@ -71,6 +73,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   layoutMode,
   showMemberSlide = true,
   aspectRatio = '16/7',
+  memberVisualFit = 'smart',
   slides,
   customImages,
   onUploadSlideImage,
@@ -79,6 +82,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   const [draftMode, setDraftMode] = useState<'slider' | 'classic'>(layoutMode);
   const [draftShowMember, setDraftShowMember] = useState<boolean>(showMemberSlide);
   const [draftAspectRatio, setDraftAspectRatio] = useState<HeroAspectRatio>(aspectRatio);
+  const [draftMemberFit, setDraftMemberFit] = useState<HeroSlideFit>(memberVisualFit);
   const [draftSlides, setDraftSlides] = useState<HeroSlideConfig[]>([]);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -91,6 +95,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
       setDraftMode(layoutMode || 'slider');
       setDraftShowMember(showMemberSlide !== false);
       setDraftAspectRatio(aspectRatio || '16/7');
+      setDraftMemberFit(memberVisualFit || 'smart');
       setDraftSlides(
         slides && slides.length > 0
           ? slides.map((s) => ({ ...s }))
@@ -98,7 +103,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
       );
       setNotice(null);
     }
-  }, [isOpen, layoutMode, showMemberSlide, aspectRatio, slides]);
+  }, [isOpen, layoutMode, showMemberSlide, aspectRatio, memberVisualFit, slides]);
 
   if (!isOpen) return null;
 
@@ -167,20 +172,28 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     setDraftMode('slider');
     setDraftShowMember(true);
     setDraftAspectRatio('16/7');
+    setDraftMemberFit('smart');
     setDraftSlides(DEFAULT_HERO_SLIDES.map((s) => ({ ...s })));
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onSaveConfig(draftMode, draftSlides, draftShowMember, draftAspectRatio);
+      await onSaveConfig(
+        draftMode,
+        draftSlides,
+        draftShowMember,
+        draftAspectRatio,
+        draftMemberFit
+      );
       onClose();
     } finally {
       setIsSaving(false);
     }
   };
 
-  const mascotPreview = customImages['site-welcome-mascot'] || DEFAULT_WELCOME_MASCOT_IMAGE;
+  const memberVisualPreview =
+    customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
 
   return (
     <div
@@ -289,45 +302,74 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
             </div>
           </div>
 
-          {/* Member Mascot Onboarding Slide Toggle */}
-          <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <img
-                src={mascotPreview}
-                alt="Mascot KDT-89"
-                className="w-12 h-12 rounded-xl bg-white border border-sky-200 object-contain shrink-0"
-              />
+          {/* Member Onboarding Slide #1 Config */}
+          <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <div className="text-xs font-bold text-slate-900">
-                  Slide #1: Mascot Đăng nhập SĐT &amp; Nhận Voucher
+                  Slide #1: Ảnh thương hiệu bên trái &amp; Form Đăng nhập SĐT
                 </div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Hiển thị nhân vật KDT-89, 4 lợi ích thành viên &amp; ô nhập SĐT đăng nhập ngay ở đầu trang.
+                  Toàn bộ cụm bên trái của Slide #1 là 1 ảnh riêng để anh tự do thay đổi bằng banner của KDT-89.
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                onClick={() => triggerUpload('site-welcome-mascot')}
-                disabled={uploadingKey === 'site-welcome-mascot'}
-                className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Upload className="w-3 h-3 text-amber-600" />
-                <span>{uploadingKey === 'site-welcome-mascot' ? 'Đang tải...' : 'Đổi ảnh Mascot'}</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setDraftShowMember(!draftShowMember)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0 self-start sm:self-center ${
                   draftShowMember
                     ? 'bg-sky-600 text-white hover:bg-sky-700'
                     : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                 }`}
               >
-                {draftShowMember ? 'Đang BẬT' : 'Đang TẮT'}
+                {draftShowMember ? 'Đang BẬT Slide #1' : 'Đang TẮT Slide #1'}
               </button>
             </div>
+
+            {draftShowMember && (
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-sky-200/70">
+                <div className="sm:col-span-5 aspect-[4/3] rounded-lg overflow-hidden bg-white border border-sky-200 relative flex items-center justify-center">
+                  <img
+                    src={memberVisualPreview}
+                    alt="Ảnh bên trái Slide 1"
+                    className={`w-full h-full ${
+                      draftMemberFit === 'cover' ? 'object-cover' : 'object-contain'
+                    }`}
+                  />
+                </div>
+                <div className="sm:col-span-7 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => triggerUpload('site-member-slide-visual')}
+                    disabled={uploadingKey === 'site-member-slide-visual'}
+                    className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>
+                      {uploadingKey === 'site-member-slide-visual'
+                        ? 'Đang tải ảnh lên...'
+                        : 'Tải ảnh mới cho bên trái Slide #1'}
+                    </span>
+                  </button>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Cách hiển thị ảnh bên trái Slide #1:
+                    </label>
+                    <select
+                      value={draftMemberFit}
+                      onChange={(e) => setDraftMemberFit(e.target.value as HeroSlideFit)}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+                    >
+                      {FIT_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Slide List */}

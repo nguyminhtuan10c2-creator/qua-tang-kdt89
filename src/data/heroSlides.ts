@@ -7,6 +7,7 @@ export type HeroAspectRatio = '16/7' | '2/1' | '16/9';
 export type HeroSlideFit = 'smart' | 'contain' | 'cover';
 
 export const DEFAULT_WELCOME_MASCOT_IMAGE = kdtMascotWelcome;
+export const DEFAULT_MEMBER_SLIDE_IMAGE = heroSlideVoucherCombo;
 
 export interface HeroSlideConfig {
   id: string;

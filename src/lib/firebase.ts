@@ -122,7 +122,12 @@ export async function testConnection() {
 }
 import type { ProductItem, ComboItem, CategoryItem } from '../data/products';
 import type { VoucherItem } from '../data/vouchers';
-import type { HeroSlideConfig, HeroAspectRatio, HeroSlideFit } from '../data/heroSlides';
+import type {
+  HeroSlideConfig,
+  HeroAspectRatio,
+  HeroMobileAspectRatio,
+  HeroSlideFit,
+} from '../data/heroSlides';
 
 export interface CategoryOverride {
   name?: string;
@@ -172,8 +177,10 @@ export interface SiteDecorSettings {
   showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh
-  heroAspectRatio?: HeroAspectRatio; // Tỉ lệ khung slide đồng bộ mobile & desktop ('16/7' | '2/1' | '16/9')
-  memberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh bên trái Slide #1 ('smart' | 'contain' | 'cover')
+  heroAspectRatio?: HeroAspectRatio; // Tỉ lệ khung slide trên Máy tính ('5/1' | '16/7' | '2/1' | '16/9')
+  mobileHeroAspectRatio?: HeroMobileAspectRatio; // Tỉ lệ khung slide riêng trên Điện thoại ('16/9' | '2/1' | '4/3')
+  memberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh bên trái Slide #1 trên Máy tính
+  mobileMemberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh Slide #1 trên Điện thoại
   showMemberHeroSlide?: boolean; // Hiện Slide #1 Ảnh minh họa & Đăng nhập SĐT ở đầu tiên
   heroSlides?: HeroSlideConfig[]; // Danh sách Slide ảnh banner đầu trang
 }

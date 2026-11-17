@@ -16,6 +16,7 @@ import {
   HERO_SLIDE_FALLBACK_MAP,
   DEFAULT_MEMBER_SLIDE_IMAGE,
   HeroAspectRatio,
+  HeroMobileAspectRatio,
   HeroSlideAction,
   HeroSlideConfig,
   HeroSlideFit,
@@ -28,16 +29,21 @@ interface HeroSlidesModalProps {
   layoutMode: 'slider' | 'classic';
   showMemberSlide?: boolean;
   aspectRatio?: HeroAspectRatio;
+  mobileAspectRatio?: HeroMobileAspectRatio;
   memberVisualFit?: HeroSlideFit;
+  mobileMemberVisualFit?: HeroSlideFit;
   slides: HeroSlideConfig[];
   customImages: Record<string, string>;
   onUploadSlideImage: (imageKey: string, dataUrl: string) => Promise<void>;
+  onDeleteSlideImage?: (imageKey: string) => Promise<void>;
   onSaveConfig: (
     nextMode: 'slider' | 'classic',
     nextSlides: HeroSlideConfig[],
     nextShowMemberSlide?: boolean,
     nextAspectRatio?: HeroAspectRatio,
-    nextMemberVisualFit?: HeroSlideFit
+    nextMemberVisualFit?: HeroSlideFit,
+    nextMobileAspectRatio?: HeroMobileAspectRatio,
+    nextMobileMemberVisualFit?: HeroSlideFit
   ) => Promise<void>;
 }
 
@@ -56,29 +62,41 @@ const ASPECT_RATIO_OPTIONS: Array<{ value: HeroAspectRatio; label: string }> = [
   { value: '16/9', label: '16:9 (1600×900 px)' },
 ];
 
+const MOBILE_ASPECT_OPTIONS: Array<{ value: HeroMobileAspectRatio; label: string }> = [
+  { value: '16/9', label: '16:9 (800×450 px · Rõ nét)' },
+  { value: '2/1', label: '2:1 (800×400 px · Gọn)' },
+  { value: '4/3', label: '4:3 (800×600 px · To nhất)' },
+];
+
 const SLIDE_PIXEL_GUIDE: Record<HeroAspectRatio, { banner: string; memberLeft: string }> = {
   '5/1': {
     banner: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
-    memberLeft: '720 × 220 px (hoặc 1080 × 330 px · vừa khít nửa trái Slide #1)',
+    memberLeft: '720 × 220 px (hoặc 1080 × 330 px · nửa trái PC)',
   },
   '16/7': {
     banner: '1600 × 700 px (hoặc 1280 × 560 px · tỉ lệ ngang 16:7)',
-    memberLeft: '800 × 600 px (tỉ lệ 4:3 · vừa khít nửa trái Slide #1)',
+    memberLeft: '800 × 600 px (tỉ lệ 4:3 · nửa trái PC)',
   },
   '2/1': {
     banner: '1600 × 800 px (hoặc 1280 × 640 px · tỉ lệ ngang 2:1)',
-    memberLeft: '800 × 660 px (tỉ lệ 5:4 · vừa khít nửa trái Slide #1)',
+    memberLeft: '800 × 660 px (tỉ lệ 5:4 · nửa trái PC)',
   },
   '16/9': {
     banner: '1600 × 900 px (hoặc 1280 × 720 px · tỉ lệ ngang 16:9)',
-    memberLeft: '800 × 750 px (gần vuông 1:1 · vừa khít nửa trái Slide #1)',
+    memberLeft: '800 × 750 px (gần vuông 1:1 · nửa trái PC)',
   },
+};
+
+const MOBILE_PIXEL_GUIDE: Record<HeroMobileAspectRatio, string> = {
+  '16/9': '800 × 450 px (hoặc 1080 × 608 px · tỉ lệ 16:9 cho Mobile)',
+  '2/1': '800 × 400 px (hoặc 1000 × 500 px · tỉ lệ 2:1 cho Mobile)',
+  '4/3': '800 × 600 px (hoặc 1000 × 750 px · tỉ lệ 4:3 to nhất Mobile)',
 };
 
 const FIT_OPTIONS: Array<{ value: HeroSlideFit; label: string }> = [
   { value: 'smart', label: 'Tự động chống cắt chữ/người (Khuyên dùng)' },
   { value: 'contain', label: 'Hiện trọn 100% ảnh (nền mờ 2 bên)' },
-  { value: 'cover', label: 'Phủ kín viền khung ngang (cover)' },
+  { value: 'cover', label: 'Phủ kín viền khung (cover)' },
 ];
 
 const PREVIEW_ASPECT_CLASS: Record<HeroAspectRatio, string> = {
@@ -88,22 +106,33 @@ const PREVIEW_ASPECT_CLASS: Record<HeroAspectRatio, string> = {
   '16/9': 'aspect-[16/9]',
 };
 
+const MOBILE_PREVIEW_ASPECT_CLASS: Record<HeroMobileAspectRatio, string> = {
+  '16/9': 'aspect-[16/9]',
+  '2/1': 'aspect-[2/1]',
+  '4/3': 'aspect-[4/3]',
+};
+
 export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   isOpen,
   onClose,
   layoutMode,
   showMemberSlide = true,
   aspectRatio = '5/1',
+  mobileAspectRatio = '16/9',
   memberVisualFit = 'smart',
+  mobileMemberVisualFit = 'smart',
   slides,
   customImages,
   onUploadSlideImage,
+  onDeleteSlideImage,
   onSaveConfig,
 }) => {
   const [draftMode, setDraftMode] = useState<'slider' | 'classic'>(layoutMode);
   const [draftShowMember, setDraftShowMember] = useState<boolean>(showMemberSlide);
   const [draftAspectRatio, setDraftAspectRatio] = useState<HeroAspectRatio>(aspectRatio);
+  const [draftMobileAspect, setDraftMobileAspect] = useState<HeroMobileAspectRatio>(mobileAspectRatio);
   const [draftMemberFit, setDraftMemberFit] = useState<HeroSlideFit>(memberVisualFit);
+  const [draftMobileMemberFit, setDraftMobileMemberFit] = useState<HeroSlideFit>(mobileMemberVisualFit);
   const [draftSlides, setDraftSlides] = useState<HeroSlideConfig[]>([]);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -116,7 +145,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
       setDraftMode(layoutMode || 'slider');
       setDraftShowMember(showMemberSlide !== false);
       setDraftAspectRatio(aspectRatio || '5/1');
+      setDraftMobileAspect(mobileAspectRatio || '16/9');
       setDraftMemberFit(memberVisualFit || 'smart');
+      setDraftMobileMemberFit(mobileMemberVisualFit || 'smart');
       setDraftSlides(
         slides && slides.length > 0
           ? slides.map((s) => ({ ...s }))
@@ -124,7 +155,16 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
       );
       setNotice(null);
     }
-  }, [isOpen, layoutMode, showMemberSlide, aspectRatio, memberVisualFit, slides]);
+  }, [
+    isOpen,
+    layoutMode,
+    showMemberSlide,
+    aspectRatio,
+    mobileAspectRatio,
+    memberVisualFit,
+    mobileMemberVisualFit,
+    slides,
+  ]);
 
   if (!isOpen) return null;
 
@@ -167,6 +207,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
       {
         id: `slide-${Date.now()}`,
         imageKey: newKey,
+        mobileImageKey: `${newKey}-mobile`,
         fallbackImage: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
         title: `Banner Khuyến Mãi ${nextIdx}`,
         actionType: 'products',
@@ -193,7 +234,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     setDraftMode('slider');
     setDraftShowMember(true);
     setDraftAspectRatio('5/1');
+    setDraftMobileAspect('16/9');
     setDraftMemberFit('smart');
+    setDraftMobileMemberFit('smart');
     setDraftSlides(DEFAULT_HERO_SLIDES.map((s) => ({ ...s })));
   };
 
@@ -205,7 +248,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
         draftSlides,
         draftShowMember,
         draftAspectRatio,
-        draftMemberFit
+        draftMemberFit,
+        draftMobileAspect,
+        draftMobileMemberFit
       );
       onClose();
     } finally {
@@ -215,6 +260,8 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
 
   const memberVisualPreview =
     customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
+  const mobileMemberVisualPreview =
+    customImages['site-member-slide-visual-mobile'] || '';
 
   return (
     <div
@@ -295,43 +342,72 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
             </div>
           </div>
 
-          {/* Synchronized Aspect Ratio Selector */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <div className="text-xs font-bold text-slate-800">
-                Tỉ lệ khung Slide (đồng bộ Điện thoại &amp; Máy tính):
+          {/* Aspect Ratio Selectors: Separate PC & Mobile */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-bold text-slate-800">
+                  1. Khung ảnh cho Máy tính (PC):
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Hiển thị banner ngang rộng chuẩn trên màn hình Desktop/Laptop.
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Khóa cùng 1 tỉ lệ ngang trên mọi màn hình để tránh lệch bố cục hoặc cắt ảnh.
-              </p>
+              <div className="flex flex-wrap rounded-lg bg-slate-200/70 p-1 text-[11px] font-bold gap-1 shrink-0">
+                {ASPECT_RATIO_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDraftAspectRatio(opt.value)}
+                    className={`px-2 py-1 rounded-md cursor-pointer transition-all ${
+                      draftAspectRatio === opt.value
+                        ? 'bg-white text-blue-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap rounded-lg bg-slate-200/70 p-1 text-[11px] font-bold gap-1 shrink-0">
-              {ASPECT_RATIO_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setDraftAspectRatio(opt.value)}
-                  className={`px-2.5 py-1.5 rounded-md cursor-pointer transition-all ${
-                    draftAspectRatio === opt.value
-                      ? 'bg-white text-blue-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+
+            <div className="pt-2 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="text-xs font-bold text-slate-800">
+                  2. Khung ảnh riêng cho Điện thoại (Mobile):
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Cao và to rõ hơn để khách lướt điện thoại dễ đọc chữ &amp; nhìn rõ sản phẩm.
+                </p>
+              </div>
+              <div className="flex flex-wrap rounded-lg bg-slate-200/70 p-1 text-[11px] font-bold gap-1 shrink-0">
+                {MOBILE_ASPECT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDraftMobileAspect(opt.value)}
+                    className={`px-2 py-1 rounded-md cursor-pointer transition-all ${
+                      draftMobileAspect === opt.value
+                        ? 'bg-white text-emerald-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Member Onboarding Slide #1 Config */}
+          {/* Member Onboarding Slide #1 Config: Separate PC & Mobile */}
           <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <div className="text-xs font-bold text-slate-900">
-                  Slide #1: Ảnh thương hiệu bên trái &amp; Form Đăng nhập SĐT
+                  Slide #1: Ảnh thương hiệu &amp; Form Đăng nhập SĐT
                 </div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Toàn bộ cụm bên trái của Slide #1 là 1 ảnh riêng để anh tự do thay đổi bằng banner của KDT-89.
+                  Anh có thể thiết kế 1 ảnh riêng cho PC (bên trái form) và 1 ảnh riêng cho Mobile (tràn ngang to rõ).
                 </p>
               </div>
               <button
@@ -348,49 +424,111 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
             </div>
 
             {draftShowMember && (
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1 border-t border-sky-200/70">
-                <div className="sm:col-span-5 aspect-[4/3] rounded-lg overflow-hidden bg-white border border-sky-200 relative flex items-center justify-center">
-                  <img
-                    src={memberVisualPreview}
-                    alt="Ảnh bên trái Slide 1"
-                    className={`w-full h-full ${
-                      draftMemberFit === 'cover' ? 'object-cover' : 'object-contain'
-                    }`}
-                  />
-                </div>
-                <div className="sm:col-span-7 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-sky-200/70">
+                {/* PC Member Visual */}
+                <div className="p-2.5 rounded-xl bg-white border border-sky-200 space-y-2">
+                  <div className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wide">
+                    🖥️ Ảnh Slide #1 bản Máy tính (PC)
+                  </div>
+                  <div className="aspect-[16/9] rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center">
+                    <img
+                      src={memberVisualPreview}
+                      alt="Slide 1 PC"
+                      className={`w-full h-full ${
+                        draftMemberFit === 'cover' ? 'object-cover' : 'object-contain'
+                      }`}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => triggerUpload('site-member-slide-visual')}
                     disabled={uploadingKey === 'site-member-slide-visual'}
-                    className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                   >
-                    <Upload className="w-3.5 h-3.5" />
+                    <Upload className="w-3 h-3" />
                     <span>
                       {uploadingKey === 'site-member-slide-visual'
-                        ? 'Đang tải ảnh lên...'
-                        : 'Tải ảnh mới cho bên trái Slide #1'}
+                        ? 'Đang tải...'
+                        : 'Tải ảnh PC (nửa trái)'}
                     </span>
                   </button>
-                  <div className="text-[11px] text-sky-900 bg-white/80 border border-sky-200 rounded-md px-2 py-1 font-medium">
-                    📐 Size chuẩn: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].memberLeft}</strong>
+                  <div className="text-[10.5px] text-slate-600">
+                    📐 Size: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].memberLeft}</strong>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                      Cách hiển thị ảnh bên trái Slide #1:
-                    </label>
-                    <select
-                      value={draftMemberFit}
-                      onChange={(e) => setDraftMemberFit(e.target.value as HeroSlideFit)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                    >
-                      {FIT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
+                  <select
+                    value={draftMemberFit}
+                    onChange={(e) => setDraftMemberFit(e.target.value as HeroSlideFit)}
+                    className="w-full px-2 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
+                  >
+                    {FIT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Mobile Member Visual */}
+                <div className="p-2.5 rounded-xl bg-white border border-emerald-200 space-y-2">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wide">
+                      📱 Ảnh Slide #1 bản Điện thoại
+                    </span>
+                    {mobileMemberVisualPreview && onDeleteSlideImage && (
+                      <button
+                        type="button"
+                        onClick={() => void onDeleteSlideImage('site-member-slide-visual-mobile')}
+                        className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Dùng lại ảnh PC
+                      </button>
+                    )}
                   </div>
+                  <div
+                    className={`${
+                      MOBILE_PREVIEW_ASPECT_CLASS[draftMobileAspect] || 'aspect-[16/9]'
+                    } rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center relative`}
+                  >
+                    <img
+                      src={mobileMemberVisualPreview || memberVisualPreview}
+                      alt="Slide 1 Mobile"
+                      className={`w-full h-full ${
+                        draftMobileMemberFit === 'cover' ? 'object-cover' : 'object-contain'
+                      }`}
+                    />
+                    {!mobileMemberVisualPreview && (
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/65 text-white text-[9px] font-semibold">
+                        Đang dùng ảnh PC
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => triggerUpload('site-member-slide-visual-mobile')}
+                    disabled={uploadingKey === 'site-member-slide-visual-mobile'}
+                    className="w-full py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Upload className="w-3 h-3" />
+                    <span>
+                      {uploadingKey === 'site-member-slide-visual-mobile'
+                        ? 'Đang tải...'
+                        : 'Tải ảnh riêng cho Mobile'}
+                    </span>
+                  </button>
+                  <div className="text-[10.5px] text-slate-600">
+                    📐 Size: <strong>{MOBILE_PIXEL_GUIDE[draftMobileAspect]}</strong>
+                  </div>
+                  <select
+                    value={draftMobileMemberFit}
+                    onChange={(e) => setDraftMobileMemberFit(e.target.value as HeroSlideFit)}
+                    className="w-full px-2 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
+                  >
+                    {FIT_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
@@ -446,128 +584,194 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Preview + Actions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                    <div
-                      className={`sm:col-span-6 ${
-                        PREVIEW_ASPECT_CLASS[draftAspectRatio] || 'aspect-[16/7]'
-                      } rounded-lg overflow-hidden bg-slate-900 border border-slate-200 relative flex items-center justify-center`}
-                    >
-                      {imgSrc ? (
-                        slide.fit === 'cover' ? (
+                  {/* Dual PC & Mobile Preview + Upload */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* PC Banner */}
+                    <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wide">
+                        🖥️ Bản Máy tính (PC)
+                      </div>
+                      <div
+                        className={`${
+                          PREVIEW_ASPECT_CLASS[draftAspectRatio] || 'aspect-[5/1]'
+                        } rounded-md overflow-hidden bg-slate-900 border border-slate-200 relative flex items-center justify-center`}
+                      >
+                        {imgSrc ? (
                           <img
                             src={imgSrc}
-                            alt={slide.title || `Slide ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            alt={slide.title || `Slide ${idx + 1} PC`}
+                            className={`w-full h-full ${
+                              slide.fit === 'cover' ? 'object-cover' : 'object-contain'
+                            }`}
                           />
                         ) : (
-                          <>
-                            <img
-                              src={imgSrc}
-                              alt=""
-                              aria-hidden="true"
-                              className="absolute inset-0 w-full h-full object-cover scale-110 blur-md opacity-65 pointer-events-none"
-                            />
-                            <img
-                              src={imgSrc}
-                              alt={slide.title || `Slide ${idx + 1}`}
-                              className="relative z-10 w-full h-full object-contain"
-                            />
-                          </>
-                        )
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs text-slate-400">
-                          Chưa có ảnh
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="sm:col-span-6 space-y-2">
+                          <span className="text-[11px] text-slate-400">Chưa có ảnh PC</span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => triggerUpload(slide.imageKey)}
                         disabled={uploadingKey === slide.imageKey}
-                        className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="w-full py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                       >
-                        <Upload className="w-3.5 h-3.5" />
+                        <Upload className="w-3 h-3" />
                         <span>
                           {uploadingKey === slide.imageKey
-                            ? 'Đang tải ảnh lên...'
-                            : 'Tải ảnh Banner từ máy'}
+                            ? 'Đang tải...'
+                            : 'Tải ảnh Banner PC'}
                         </span>
                       </button>
-
-                      <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 font-medium">
-                        📐 Size chuẩn: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].banner}</strong>
+                      <div className="text-[10.5px] text-slate-600">
+                        📐 Size: <strong>{SLIDE_PIXEL_GUIDE[draftAspectRatio].banner}</strong>
                       </div>
+                      <select
+                        value={slide.fit || 'smart'}
+                        onChange={(e) => {
+                          const val = e.target.value as HeroSlideFit;
+                          setDraftSlides((prev) =>
+                            prev.map((item, i) =>
+                              i === idx ? { ...item, fit: val } : item
+                            )
+                          );
+                        }}
+                        className="w-full px-2 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
+                      >
+                        {FIT_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Cách hiển thị ảnh trong khung ngang:
-                        </label>
-                        <select
-                          value={slide.fit || 'smart'}
-                          onChange={(e) => {
-                            const val = e.target.value as HeroSlideFit;
-                            setDraftSlides((prev) =>
-                              prev.map((item, i) =>
-                                i === idx ? { ...item, fit: val } : item
-                              )
-                            );
-                          }}
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                        >
-                          {FIT_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    {/* Mobile Banner */}
+                    {(() => {
+                      const mobileKey = slide.mobileImageKey || `${slide.imageKey}-mobile`;
+                      const customMobileImg = customImages[mobileKey];
+                      const mobilePreviewSrc = customMobileImg || imgSrc;
+                      return (
+                        <div className="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-200 space-y-2">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wide">
+                              📱 Bản Điện thoại (Mobile)
+                            </span>
+                            {customMobileImg && onDeleteSlideImage && (
+                              <button
+                                type="button"
+                                onClick={() => void onDeleteSlideImage(mobileKey)}
+                                className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                              >
+                                Dùng lại ảnh PC
+                              </button>
+                            )}
+                          </div>
+                          <div
+                            className={`${
+                              MOBILE_PREVIEW_ASPECT_CLASS[draftMobileAspect] || 'aspect-[16/9]'
+                            } rounded-md overflow-hidden bg-slate-900 border border-slate-200 relative flex items-center justify-center`}
+                          >
+                            {mobilePreviewSrc ? (
+                              <img
+                                src={mobilePreviewSrc}
+                                alt={slide.title || `Slide ${idx + 1} Mobile`}
+                                className={`w-full h-full ${
+                                  (slide.mobileFit || slide.fit) === 'cover'
+                                    ? 'object-cover'
+                                    : 'object-contain'
+                                }`}
+                              />
+                            ) : (
+                              <span className="text-[11px] text-slate-400">Chưa có ảnh Mobile</span>
+                            )}
+                            {!customMobileImg && (
+                              <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-semibold">
+                                Đang dùng tạm ảnh PC
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => triggerUpload(mobileKey)}
+                            disabled={uploadingKey === mobileKey}
+                            className="w-full py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold inline-flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <Upload className="w-3 h-3" />
+                            <span>
+                              {uploadingKey === mobileKey
+                                ? 'Đang tải...'
+                                : 'Tải ảnh riêng cho Mobile'}
+                            </span>
+                          </button>
+                          <div className="text-[10.5px] text-slate-600">
+                            📐 Size: <strong>{MOBILE_PIXEL_GUIDE[draftMobileAspect]}</strong>
+                          </div>
+                          <select
+                            value={slide.mobileFit || slide.fit || 'smart'}
+                            onChange={(e) => {
+                              const val = e.target.value as HeroSlideFit;
+                              setDraftSlides((prev) =>
+                                prev.map((item, i) =>
+                                  i === idx ? { ...item, mobileFit: val } : item
+                                )
+                              );
+                            }}
+                            className="w-full px-2 py-1 rounded-md border border-slate-300 text-[11px] bg-white"
+                          >
+                            {FIT_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })()}
+                  </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Khi khách bấm vào ảnh này:
-                        </label>
-                        <select
-                          value={slide.actionType}
-                          onChange={(e) => {
-                            const val = e.target.value as HeroSlideAction;
-                            setDraftSlides((prev) =>
-                              prev.map((item, i) =>
-                                i === idx ? { ...item, actionType: val } : item
-                              )
-                            );
-                          }}
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
-                        >
-                          {ACTION_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  {/* Common Slide Metadata (Action + Title) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        Khi khách bấm vào ảnh này:
+                      </label>
+                      <select
+                        value={slide.actionType}
+                        onChange={(e) => {
+                          const val = e.target.value as HeroSlideAction;
+                          setDraftSlides((prev) =>
+                            prev.map((item, i) =>
+                              i === idx ? { ...item, actionType: val } : item
+                            )
+                          );
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
+                      >
+                        {ACTION_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Mô tả ảnh (SEO / Alt):
-                        </label>
-                        <input
-                          type="text"
-                          value={slide.title || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setDraftSlides((prev) =>
-                              prev.map((item, i) =>
-                                i === idx ? { ...item, title: val } : item
-                              )
-                            );
-                          }}
-                          placeholder="VD: Khuyến mãi gia dụng tại kho KDT-89"
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                        Mô tả ảnh (SEO / Alt):
+                      </label>
+                      <input
+                        type="text"
+                        value={slide.title || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDraftSlides((prev) =>
+                            prev.map((item, i) =>
+                              i === idx ? { ...item, title: val } : item
+                            )
+                          );
+                        }}
+                        placeholder="VD: Khuyến mãi gia dụng tại kho KDT-89"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
+                      />
                     </div>
                   </div>
                 </div>

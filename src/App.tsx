@@ -448,15 +448,12 @@ export default function App() {
     const unsubscribeImages = subscribeToCustomImages(
       (images) => {
         setIsCloudSynced(true);
-        setCustomImages((prev) => {
-          const merged = { ...prev, ...images };
-          try {
-            localStorage.setItem('kdt89_custom_images', JSON.stringify(merged));
-          } catch (e) {
-            console.error(e);
-          }
-          return merged;
-        });
+        setCustomImages(images);
+        try {
+          localStorage.setItem('kdt89_custom_images', JSON.stringify(images));
+        } catch (e) {
+          console.error(e);
+        }
       },
       (err) => {
         console.warn('Real-time custom images sync status:', err);

@@ -753,7 +753,9 @@ export default function AdminApp() {
         layoutMode={decorSettings?.heroLayoutMode || 'slider'}
         showMemberSlide={decorSettings?.showMemberHeroSlide !== false}
         aspectRatio={decorSettings?.heroAspectRatio || '5/1'}
+        mobileAspectRatio={decorSettings?.mobileHeroAspectRatio || '16/9'}
         memberVisualFit={decorSettings?.memberVisualFit || 'smart'}
+        mobileMemberVisualFit={decorSettings?.mobileMemberVisualFit || 'smart'}
         slides={
           decorSettings?.heroSlides && decorSettings.heroSlides.length > 0
             ? decorSettings.heroSlides
@@ -763,12 +765,17 @@ export default function AdminApp() {
         onUploadSlideImage={async (imageKey, dataUrl) => {
           await handleSaveCustomImage(imageKey, dataUrl);
         }}
+        onDeleteSlideImage={async (imageKey) => {
+          await deleteCustomImageFromFirestore(imageKey);
+        }}
         onSaveConfig={async (
           nextMode,
           nextSlides,
           nextShowMemberSlide,
           nextAspectRatio,
-          nextMemberVisualFit
+          nextMemberVisualFit,
+          nextMobileAspectRatio,
+          nextMobileMemberVisualFit
         ) => {
           await persistSettings({
             decorSettings: {
@@ -777,7 +784,9 @@ export default function AdminApp() {
               heroSlides: nextSlides,
               showMemberHeroSlide: nextShowMemberSlide !== false,
               heroAspectRatio: nextAspectRatio || '5/1',
+              mobileHeroAspectRatio: nextMobileAspectRatio || '16/9',
               memberVisualFit: nextMemberVisualFit || 'smart',
+              mobileMemberVisualFit: nextMobileMemberVisualFit || 'smart',
             },
           });
         }}

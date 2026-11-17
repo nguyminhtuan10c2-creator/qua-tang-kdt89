@@ -20,16 +20,23 @@ import {
   HeroSlideAction,
   HeroSlideFit,
   HeroAspectRatio,
+  HeroMobileAspectRatio,
   DEFAULT_MEMBER_SLIDE_IMAGE,
 } from '../data/heroSlides';
 import type { SiteDecorSettings } from '../lib/firebase';
 import type { CustomerAccount } from '../data/vouchers';
 
-const ASPECT_CLASS_MAP: Record<HeroAspectRatio, string> = {
-  '5/1': 'aspect-[5/1]',
-  '16/7': 'aspect-[16/7]',
-  '2/1': 'aspect-[2/1]',
+const DESKTOP_ASPECT_CLASS_MAP: Record<HeroAspectRatio, string> = {
+  '5/1': 'md:aspect-[5/1]',
+  '16/7': 'md:aspect-[16/7]',
+  '2/1': 'md:aspect-[2/1]',
+  '16/9': 'md:aspect-[16/9]',
+};
+
+const MOBILE_ASPECT_CLASS_MAP: Record<HeroMobileAspectRatio, string> = {
   '16/9': 'aspect-[16/9]',
+  '2/1': 'aspect-[2/1]',
+  '4/3': 'aspect-[4/3]',
 };
 
 const ASPECT_NUMERIC_MAP: Record<HeroAspectRatio, number> = {
@@ -37,6 +44,12 @@ const ASPECT_NUMERIC_MAP: Record<HeroAspectRatio, number> = {
   '16/7': 16 / 7,
   '2/1': 2,
   '16/9': 16 / 9,
+};
+
+const MOBILE_ASPECT_NUMERIC_MAP: Record<HeroMobileAspectRatio, number> = {
+  '16/9': 16 / 9,
+  '2/1': 2,
+  '4/3': 4 / 3,
 };
 
 interface HeroSlideImageProps {
@@ -161,8 +174,12 @@ export const Hero: React.FC<HeroProps> = ({
 }) => {
   const layoutMode = decorSettings?.heroLayoutMode || 'slider';
   const aspectKey: HeroAspectRatio = decorSettings?.heroAspectRatio || '5/1';
-  const slideAspectClass = ASPECT_CLASS_MAP[aspectKey] || 'aspect-[5/1]';
+  const mobileAspectKey: HeroMobileAspectRatio = decorSettings?.mobileHeroAspectRatio || '16/9';
+  const desktopAspectClass = DESKTOP_ASPECT_CLASS_MAP[aspectKey] || 'md:aspect-[5/1]';
+  const mobileAspectClass = MOBILE_ASPECT_CLASS_MAP[mobileAspectKey] || 'aspect-[16/9]';
+  const slideAspectClass = `${mobileAspectClass} ${desktopAspectClass}`;
   const slideAspectNumber = ASPECT_NUMERIC_MAP[aspectKey] || 5;
+  const mobileAspectNumber = MOBILE_ASPECT_NUMERIC_MAP[mobileAspectKey] || 16 / 9;
 
   const showMemberSlide = decorSettings?.showMemberHeroSlide !== false;
   const imageSlides = resolveHeroSlides(decorSettings?.heroSlides, customImages);
@@ -308,10 +325,13 @@ export const Hero: React.FC<HeroProps> = ({
 
   const memberVisualSrc =
     customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
+  const mobileMemberVisualSrc =
+    customImages['site-member-slide-visual-mobile'] || memberVisualSrc;
   const memberVisualFit: HeroSlideFit = decorSettings?.memberVisualFit || 'smart';
+  const mobileMemberVisualFit: HeroSlideFit = decorSettings?.mobileMemberVisualFit || 'smart';
 
   /* ============================================================================
-     MODE 1 (DEFAULT): ĐMX-STYLE HERO CAROUSEL (ĐỒNG BỘ TỈ LỆ MOBILE & DESKTOP)
+     MODE 1 (DEFAULT): ĐMX-STYLE HERO CAROUSEL (ẢNH RIÊNG PC & MOBILE)
      ============================================================================ */
   if (layoutMode === 'slider') {
     return (
@@ -321,7 +341,7 @@ export const Hero: React.FC<HeroProps> = ({
         <div className="max-w-[1232px] mx-auto px-2.5 sm:px-4">
           {/* Slider Frame */}
           <div
-            className="relative rounded-2xl overflow-hidden bg-[#F4F7FB] shadow-sm border border-neutral-200/80 group"
+            className="relative rounded-2xl overflow-hidden bg-white shadow-sm border border-neutral-200/80 group"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
             onTouchStart={handleTouchStart}
@@ -329,25 +349,27 @@ export const Hero: React.FC<HeroProps> = ({
           >
             {/* Horizontal Track */}
             <div
-              className="flex transition-transform duration-300 ease-out"
+              className="flex items-stretch transition-transform duration-300 ease-out"
               style={{ transform: `translateX(-${activeSlideIdx * 100}%)` }}
             >
-              {/* SLIDE 1: Single Replaceable Left Promo Visual + Quick Phone Login Card */}
+              {/* SLIDE 1: Dedicated Mobile Visual + Quick Login (Mobile stacked big & clear | PC 3-part 5:1) */}
               {showMemberSlide && (
                 <div
-                  className={`w-full shrink-0 min-h-[84px] md:min-h-0 ${slideAspectClass} bg-[#F4F7FB] px-2 sm:px-3.5 lg:px-4 py-1.5 sm:py-2 lg:py-2.5 flex items-center overflow-hidden`}
+                  className={`w-full shrink-0 ${desktopAspectClass} bg-white px-0 md:px-4 lg:px-5 py-0 md:py-2 flex flex-col md:flex-row md:items-center overflow-hidden`}
                 >
-                  {/* DESKTOP & TABLET (md+): 2-Column Split (Replaceable Image Left | Compact White Login Card Right) */}
-                  <div className="hidden md:grid md:grid-cols-12 gap-3 lg:gap-4 items-stretch w-full h-full">
-                    {/* Left: Single Replaceable Promo Image */}
-                    <div className="md:col-span-7 relative h-full rounded-xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
-                      <HeroSlideImage
+                  {/* DESKTOP & TABLET (md+): Balanced Clean White Showcase + Member Benefits + Quick Login */}
+                  <div className="hidden md:grid md:grid-cols-12 gap-3 lg:gap-4 items-center w-full h-full">
+                    {/* Left: Seamless Replaceable Promo Artwork (no blur bars, fits natural ratio cleanly) */}
+                    <div className="md:col-span-5 lg:col-span-4 relative h-full flex items-center justify-center overflow-hidden rounded-xl bg-white">
+                      <img
                         src={memberVisualSrc}
                         alt="Ưu đãi thành viên KDT-89 & Bộ Voucher chào mừng"
-                        fitMode={memberVisualFit}
-                        targetAspect={slideAspectNumber * (7 / 12)}
-                        backdropTone="light"
-                        eager
+                        className={`max-h-full max-w-full ${
+                          memberVisualFit === 'cover'
+                            ? 'w-full h-full object-cover rounded-xl'
+                            : 'w-auto h-full object-contain'
+                        } select-none`}
+                        referrerPolicy="no-referrer"
                       />
                       {isAdmin && onOpenImageUpdater && (
                         <button
@@ -356,17 +378,39 @@ export const Hero: React.FC<HeroProps> = ({
                             e.stopPropagation();
                             onOpenImageUpdater('site-member-slide-visual');
                           }}
-                          className="absolute bottom-2 left-2 z-20 px-2 py-1 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-sm border border-white/25 cursor-pointer"
+                          className="absolute bottom-1.5 left-1.5 z-20 px-2 py-1 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-sm border border-white/25 cursor-pointer"
                         >
                           <Camera className="w-3 h-3 text-amber-300" />
-                          <span>Đổi ảnh bên này</span>
+                          <span>Đổi ảnh</span>
                         </button>
                       )}
                     </div>
 
-                    {/* Right: Compact White Quick Login / Onboarding Card */}
-                    <div className="md:col-span-5 flex items-center justify-center">
-                      <div className="w-full max-w-[380px] bg-white rounded-xl shadow-sm border border-slate-200/80 px-3.5 py-2.5 lg:px-4 lg:py-3">
+                    {/* Center (lg+): Clean Member Benefits Highlight to fill 1200px width harmoniously */}
+                    <div className="hidden lg:flex lg:col-span-4 flex-col justify-center gap-1.5 px-4 border-l border-r border-slate-100 h-[82%]">
+                      <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-rose-600">
+                        <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                        <span>Đặc quyền Thành viên KDT-89</span>
+                      </div>
+                      <h3 className="text-base font-extrabold text-slate-900 leading-snug">
+                        Mở Giỏ Hàng Riêng · Tặng Ngay Bộ Voucher {voucherTotalLabel}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-900">
+                          ✓ Giữ giá sỉ 24h
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200 text-[11px] font-bold text-sky-900">
+                          ✓ Theo dõi đơn dễ dàng
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-800">
+                          ✓ Trừ mã trực tiếp
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right: Compact Quick Login / Onboarding Card */}
+                    <div className="md:col-span-7 lg:col-span-4 flex items-center justify-center">
+                      <div className="w-full max-w-[390px] bg-[#F8FAFC] rounded-xl shadow-xs border border-slate-200/90 px-3.5 py-2.5 lg:px-4 lg:py-3">
                         {customerAccount ? (
                           <div className="text-center space-y-3">
                             <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-black text-base">
@@ -466,36 +510,51 @@ export const Hero: React.FC<HeroProps> = ({
                     </div>
                   </div>
 
-                  {/* MOBILE & SMALL TABLET (< md): Horizontal 2-column layout matching desktop banner aspect */}
-                  <div className="grid md:hidden grid-cols-12 gap-2 sm:gap-3 items-stretch w-full h-full">
-                    {/* Left: Single Replaceable Image */}
-                    <div className="col-span-5 relative h-full rounded-xl overflow-hidden bg-white border border-slate-200/80 shadow-xs">
+                  {/* MOBILE & SMALL TABLET (< md): Full-width Large Mobile Cover Above + Slim Phone Login Bar Below */}
+                  <div className="flex flex-col md:hidden w-full bg-white">
+                    {/* Top: Full-width Large Mobile Cover Image */}
+                    <div className={`w-full ${mobileAspectClass} relative bg-white overflow-hidden`}>
                       <HeroSlideImage
-                        src={memberVisualSrc}
+                        src={mobileMemberVisualSrc}
                         alt="Ưu đãi thành viên KDT-89"
-                        fitMode={memberVisualFit}
-                        targetAspect={slideAspectNumber * (5 / 12)}
+                        fitMode={mobileMemberVisualFit}
+                        targetAspect={mobileAspectNumber}
                         backdropTone="light"
                         eager
                       />
+                      {isAdmin && onOpenImageUpdater && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenImageUpdater('site-member-slide-visual-mobile');
+                          }}
+                          className="absolute bottom-2 left-2 z-20 px-2.5 py-1 rounded-lg bg-black/65 hover:bg-black/85 backdrop-blur-xs text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-sm border border-white/25 cursor-pointer"
+                        >
+                          <Camera className="w-3 h-3 text-amber-300" />
+                          <span>Đổi ảnh Mobile</span>
+                        </button>
+                      )}
                     </div>
 
-                    {/* Right: White Quick Phone Login Card */}
-                    <div className="col-span-7 bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-slate-200/80 flex flex-col justify-center">
+                    {/* Bottom: Compact Quick Phone Login Strip */}
+                    <div className="w-full px-3 py-2 bg-[#F8FAFC] border-t border-slate-100">
                       {customerAccount ? (
-                        <div className="space-y-1.5">
-                          <div className="text-xs font-extrabold text-slate-900 truncate">
-                            Chào {customerAccount.fullName.split(' ').pop() || customerAccount.fullName}!
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-xs font-extrabold text-slate-900 truncate">
+                              Chào {customerAccount.fullName.split(' ').pop() || customerAccount.fullName}!
+                            </div>
+                            <div className="text-[10px] text-slate-500 truncate">
+                              Ví Voucher {voucherTotalLabel} · Giỏ hàng riêng
+                            </div>
                           </div>
-                          <div className="text-[10px] text-slate-500 truncate">
-                            Ví Voucher {voucherTotalLabel} · Giỏ hàng riêng
-                          </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {onOpenVoucherWallet && (
                               <button
                                 type="button"
                                 onClick={onOpenVoucherWallet}
-                                className="flex-1 h-8 rounded-lg bg-[#4A90E2] text-white text-[10px] font-bold cursor-pointer"
+                                className="h-8 px-2.5 rounded-lg bg-[#4A90E2] text-white text-[11px] font-bold cursor-pointer"
                               >
                                 Ví Voucher
                               </button>
@@ -504,7 +563,7 @@ export const Hero: React.FC<HeroProps> = ({
                               <button
                                 type="button"
                                 onClick={onOpenCartDrawer}
-                                className="flex-1 h-8 rounded-lg bg-rose-600 text-white text-[10px] font-bold cursor-pointer"
+                                className="h-8 px-2.5 rounded-lg bg-rose-600 text-white text-[11px] font-bold cursor-pointer"
                               >
                                 Giỏ hàng
                               </button>
@@ -513,32 +572,9 @@ export const Hero: React.FC<HeroProps> = ({
                         </div>
                       ) : (
                         <div className="space-y-1">
-                          <div className="text-[11px] sm:text-xs font-extrabold text-slate-900 leading-tight truncate">
-                            Đăng nhập · Giỏ hàng &amp; {voucherTotalLabel}
-                          </div>
-                          <form onSubmit={handleQuickPhoneSubmit} className="flex items-center gap-1">
-                            <input
-                              type="tel"
-                              value={quickPhone}
-                              onFocus={() => setIsPhoneFocused(true)}
-                              onBlur={() => setIsPhoneFocused(false)}
-                              onChange={(e) => {
-                                setQuickPhone(e.target.value);
-                                if (quickPhoneError) setQuickPhoneError(null);
-                              }}
-                              placeholder="Nhập SĐT..."
-                              className="flex-1 min-w-0 h-8 sm:h-9 px-2 rounded-lg border border-slate-300 text-[11px] sm:text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500"
-                            />
-                            <button
-                              type="submit"
-                              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg bg-[#4A90E2] hover:bg-[#357ABD] text-white text-[10px] sm:text-xs font-bold uppercase shrink-0 cursor-pointer"
-                            >
-                              Tiếp tục
-                            </button>
-                          </form>
-                          <div className="flex items-center justify-between text-[9.5px] sm:text-[10px]">
-                            <span className="text-rose-600 font-medium truncate">
-                              {quickPhoneError || ''}
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-extrabold text-slate-900 truncate">
+                              Đăng nhập nhận Voucher {voucherTotalLabel} &amp; Giỏ hàng riêng
                             </span>
                             <button
                               type="button"
@@ -549,11 +585,39 @@ export const Hero: React.FC<HeroProps> = ({
                                   onOpenWelcomeGuide();
                                 }
                               }}
-                              className="font-bold text-blue-600 hover:underline shrink-0 cursor-pointer"
+                              className="text-[10.5px] font-bold text-blue-600 hover:underline shrink-0 cursor-pointer"
                             >
                               Tạo TK mới →
                             </button>
                           </div>
+                          <form onSubmit={handleQuickPhoneSubmit} className="flex items-center gap-1.5">
+                            <div className="relative flex-1 min-w-0">
+                              <Smartphone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              <input
+                                type="tel"
+                                value={quickPhone}
+                                onFocus={() => setIsPhoneFocused(true)}
+                                onBlur={() => setIsPhoneFocused(false)}
+                                onChange={(e) => {
+                                  setQuickPhone(e.target.value);
+                                  if (quickPhoneError) setQuickPhoneError(null);
+                                }}
+                                placeholder="Nhập số điện thoại mua hàng..."
+                                className="w-full h-9 pl-8 pr-2.5 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              className="h-9 px-3.5 rounded-lg bg-[#4A90E2] hover:bg-[#357ABD] text-white text-xs font-bold uppercase shrink-0 cursor-pointer"
+                            >
+                              Tiếp tục
+                            </button>
+                          </form>
+                          {quickPhoneError && (
+                            <p className="text-[10px] text-rose-600 font-medium leading-tight">
+                              {quickPhoneError}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -561,7 +625,7 @@ export const Hero: React.FC<HeroProps> = ({
                 </div>
               )}
 
-              {/* PROMO IMAGE SLIDES (EXACT SAME ASPECT RATIO ACROSS ALL SCREEN SIZES + SMART FIT) */}
+              {/* PROMO IMAGE SLIDES (DEDICATED MOBILE VS DESKTOP IMAGE & ASPECT RATIO) */}
               {imageSlides.map((slide, index) => (
                 <button
                   key={slide.id}
@@ -572,13 +636,26 @@ export const Hero: React.FC<HeroProps> = ({
                     slide.actionType === 'none' ? 'cursor-default' : 'cursor-pointer'
                   }`}
                 >
-                  <HeroSlideImage
-                    src={slide.imageSrc}
-                    alt={slide.title || `Banner KDT-89 Slide ${index + 1}`}
-                    fitMode={slide.fit || 'smart'}
-                    targetAspect={slideAspectNumber}
-                    eager={index === 0}
-                  />
+                  {/* Mobile Image (< md) */}
+                  <div className="block md:hidden w-full h-full">
+                    <HeroSlideImage
+                      src={slide.mobileImageSrc}
+                      alt={slide.title || `Banner KDT-89 Mobile Slide ${index + 1}`}
+                      fitMode={slide.mobileFit || slide.fit || 'smart'}
+                      targetAspect={mobileAspectNumber}
+                      eager={index === 0}
+                    />
+                  </div>
+                  {/* Desktop Image (md+) */}
+                  <div className="hidden md:block w-full h-full">
+                    <HeroSlideImage
+                      src={slide.imageSrc}
+                      alt={slide.title || `Banner KDT-89 Slide ${index + 1}`}
+                      fitMode={slide.fit || 'smart'}
+                      targetAspect={slideAspectNumber}
+                      eager={index === 0}
+                    />
+                  </div>
                 </button>
               ))}
             </div>

@@ -49,67 +49,89 @@ export interface CustomizableItem {
 export const SPECIAL_SITE_ITEMS: CustomizableItem[] = [
   {
     id: 'site-hero-slide-1',
-    name: '🖼️ Banner Slide 1 (Đầu trang kiểu ĐMX)',
-    modelCode: 'SLIDE-01',
+    name: '🖼️ Banner Slide 1 (Chỉ bản Máy tính PC)',
+    modelCode: 'SLIDE-01-PC',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
-    stockStatus: 'Ảnh slide đầu tiên hiển thị trên cả Mobile & Máy tính',
+    stockStatus: 'Ảnh slide đầu tiên chỉ hiển thị trên Máy tính PC (độc lập với Mobile)',
     recommendedSize: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
     imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
     isSpecial: true,
   },
   {
     id: 'site-hero-slide-1-mobile',
-    name: '📱 Banner Slide 1 (Bản riêng cho Điện thoại)',
+    name: '📱 Banner Slide 1 (Chỉ bản Điện thoại Mobile)',
     modelCode: 'SLIDE1-MOBILE',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang (Mobile)',
-    stockStatus: 'Hiển thị trên điện thoại thay cho ảnh PC (to rõ dễ đọc hơn)',
+    stockStatus: 'Hiển thị riêng trên điện thoại cho Slide 1 (không bị ảnh PC đè lên)',
     recommendedSize: '800 × 450 px (tỉ lệ 16:9) hoặc 800 × 600 px (tỉ lệ 4:3)',
     imageUrl: '',
     isSpecial: true,
   },
   {
     id: 'site-hero-slide-2',
-    name: '🖼️ Banner Slide 2 (Bản Máy tính PC)',
-    modelCode: 'SLIDE-02',
+    name: '🖼️ Banner Slide 2 (Chỉ bản Máy tính PC)',
+    modelCode: 'SLIDE-02-PC',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
-    stockStatus: 'Ảnh slide thứ 2 trên màn hình PC',
+    stockStatus: 'Ảnh slide thứ 2 chỉ hiển thị trên Máy tính PC',
     recommendedSize: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
     imageUrl: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-2'],
     isSpecial: true,
   },
   {
     id: 'site-hero-slide-2-mobile',
-    name: '📱 Banner Slide 2 (Bản riêng cho Điện thoại)',
+    name: '📱 Banner Slide 2 (Chỉ bản Điện thoại Mobile)',
     modelCode: 'SLIDE2-MOBILE',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang (Mobile)',
-    stockStatus: 'Hiển thị trên điện thoại cho Slide thứ 2',
+    stockStatus: 'Hiển thị riêng trên điện thoại cho Slide 2',
     recommendedSize: '800 × 450 px (tỉ lệ 16:9) hoặc 800 × 600 px (tỉ lệ 4:3)',
     imageUrl: '',
     isSpecial: true,
   },
   {
     id: 'site-hero-slide-3',
-    name: '🖼️ Banner Slide 3 (Tùy chọn thêm)',
-    modelCode: 'SLIDE-03',
+    name: '🖼️ Banner Slide 3 (Chỉ bản Máy tính PC)',
+    modelCode: 'SLIDE-03-PC',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
-    stockStatus: 'Thêm slide thứ 3 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    stockStatus: 'Slide thứ 3 trên Máy tính PC',
     recommendedSize: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
     imageUrl: '',
     isSpecial: true,
   },
   {
+    id: 'site-hero-slide-3-mobile',
+    name: '📱 Banner Slide 3 (Chỉ bản Điện thoại Mobile)',
+    modelCode: 'SLIDE3-MOBILE',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang (Mobile)',
+    stockStatus: 'Slide thứ 3 trên Điện thoại Mobile',
+    recommendedSize: '800 × 450 px (16:9) hoặc 800 × 600 px (4:3)',
+    imageUrl: '',
+    isSpecial: true,
+  },
+  {
     id: 'site-hero-slide-4',
-    name: '🖼️ Banner Slide 4 (Tùy chọn thêm)',
-    modelCode: 'SLIDE-04',
+    name: '🖼️ Banner Slide 4 (Chỉ bản Máy tính PC)',
+    modelCode: 'SLIDE-04-PC',
     category: 'site_branding',
     categoryLabel: 'Slide ảnh đầu trang',
-    stockStatus: 'Thêm slide thứ 4 trong mục Quản lý Slide Ảnh Đầu Trang (/admin)',
+    stockStatus: 'Slide thứ 4 trên Máy tính PC',
     recommendedSize: '1200 × 240 px hoặc 1800 × 360 px (tỉ lệ ngang 5:1 chuẩn ĐMX)',
+    imageUrl: '',
+    isSpecial: true,
+  },
+  {
+    id: 'site-hero-slide-4-mobile',
+    name: '📱 Banner Slide 4 (Chỉ bản Điện thoại Mobile)',
+    modelCode: 'SLIDE4-MOBILE',
+    category: 'site_branding',
+    categoryLabel: 'Slide ảnh đầu trang (Mobile)',
+    stockStatus: 'Slide thứ 4 trên Điện thoại Mobile',
+    recommendedSize: '800 × 450 px (16:9) hoặc 800 × 600 px (4:3)',
     imageUrl: '',
     isSpecial: true,
   },
@@ -329,8 +351,25 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
       }
 
       try {
-        setFeedbackMsg('Đang xử lý & nén ảnh tối ưu...');
-        const compressed = await compressImageFile(file, 900, 0.8);
+        setFeedbackMsg('Đang xử lý ảnh độ nét cao & lưu vào kho...');
+        const itemId = currentProduct.id;
+        let maxWidth = 1000;
+        let quality = 0.91;
+        if (itemId.endsWith('-mobile')) {
+          maxWidth = 1200;
+          quality = 0.93;
+        } else if (
+          itemId.startsWith('site-hero-slide-') ||
+          itemId === 'site-hero-image' ||
+          itemId === 'site-member-slide-visual'
+        ) {
+          maxWidth = 1920;
+          quality = 0.94;
+        } else if (itemId === 'site-logo' || itemId === 'site-welcome-mascot') {
+          maxWidth = 1000;
+          quality = 0.95;
+        }
+        const compressed = await compressImageFile(file, maxWidth, quality);
         setPreviewImage(compressed);
         onSaveImage(currentProduct.id, compressed);
         setFeedbackMsg(`Đã cập nhật ảnh mới sắc nét cho "${currentProduct.name}"!`);
@@ -421,7 +460,7 @@ export const ImageUpdateModal: React.FC<ImageUpdateModalProps> = ({
                   <img
                     src={activeDisplayImage}
                     alt={currentProduct.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-slate-50"
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 p-2 text-center text-xs">

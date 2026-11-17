@@ -15,16 +15,19 @@ export interface HeroSlideConfig {
   imageKey: string;
   mobileImageKey?: string;
   fallbackImage?: string;
+  mobileFallbackImage?: string;
   title?: string;
   actionType: HeroSlideAction;
   fit?: HeroSlideFit;
   mobileFit?: HeroSlideFit;
+  syncMobileWithPc?: boolean;
 }
 
 export interface ResolvedHeroSlide extends HeroSlideConfig {
   imageSrc: string;
   mobileImageSrc: string;
   hasCustomMobileImage: boolean;
+  hasCustomPcImage: boolean;
 }
 
 export const DEFAULT_HERO_SLIDES: HeroSlideConfig[] = [
@@ -33,16 +36,20 @@ export const DEFAULT_HERO_SLIDES: HeroSlideConfig[] = [
     imageKey: 'site-hero-slide-1',
     mobileImageKey: 'site-hero-slide-1-mobile',
     fallbackImage: heroSlideMegaSale,
+    mobileFallbackImage: heroSlideMegaSale,
     title: 'Kho Điện Tử KDT-89 — Giá Sale Tại Kho Chính Hãng',
     actionType: 'products',
+    syncMobileWithPc: false,
   },
   {
     id: 'slide-2',
     imageKey: 'site-hero-slide-2',
     mobileImageKey: 'site-hero-slide-2-mobile',
     fallbackImage: heroSlideVoucherCombo,
+    mobileFallbackImage: heroSlideVoucherCombo,
     title: 'Gia Dụng & Nhà Bếp Chính Hãng — Nhận Ngay Voucher Thành Viên',
     actionType: 'voucher',
+    syncMobileWithPc: false,
   },
 ];
 
@@ -66,30 +73,36 @@ export function resolveHeroSlides(
         idx === 0 && slide.imageKey === 'site-hero-slide-1'
           ? customImages['site-hero-image']
           : undefined;
-      const imageSrc =
-        customImages[slide.imageKey] ||
-        legacyHeroFallback ||
-        slide.fallbackImage ||
-        HERO_SLIDE_FALLBACK_MAP[slide.imageKey] ||
-        '';
+      const customPc = customImages[slide.imageKey];
+      const defaultSlideFallback =
+        slide.fallbackImage || HERO_SLIDE_FALLBACK_MAP[slide.imageKey] || '';
+      const imageSrc = customPc || legacyHeroFallback || defaultSlideFallback;
+
       const resolvedMobileKey = slide.mobileImageKey || `${slide.imageKey}-mobile`;
       const customMobile = customImages[resolvedMobileKey];
+      const mobileDefaultFallback =
+        slide.mobileFallbackImage ||
+        (slide.syncMobileWithPc ? imageSrc : defaultSlideFallback);
+      const mobileImageSrc = customMobile || mobileDefaultFallback || '';
+
       return {
         ...slide,
         mobileImageKey: resolvedMobileKey,
         imageSrc,
-        mobileImageSrc: customMobile || imageSrc,
+        mobileImageSrc,
         hasCustomMobileImage: Boolean(customMobile),
+        hasCustomPcImage: Boolean(customPc),
       };
     })
-    .filter((s) => Boolean(s.imageSrc));
+    .filter((s) => Boolean(s.imageSrc || s.mobileImageSrc));
 
   if (resolved.length === 0) {
     return DEFAULT_HERO_SLIDES.map((s) => ({
       ...s,
       imageSrc: s.fallbackImage || '',
-      mobileImageSrc: s.fallbackImage || '',
+      mobileImageSrc: s.mobileFallbackImage || s.fallbackImage || '',
       hasCustomMobileImage: false,
+      hasCustomPcImage: false,
     }));
   }
 

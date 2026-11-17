@@ -96,7 +96,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     try {
       setIsCompressing(true);
-      const compressed = await compressImageFile(file, 900, 0.82);
+      const compressed = await compressImageFile(file, 1000, 0.91);
       setImageUrl(compressed);
     } catch (err) {
       console.error('Lỗi nén ảnh:', err);

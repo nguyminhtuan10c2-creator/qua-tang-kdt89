@@ -28,6 +28,7 @@ interface HeroSlidesModalProps {
   onClose: () => void;
   layoutMode: 'slider' | 'classic';
   showMemberSlide?: boolean;
+  showMemberSlideMobile?: boolean;
   aspectRatio?: HeroAspectRatio;
   mobileAspectRatio?: HeroMobileAspectRatio;
   memberVisualFit?: HeroSlideFit;
@@ -43,7 +44,8 @@ interface HeroSlidesModalProps {
     nextAspectRatio?: HeroAspectRatio,
     nextMemberVisualFit?: HeroSlideFit,
     nextMobileAspectRatio?: HeroMobileAspectRatio,
-    nextMobileMemberVisualFit?: HeroSlideFit
+    nextMobileMemberVisualFit?: HeroSlideFit,
+    nextShowMemberSlideMobile?: boolean
   ) => Promise<void>;
 }
 
@@ -117,6 +119,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   onClose,
   layoutMode,
   showMemberSlide = true,
+  showMemberSlideMobile,
   aspectRatio = '5/1',
   mobileAspectRatio = '16/9',
   memberVisualFit = 'smart',
@@ -129,6 +132,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
 }) => {
   const [draftMode, setDraftMode] = useState<'slider' | 'classic'>(layoutMode);
   const [draftShowMember, setDraftShowMember] = useState<boolean>(showMemberSlide);
+  const [draftShowMemberMobile, setDraftShowMemberMobile] = useState<boolean>(
+    showMemberSlideMobile ?? showMemberSlide
+  );
   const [draftAspectRatio, setDraftAspectRatio] = useState<HeroAspectRatio>(aspectRatio);
   const [draftMobileAspect, setDraftMobileAspect] = useState<HeroMobileAspectRatio>(mobileAspectRatio);
   const [draftMemberFit, setDraftMemberFit] = useState<HeroSlideFit>(memberVisualFit);
@@ -142,8 +148,10 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      const desktopOn = showMemberSlide !== false;
       setDraftMode(layoutMode || 'slider');
-      setDraftShowMember(showMemberSlide !== false);
+      setDraftShowMember(desktopOn);
+      setDraftShowMemberMobile(showMemberSlideMobile ?? desktopOn);
       setDraftAspectRatio(aspectRatio || '5/1');
       setDraftMobileAspect(mobileAspectRatio || '16/9');
       setDraftMemberFit(memberVisualFit || 'smart');
@@ -159,6 +167,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     isOpen,
     layoutMode,
     showMemberSlide,
+    showMemberSlideMobile,
     aspectRatio,
     mobileAspectRatio,
     memberVisualFit,
@@ -185,11 +194,14 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     }
 
     setUploadingKey(imageKey);
-    setNotice('Đang nén & tải ảnh lên kho...');
+    setNotice('Đang xử lý ảnh độ nét cao & tải lên...');
     try {
-      const compressed = await compressImageFile(file, 1280, 0.85);
+      const isMobileAsset = imageKey.endsWith('-mobile');
+      const targetMaxWidth = isMobileAsset ? 1200 : 1920;
+      const targetQuality = isMobileAsset ? 0.93 : 0.94;
+      const compressed = await compressImageFile(file, targetMaxWidth, targetQuality);
       await onUploadSlideImage(imageKey, compressed);
-      setNotice('Đã cập nhật ảnh slide thành công!');
+      setNotice('Đã cập nhật ảnh slide sắc nét thành công (tách biệt PC & Mobile)!');
     } catch (err: any) {
       setNotice(err?.message || 'Lỗi tải ảnh slide.');
     } finally {
@@ -209,9 +221,11 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
         imageKey: newKey,
         mobileImageKey: `${newKey}-mobile`,
         fallbackImage: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
+        mobileFallbackImage: HERO_SLIDE_FALLBACK_MAP['site-hero-slide-1'],
         title: `Banner Khuyến Mãi ${nextIdx}`,
         actionType: 'products',
         fit: 'smart',
+        syncMobileWithPc: false,
       },
     ]);
   };
@@ -233,6 +247,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
   const handleReset = () => {
     setDraftMode('slider');
     setDraftShowMember(true);
+    setDraftShowMemberMobile(true);
     setDraftAspectRatio('5/1');
     setDraftMobileAspect('16/9');
     setDraftMemberFit('smart');
@@ -250,7 +265,8 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
         draftAspectRatio,
         draftMemberFit,
         draftMobileAspect,
-        draftMobileMemberFit
+        draftMobileMemberFit,
+        draftShowMemberMobile
       );
       onClose();
     } finally {
@@ -258,10 +274,9 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
     }
   };
 
-  const memberVisualPreview =
-    customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
-  const mobileMemberVisualPreview =
-    customImages['site-member-slide-visual-mobile'] || '';
+  const customPcMemberVisual = customImages['site-member-slide-visual'] || '';
+  const memberVisualPreview = customPcMemberVisual || DEFAULT_MEMBER_SLIDE_IMAGE;
+  const mobileMemberVisualPreview = customImages['site-member-slide-visual-mobile'] || '';
 
   return (
     <div
@@ -399,38 +414,62 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
             </div>
           </div>
 
-          {/* Member Onboarding Slide #1 Config: Separate PC & Mobile */}
+          {/* Member Onboarding Slide #1 Config: Separate & Non-Synced PC vs Mobile */}
           <div className="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <div className="text-xs font-bold text-slate-900">
-                  Slide #1: Ảnh thương hiệu &amp; Form Đăng nhập SĐT
+                  Slide #1 đầu trang: Ảnh thương hiệu &amp; Form Đăng nhập SĐT
                 </div>
                 <p className="text-[11px] text-slate-600 mt-0.5">
-                  Anh có thể thiết kế 1 ảnh riêng cho PC (bên trái form) và 1 ảnh riêng cho Mobile (tràn ngang to rõ).
+                  <strong>Tải riêng lẻ không đồng bộ:</strong> Đổi ảnh hoặc Bật/Tắt trên PC sẽ không ảnh hưởng sang Điện thoại (và ngược lại).
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setDraftShowMember(!draftShowMember)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors shrink-0 self-start sm:self-center ${
-                  draftShowMember
-                    ? 'bg-sky-600 text-white hover:bg-sky-700'
-                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                }`}
-              >
-                {draftShowMember ? 'Đang BẬT Slide #1' : 'Đang TẮT Slide #1'}
-              </button>
+              <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDraftShowMember(!draftShowMember)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                    draftShowMember
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  }`}
+                >
+                  {draftShowMember ? '🖥️ PC: Đang BẬT' : '🖥️ PC: Đang TẮT'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraftShowMemberMobile(!draftShowMemberMobile)}
+                  className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold cursor-pointer transition-colors ${
+                    draftShowMemberMobile
+                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                      : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                  }`}
+                >
+                  {draftShowMemberMobile ? '📱 Mobile: Đang BẬT' : '📱 Mobile: Đang TẮT'}
+                </button>
+              </div>
             </div>
 
-            {draftShowMember && (
+            {(draftShowMember || draftShowMemberMobile) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-sky-200/70">
                 {/* PC Member Visual */}
-                <div className="p-2.5 rounded-xl bg-white border border-sky-200 space-y-2">
-                  <div className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wide">
-                    🖥️ Ảnh Slide #1 bản Máy tính (PC)
+                <div className={`p-2.5 rounded-xl bg-white border border-sky-200 space-y-2 ${!draftShowMember ? 'opacity-55' : ''}`}>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-extrabold text-blue-800 uppercase tracking-wide">
+                      🖥️ Ảnh Slide #1 (Chỉ PC)
+                    </span>
+                    {customPcMemberVisual && onDeleteSlideImage && (
+                      <button
+                        type="button"
+                        onClick={() => void onDeleteSlideImage('site-member-slide-visual')}
+                        className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Khôi phục gốc
+                      </button>
+                    )}
                   </div>
-                  <div className="aspect-[16/9] rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center">
+                  <div className="aspect-[16/9] rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center relative">
                     <img
                       src={memberVisualPreview}
                       alt="Slide 1 PC"
@@ -438,6 +477,11 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                         draftMemberFit === 'cover' ? 'object-cover' : 'object-contain'
                       }`}
                     />
+                    {!customPcMemberVisual && (
+                      <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/65 text-white text-[9px] font-semibold">
+                        Ảnh mặc định PC
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -449,7 +493,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                     <span>
                       {uploadingKey === 'site-member-slide-visual'
                         ? 'Đang tải...'
-                        : 'Tải ảnh PC (nửa trái)'}
+                        : 'Tải ảnh riêng cho PC'}
                     </span>
                   </button>
                   <div className="text-[10.5px] text-slate-600">
@@ -468,21 +512,35 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                   </select>
                 </div>
 
-                {/* Mobile Member Visual */}
-                <div className="p-2.5 rounded-xl bg-white border border-emerald-200 space-y-2">
+                {/* Mobile Member Visual (100% Independent — NEVER auto-inherits PC image) */}
+                <div className={`p-2.5 rounded-xl bg-white border border-emerald-200 space-y-2 ${!draftShowMemberMobile ? 'opacity-55' : ''}`}>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wide">
-                      📱 Ảnh Slide #1 bản Điện thoại
+                      📱 Ảnh Slide #1 (Chỉ Mobile)
                     </span>
-                    {mobileMemberVisualPreview && onDeleteSlideImage && (
-                      <button
-                        type="button"
-                        onClick={() => void onDeleteSlideImage('site-member-slide-visual-mobile')}
-                        className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
-                      >
-                        Dùng lại ảnh PC
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {customPcMemberVisual && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void onUploadSlideImage('site-member-slide-visual-mobile', customPcMemberVisual)
+                          }
+                          className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                          title="Chép ảnh hiện tại của PC sang bản Mobile"
+                        >
+                          Chép từ PC
+                        </button>
+                      )}
+                      {mobileMemberVisualPreview && onDeleteSlideImage && (
+                        <button
+                          type="button"
+                          onClick={() => void onDeleteSlideImage('site-member-slide-visual-mobile')}
+                          className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Khôi phục gốc
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div
                     className={`${
@@ -490,7 +548,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                     } rounded-lg overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center relative`}
                   >
                     <img
-                      src={mobileMemberVisualPreview || memberVisualPreview}
+                      src={mobileMemberVisualPreview || DEFAULT_MEMBER_SLIDE_IMAGE}
                       alt="Slide 1 Mobile"
                       className={`w-full h-full ${
                         draftMobileMemberFit === 'cover' ? 'object-cover' : 'object-contain'
@@ -498,7 +556,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                     />
                     {!mobileMemberVisualPreview && (
                       <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/65 text-white text-[9px] font-semibold">
-                        Đang dùng ảnh PC
+                        Ảnh mặc định Mobile (độc lập PC)
                       </span>
                     )}
                   </div>
@@ -644,26 +702,45 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                       </select>
                     </div>
 
-                    {/* Mobile Banner */}
+                    {/* Mobile Banner (Independent from PC custom image) */}
                     {(() => {
                       const mobileKey = slide.mobileImageKey || `${slide.imageKey}-mobile`;
                       const customMobileImg = customImages[mobileKey];
-                      const mobilePreviewSrc = customMobileImg || imgSrc;
+                      const customPcImg = customImages[slide.imageKey];
+                      const mobileDefaultImg =
+                        slide.mobileFallbackImage ||
+                        (slide.syncMobileWithPc ? imgSrc : '') ||
+                        slide.fallbackImage ||
+                        HERO_SLIDE_FALLBACK_MAP[slide.imageKey] ||
+                        '';
+                      const mobilePreviewSrc = customMobileImg || mobileDefaultImg;
                       return (
                         <div className="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-200 space-y-2">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wide">
-                              📱 Bản Điện thoại (Mobile)
+                              📱 Bản Điện thoại (Chỉ Mobile)
                             </span>
-                            {customMobileImg && onDeleteSlideImage && (
-                              <button
-                                type="button"
-                                onClick={() => void onDeleteSlideImage(mobileKey)}
-                                className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
-                              >
-                                Dùng lại ảnh PC
-                              </button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {customPcImg && (
+                                <button
+                                  type="button"
+                                  onClick={() => void onUploadSlideImage(mobileKey, customPcImg)}
+                                  className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                                  title="Chép ảnh PC hiện tại sang bản Mobile"
+                                >
+                                  Chép từ PC
+                                </button>
+                              )}
+                              {customMobileImg && onDeleteSlideImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => void onDeleteSlideImage(mobileKey)}
+                                  className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                                >
+                                  Khôi phục gốc
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div
                             className={`${
@@ -685,7 +762,7 @@ export const HeroSlidesModal: React.FC<HeroSlidesModalProps> = ({
                             )}
                             {!customMobileImg && (
                               <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/70 text-white text-[9px] font-semibold">
-                                Đang dùng tạm ảnh PC
+                                Ảnh mặc định (độc lập PC)
                               </span>
                             )}
                           </div>

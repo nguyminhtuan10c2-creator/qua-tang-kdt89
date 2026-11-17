@@ -752,6 +752,10 @@ export default function AdminApp() {
         onClose={() => setIsHeroSlidesOpen(false)}
         layoutMode={decorSettings?.heroLayoutMode || 'slider'}
         showMemberSlide={decorSettings?.showMemberHeroSlide !== false}
+        showMemberSlideMobile={
+          decorSettings?.showMemberHeroSlideMobile ??
+          decorSettings?.showMemberHeroSlide !== false
+        }
         aspectRatio={decorSettings?.heroAspectRatio || '5/1'}
         mobileAspectRatio={decorSettings?.mobileHeroAspectRatio || '16/9'}
         memberVisualFit={decorSettings?.memberVisualFit || 'smart'}
@@ -775,7 +779,8 @@ export default function AdminApp() {
           nextAspectRatio,
           nextMemberVisualFit,
           nextMobileAspectRatio,
-          nextMobileMemberVisualFit
+          nextMobileMemberVisualFit,
+          nextShowMemberSlideMobile
         ) => {
           await persistSettings({
             decorSettings: {
@@ -783,6 +788,8 @@ export default function AdminApp() {
               heroLayoutMode: nextMode,
               heroSlides: nextSlides,
               showMemberHeroSlide: nextShowMemberSlide !== false,
+              showMemberHeroSlideMobile:
+                nextShowMemberSlideMobile ?? (nextShowMemberSlide !== false),
               heroAspectRatio: nextAspectRatio || '5/1',
               mobileHeroAspectRatio: nextMobileAspectRatio || '16/9',
               memberVisualFit: nextMemberVisualFit || 'smart',

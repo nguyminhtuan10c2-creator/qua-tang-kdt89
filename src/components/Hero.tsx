@@ -181,8 +181,28 @@ export const Hero: React.FC<HeroProps> = ({
   const slideAspectNumber = ASPECT_NUMERIC_MAP[aspectKey] || 5;
   const mobileAspectNumber = MOBILE_ASPECT_NUMERIC_MAP[mobileAspectKey] || 16 / 9;
 
-  const showMemberSlide = decorSettings?.showMemberHeroSlide !== false;
-  const imageSlides = resolveHeroSlides(decorSettings?.heroSlides, customImages);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handleChange = () => setIsMobileViewport(mq.matches);
+    handleChange();
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
+  const showMemberSlideDesktop = decorSettings?.showMemberHeroSlide !== false;
+  const showMemberSlideMobile =
+    decorSettings?.showMemberHeroSlideMobile ?? showMemberSlideDesktop;
+  const showMemberSlide = isMobileViewport ? showMemberSlideMobile : showMemberSlideDesktop;
+
+  const allResolvedSlides = resolveHeroSlides(decorSettings?.heroSlides, customImages);
+  const imageSlides = allResolvedSlides.filter((s) =>
+    isMobileViewport ? Boolean(s.mobileImageSrc) : Boolean(s.imageSrc)
+  );
   const totalSlidesCount = (showMemberSlide ? 1 : 0) + imageSlides.length;
 
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
@@ -325,8 +345,9 @@ export const Hero: React.FC<HeroProps> = ({
 
   const memberVisualSrc =
     customImages['site-member-slide-visual'] || DEFAULT_MEMBER_SLIDE_IMAGE;
+  // Hoàn toàn độc lập với PC: không tự lấy ảnh customImages['site-member-slide-visual'] của PC
   const mobileMemberVisualSrc =
-    customImages['site-member-slide-visual-mobile'] || memberVisualSrc;
+    customImages['site-member-slide-visual-mobile'] || DEFAULT_MEMBER_SLIDE_IMAGE;
   const memberVisualFit: HeroSlideFit = decorSettings?.memberVisualFit || 'smart';
   const mobileMemberVisualFit: HeroSlideFit = decorSettings?.mobileMemberVisualFit || 'smart';
 

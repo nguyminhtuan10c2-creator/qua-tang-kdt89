@@ -181,7 +181,8 @@ export interface SiteDecorSettings {
   mobileHeroAspectRatio?: HeroMobileAspectRatio; // Tỉ lệ khung slide riêng trên Điện thoại ('16/9' | '2/1' | '4/3')
   memberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh bên trái Slide #1 trên Máy tính
   mobileMemberVisualFit?: HeroSlideFit; // Cách hiển thị ảnh Slide #1 trên Điện thoại
-  showMemberHeroSlide?: boolean; // Hiện Slide #1 Ảnh minh họa & Đăng nhập SĐT ở đầu tiên
+  showMemberHeroSlide?: boolean; // Hiện Slide #1 Ảnh minh họa & Đăng nhập SĐT trên Máy tính
+  showMemberHeroSlideMobile?: boolean; // Hiện Slide #1 trên Điện thoại (mặc định theo PC nếu chưa chỉnh)
   heroSlides?: HeroSlideConfig[]; // Danh sách Slide ảnh banner đầu trang
 }
 
@@ -324,44 +325,90 @@ export async function deleteCustomImageFromFirestore(productId: string): Promise
 }
 
 /**
- * Client-side high efficiency image compressor using HTML5 Canvas.
- * Compresses any 3MB-10MB mobile camera photo to ~40KB - 80KB crisp Web/JPEG format.
+ * Client-side smart high-clarity image compressor using HTML5 Canvas.
+ * - Preserves original pixel-for-pixel data URL if already within maxWidth and <= 520KB (zero quality loss!).
+ * - Otherwise scales smoothly and encodes as crisp WebP (or high-quality JPEG fallback) within Firestore's 1MB doc limit.
  */
-export function compressImageFile(file: File, maxWidth = 900, quality = 0.8): Promise<string> {
+export function compressImageFile(file: File, maxWidth = 1000, quality = 0.92): Promise<string> {
+  const MAX_DATA_URL_LENGTH = 860_000; // ~645KB binary, safely under Firestore 1MB doc limit
+  const PASSTHROUGH_MAX_BYTES = 520_000; // ~508KB raw file (~690KB base64)
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = () => {
+      const originalDataUrl = reader.result as string;
       const img = new Image();
       img.onerror = reject;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(reader.result as string);
+        // 1. Keep crisp original untouched when already sized nicely for Firestore
+        if (
+          img.width <= maxWidth &&
+          file.size <= PASSTHROUGH_MAX_BYTES &&
+          originalDataUrl.length <= MAX_DATA_URL_LENGTH
+        ) {
+          resolve(originalDataUrl);
           return;
         }
 
-        // Smooth scaling
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
+        let targetWidth = img.width;
+        let targetHeight = img.height;
 
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
+        if (targetWidth > maxWidth) {
+          targetHeight = Math.round((targetHeight * maxWidth) / targetWidth);
+          targetWidth = maxWidth;
+        }
+
+        const renderWithParams = (w: number, h: number, mime: string, q: number): string => {
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return originalDataUrl;
+
+          if (mime === 'image/jpeg') {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, w, h);
+          }
+
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, w, h);
+          return canvas.toDataURL(mime, q);
+        };
+
+        // Prefer WebP for crisp banner text + alpha transparency support; fallback to JPEG
+        const probe = renderWithParams(Math.min(targetWidth, 16), Math.min(targetHeight, 16), 'image/webp', 0.9);
+        const preferredMime = probe.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+
+        // Try requested crisp quality first, then gently step down only if still too large for Firestore
+        const qualitySteps = Array.from(
+          new Set([
+            Math.max(quality, 0.92),
+            quality,
+            0.88,
+            0.82,
+            0.75,
+          ])
+        ).sort((a, b) => b - a);
+
+        let bestOutput = '';
+        for (const q of qualitySteps) {
+          const candidate = renderWithParams(targetWidth, targetHeight, preferredMime, q);
+          bestOutput = candidate;
+          if (candidate.length <= MAX_DATA_URL_LENGTH) {
+            resolve(candidate);
+            return;
+          }
+        }
+
+        // If still over cap on huge high-res images, reduce dimensions 20% and encode at 0.85
+        const scaledW = Math.round(targetWidth * 0.8);
+        const scaledH = Math.round(targetHeight * 0.8);
+        const smallerOutput = renderWithParams(scaledW, scaledH, preferredMime, 0.85);
+        resolve(smallerOutput.length < bestOutput.length ? smallerOutput : bestOutput);
       };
-      img.src = reader.result as string;
+      img.src = originalDataUrl;
     };
     reader.readAsDataURL(file);
   });

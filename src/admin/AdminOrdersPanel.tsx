@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Ticket,
   Calendar,
+  FileSpreadsheet,
 } from 'lucide-react';
 import {
   StoredOrder,
@@ -30,6 +31,10 @@ interface AdminOrdersPanelProps {
   customers?: CustomerAccount[];
   customersLoading?: boolean;
   customersError?: string | null;
+  googleSheetUrl?: string;
+  isSheetsConnected?: boolean;
+  autoSyncEnabled?: boolean;
+  onOpenGoogleSheetsModal?: () => void;
 }
 
 const ORDER_STATUSES: Array<'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy'> = [
@@ -47,6 +52,10 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   customers = [],
   customersLoading = false,
   customersError = null,
+  googleSheetUrl,
+  isSheetsConnected = false,
+  autoSyncEnabled = false,
+  onOpenGoogleSheetsModal,
 }) => {
   const [subTab, setSubTab] = useState<'orders' | 'customers'>('orders');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -234,15 +243,43 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleExportCustomersCSV}
-              disabled={filteredCustomers.length === 0}
-              className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Xuất CSV Khách hàng ({filteredCustomers.length})</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {onOpenGoogleSheetsModal && (
+                <button
+                  type="button"
+                  onClick={onOpenGoogleSheetsModal}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Google Sheets Kho</span>
+                  {(isSheetsConnected || autoSyncEnabled) && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-300" />
+                  )}
+                </button>
+              )}
+
+              {googleSheetUrl && (
+                <a
+                  href={googleSheetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold inline-flex items-center gap-1 whitespace-nowrap"
+                >
+                  <span>Mở Sheet</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={handleExportCustomersCSV}
+                disabled={filteredCustomers.length === 0}
+                className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Xuất CSV ({filteredCustomers.length})</span>
+              </button>
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl p-4">
@@ -357,15 +394,43 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleExportOrdersCSV}
-              disabled={filteredOrders.length === 0}
-              className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Xuất CSV đơn hàng ({filteredOrders.length})</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {onOpenGoogleSheetsModal && (
+                <button
+                  type="button"
+                  onClick={onOpenGoogleSheetsModal}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Google Sheets Kho</span>
+                  {(isSheetsConnected || autoSyncEnabled) && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-300" />
+                  )}
+                </button>
+              )}
+
+              {googleSheetUrl && (
+                <a
+                  href={googleSheetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold inline-flex items-center gap-1 whitespace-nowrap"
+                >
+                  <span>Mở Sheet</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={handleExportOrdersCSV}
+                disabled={filteredOrders.length === 0}
+                className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Xuất CSV ({filteredOrders.length})</span>
+              </button>
+            </div>
           </div>
 
       {/* Filters */}

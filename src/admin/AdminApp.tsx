@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -46,6 +46,12 @@ import { AdminSiteSettingsPanel } from './AdminSiteSettingsPanel';
 import { FlashSaleShowcaseModal } from './FlashSaleShowcaseModal';
 import { VoucherEditorModal } from './VoucherEditorModal';
 import { HeroSlidesModal } from './HeroSlidesModal';
+import { GoogleSheetsSyncModal } from './GoogleSheetsSyncModal';
+import {
+  initSheetsAuthListener,
+  getSheetsAccessToken,
+  syncOrdersAndCustomersToSheet,
+} from '../lib/googleSheets';
 import { resolveVouchers } from '../data/vouchers';
 import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
 
@@ -95,6 +101,10 @@ export default function AdminApp() {
   const [isFlashSaleShowcaseOpen, setIsFlashSaleShowcaseOpen] = useState(false);
   const [isVoucherEditorOpen, setIsVoucherEditorOpen] = useState(false);
   const [isHeroSlidesOpen, setIsHeroSlidesOpen] = useState(false);
+  const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
+  const [sheetsConnected, setSheetsConnected] = useState(false);
+  const [sheetsEmail, setSheetsEmail] = useState<string | null>(null);
+  const lastAutoSyncedSigRef = useRef<string>('');
 
   useEffect(() => {
     document.title = 'Quản trị Kho Điện Tử KDT-89';
@@ -114,7 +124,14 @@ export default function AdminApp() {
     const unsub = auth.onAuthStateChanged((user) => {
       void syncAuthState(user);
     });
-    return () => unsub();
+    const unsubSheets = initSheetsAuthListener(auth, (connected, email) => {
+      setSheetsConnected(connected);
+      setSheetsEmail(email);
+    });
+    return () => {
+      unsub();
+      unsubSheets();
+    };
   }, []);
 
   // 2. Only attach Firestore subscriptions once Admin is verified via Firebase Auth
@@ -180,6 +197,56 @@ export default function AdminApp() {
   const customSeo = rawSettings.customSeo || DEFAULT_SITE_SEO;
   const hiddenSections = rawSettings.hiddenSections || [];
   const decorSettings = rawSettings.decorSettings || DEFAULT_DECOR_SETTINGS;
+
+  // Live auto-sync to Google Sheets while /admin stays open (when explicitly enabled & connected)
+  useEffect(() => {
+    const sheetId = decorSettings?.googleSheetId;
+    const autoEnabled = Boolean(decorSettings?.googleSheetAutoSyncOnAdmin);
+    const token = getSheetsAccessToken();
+    if (!isAuthorizedAdmin || ordersLoading || customersLoading || !autoEnabled || !sheetId || !token) {
+      return;
+    }
+
+    const sig = [
+      sheetId,
+      orders
+        .map((o) => `${o.id}:${o.status || ''}:${o.address || ''}:${o.note || ''}`)
+        .join('|'),
+      customers
+        .map((c) => `${c.phoneNumber}:${c.address || ''}:${(c.vouchersClaimed || []).join(',')}`)
+        .join('|'),
+    ].join('::');
+
+    if (sig === lastAutoSyncedSigRef.current) return;
+
+    const timer = setTimeout(() => {
+      const freshToken = getSheetsAccessToken();
+      if (!freshToken) return;
+      syncOrdersAndCustomersToSheet({
+        accessToken: freshToken,
+        spreadsheetId: sheetId,
+        orders,
+        customers,
+      })
+        .then(() => {
+          lastAutoSyncedSigRef.current = sig;
+        })
+        .catch((err) => {
+          console.warn('Auto-sync Google Sheet warning:', err);
+        });
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [
+    isAuthorizedAdmin,
+    ordersLoading,
+    customersLoading,
+    orders,
+    customers,
+    decorSettings?.googleSheetAutoSyncOnAdmin,
+    decorSettings?.googleSheetId,
+    sheetsConnected,
+  ]);
 
   const allCategories = useMemo(() => {
     const customOnly = addedCategories.filter(
@@ -576,6 +643,10 @@ export default function AdminApp() {
               customers={customers}
               customersLoading={customersLoading}
               customersError={customersError}
+              googleSheetUrl={decorSettings?.googleSheetUrl}
+              isSheetsConnected={sheetsConnected}
+              autoSyncEnabled={Boolean(decorSettings?.googleSheetAutoSyncOnAdmin)}
+              onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
             />
           )}
 
@@ -591,6 +662,7 @@ export default function AdminApp() {
               onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
               onOpenVoucherEditor={() => setIsVoucherEditorOpen(true)}
               onOpenHeroSlidesModal={() => setIsHeroSlidesOpen(true)}
+              onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
               onToggleWelcomePopup={() => {
                 const currentlyEnabled =
                   decorSettings?.showWelcomePopup !== false &&
@@ -794,6 +866,32 @@ export default function AdminApp() {
               mobileHeroAspectRatio: nextMobileAspectRatio || '16/9',
               memberVisualFit: nextMemberVisualFit || 'smart',
               mobileMemberVisualFit: nextMobileMemberVisualFit || 'smart',
+            },
+          });
+        }}
+      />
+
+      <GoogleSheetsSyncModal
+        isOpen={isSheetsModalOpen}
+        onClose={() => setIsSheetsModalOpen(false)}
+        orders={orders}
+        customers={customers}
+        googleSheetId={decorSettings?.googleSheetId}
+        googleSheetTitle={decorSettings?.googleSheetTitle}
+        googleSheetUrl={decorSettings?.googleSheetUrl}
+        googleSheetWebhookUrl={decorSettings?.googleSheetWebhookUrl}
+        googleSheetAutoSyncOnAdmin={Boolean(decorSettings?.googleSheetAutoSyncOnAdmin)}
+        isSheetsConnected={sheetsConnected}
+        sheetsEmail={sheetsEmail}
+        onSheetsAuthChanged={(connected, email) => {
+          setSheetsConnected(connected);
+          setSheetsEmail(email);
+        }}
+        onSaveSheetConfig={async (patch) => {
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              ...patch,
             },
           });
         }}

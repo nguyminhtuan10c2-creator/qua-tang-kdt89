@@ -352,7 +352,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             </div>
           ) : product.stockStatus ? (
-            <div className="mt-1.5 text-[11px] text-emerald-700 font-medium truncate">
+            <div className="mt-1.5 text-[11px] text-emerald-700 font-medium line-clamp-2 leading-snug">
               ✓ {product.stockStatus}
             </div>
           ) : null}
@@ -425,7 +425,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span>Đặt giữ giá 24h</span>
           </button>
 
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={(e) => {
@@ -437,7 +437,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 });
                 onSelect(product);
               }}
-              className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all flex items-center justify-center gap-1 text-center cursor-pointer ${
+              className={`py-1.5 px-1 sm:px-2 rounded-lg text-[10px] sm:text-[11px] font-bold border transition-all flex items-center justify-center gap-0.5 sm:gap-1 text-center whitespace-nowrap cursor-pointer ${
                 isSelected
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                   : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-700 border-neutral-200'
@@ -447,12 +447,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {isSelected ? (
                 <>
                   <CheckCircle2 className="w-3 h-3 shrink-0" />
-                  <span className="truncate">Trong giỏ</span>
+                  <span className="sm:hidden">Đã thêm</span>
+                  <span className="hidden sm:inline">Trong giỏ</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-3 h-3 shrink-0" />
-                  <span className="truncate">+ Giỏ hàng</span>
+                  <span className="sm:hidden">+ Giỏ</span>
+                  <span className="hidden sm:inline">+ Giỏ hàng</span>
                 </>
               )}
             </button>
@@ -468,11 +470,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   productName: product.name,
                 })
               }
-              className="py-1.5 px-2 rounded-lg text-[11px] font-semibold text-sky-700 bg-sky-50/80 hover:bg-sky-100 border border-sky-200/70 transition-colors flex items-center justify-center gap-1 text-center"
+              className="py-1.5 px-1 sm:px-2 rounded-lg text-[10px] sm:text-[11px] font-semibold text-sky-700 bg-sky-50/80 hover:bg-sky-100 border border-sky-200/70 transition-colors flex items-center justify-center gap-0.5 sm:gap-1 text-center whitespace-nowrap"
               title={`Hỏi nhanh ${product.name} qua Zalo ${COMPANY_INFO.hotline}`}
             >
               <MessageCircle className="w-3 h-3 shrink-0" />
-              <span className="truncate">Hỏi Zalo</span>
+              <span>Hỏi Zalo</span>
             </a>
           </div>
         </div>

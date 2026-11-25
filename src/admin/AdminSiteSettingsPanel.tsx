@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images } from 'lucide-react';
+import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet } from 'lucide-react';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { resolveVouchers, getTotalVoucherAmount } from '../data/vouchers';
 import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
@@ -17,6 +17,7 @@ interface AdminSiteSettingsPanelProps {
   onToggleWelcomePopup?: () => void;
   onOpenVoucherEditor?: () => void;
   onOpenHeroSlidesModal?: () => void;
+  onOpenGoogleSheetsModal?: () => void;
 }
 
 export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
@@ -32,6 +33,7 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
   onToggleWelcomePopup,
   onOpenVoucherEditor,
   onOpenHeroSlidesModal,
+  onOpenGoogleSheetsModal,
 }) => {
   const isWelcomePopupEnabled =
     decorSettings?.showWelcomePopup !== false && !hiddenSections.includes('welcome_popup');
@@ -326,6 +328,34 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
             </button>
           </div>
         </div>
+
+        {onOpenGoogleSheetsModal && (
+          <div className="bg-white border-2 border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:col-span-2">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 flex-wrap">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+                <span>Google Sheets Kho &amp; Nhận đơn Livestream tự động</span>
+                {decorSettings?.googleSheetWebhookUrl && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                    Webhook 24/7 Đang BẬT
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Tạo hoặc liên kết bảng tính Google Sheet để đồng bộ đơn hàng &amp; danh sách khách hàng sau livestream, hoặc cài Webhook nhận đơn 24/7 ngay khi khách bấm Giữ giá 24h.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenGoogleSheetsModal}
+              className="py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Cài đặt Google Sheets Kho</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

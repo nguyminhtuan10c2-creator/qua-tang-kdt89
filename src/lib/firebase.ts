@@ -29,6 +29,10 @@ import {
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
+const FIRESTORE_DATABASE_ID: string =
+  (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId ||
+  'ai-studio-kdt89qu2010choan-50d6ee59-b9d5-4577-a226-e1557bd24956';
+
 // Initialize Firebase App
 export const app = initializeApp(firebaseConfig);
 
@@ -42,10 +46,10 @@ try {
         tabManager: persistentMultipleTabManager(),
       }),
     },
-    firebaseConfig.firestoreDatabaseId
+    FIRESTORE_DATABASE_ID
   );
 } catch {
-  firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  firestoreInstance = getFirestore(app, FIRESTORE_DATABASE_ID);
 }
 export const db = firestoreInstance;
 export const auth = getAuth(app);
@@ -128,6 +132,7 @@ import type {
   HeroMobileAspectRatio,
   HeroSlideFit,
 } from '../data/heroSlides';
+import { SHEETS_SCOPES, setSheetsAccessToken } from './googleSheets';
 
 export interface CategoryOverride {
   name?: string;
@@ -184,6 +189,11 @@ export interface SiteDecorSettings {
   showMemberHeroSlide?: boolean; // Hiện Slide #1 Ảnh minh họa & Đăng nhập SĐT trên Máy tính
   showMemberHeroSlideMobile?: boolean; // Hiện Slide #1 trên Điện thoại (mặc định theo PC nếu chưa chỉnh)
   heroSlides?: HeroSlideConfig[]; // Danh sách Slide ảnh banner đầu trang
+  googleSheetId?: string; // ID Google Sheet đồng bộ đơn hàng & khách hàng
+  googleSheetTitle?: string; // Tên bảng tính Google Sheet đang liên kết
+  googleSheetUrl?: string; // Link mở nhanh Google Sheet
+  googleSheetWebhookUrl?: string; // Link Google Apps Script Web App nhận đơn tự động 24/7 khi livestream
+  googleSheetAutoSyncOnAdmin?: boolean; // Tự động đẩy đơn mới vào Sheet khi đang mở /admin
 }
 
 export interface SiteSettingsData {
@@ -240,14 +250,36 @@ export function subscribeToSiteSettings(
 }
 
 /**
+ * Recursively strip all keys with `undefined` values so Firestore setDoc/updateDoc never throws
+ * "Unsupported field value: undefined".
+ */
+export function stripUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== undefined)
+      .map((item) => stripUndefinedDeep(item)) as unknown as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        out[k] = stripUndefinedDeep(v);
+      }
+    }
+    return out as T;
+  }
+  return value;
+}
+
+/**
  * Save site settings (hidden products & prices) to Firestore without overflowing 1MB document limit
  */
 export async function saveSiteSettingsToFirestore(data: Partial<SiteSettingsData>): Promise<void> {
   const docRef = doc(db, 'settings', 'site');
-  const payload: SiteSettingsData = {
+  const payload: SiteSettingsData = stripUndefinedDeep({
     ...data,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   try {
     await setDoc(docRef, payload, { merge: true });
@@ -432,10 +464,10 @@ export async function submitConsultationLead(lead: ConsultationLeadPayload): Pro
   const path = `leads/${id}`;
   const docRef = doc(db, 'leads', id);
 
-  const payload = {
+  const payload = stripUndefinedDeep({
     ...lead,
     createdAt: new Date().toISOString(),
-  };
+  });
 
   try {
     await setDoc(docRef, payload);
@@ -481,10 +513,15 @@ export async function loginAdminWithGoogle(): Promise<{
   cancelled?: boolean;
 }> {
   const provider = new GoogleAuthProvider();
+  SHEETS_SCOPES.forEach((scope) => provider.addScope(scope));
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
     const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
     const user = result.user;
+    if (credential?.accessToken) {
+      setSheetsAccessToken(credential.accessToken, user.email);
+    }
     return {
       email: user.email,
       isAdmin: isAuthorizedAdminUser(user),
@@ -610,7 +647,7 @@ export async function verifyAdminAccess(
       uid: user.uid,
       isAdmin: false,
       needsVerification: false,
-      diagnosticError: `Đã đăng nhập ${user.email} (UID: ${user.uid}), nhưng Firestore Rules trên server chưa cho phép đọc "admins/${user.uid}" (lỗi permission-denied). Hãy mở Firestore Rules của database "${firebaseConfig.firestoreDatabaseId}" và thêm rule match /admins/{adminId} rồi bấm Publish.`,
+      diagnosticError: `Đã đăng nhập ${user.email} (UID: ${user.uid}), nhưng Firestore Rules trên server chưa cho phép đọc "admins/${user.uid}" (lỗi permission-denied). Hãy mở Firestore Rules của database "${FIRESTORE_DATABASE_ID}" và thêm rule match /admins/{adminId} rồi bấm Publish.`,
     };
   }
 
@@ -619,7 +656,7 @@ export async function verifyAdminAccess(
     uid: user.uid,
     isAdmin: false,
     needsVerification: false,
-    diagnosticError: `Tài khoản ${user.email} chưa có document "admins/${user.uid}" trong database "${firebaseConfig.firestoreDatabaseId}". Hãy kiểm tra lại đúng Database ID và Document ID = ${user.uid}.`,
+    diagnosticError: `Tài khoản ${user.email} chưa có document "admins/${user.uid}" trong database "${FIRESTORE_DATABASE_ID}". Hãy kiểm tra lại đúng Database ID và Document ID = ${user.uid}.`,
   };
 }
 
@@ -760,13 +797,13 @@ export async function submitOrderToFirestore(order: OrderPayload): Promise<strin
   const path = `orders/${id}`;
   const docRef = doc(db, 'orders', id);
 
-  const payload: StoredOrder = {
+  const payload: StoredOrder = stripUndefinedDeep({
     ...order,
     id,
     paymentMethod: order.paymentMethod || 'Thanh toán khi nhận hàng & kiểm tra (COD)',
     status: order.status || 'Mới',
     createdAt: new Date().toISOString(),
-  };
+  });
 
   try {
     await setDoc(docRef, payload);

@@ -37,6 +37,7 @@ import {
   formatShortVnd,
 } from '../data/vouchers';
 import { trackEvent } from '../lib/tracking';
+import { pushOrderToSheetWebhook } from '../lib/googleSheets';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ interface OrderModalProps {
   initialSelectedVoucher?: VoucherItem | null;
   onOpenCustomerAuth?: () => void;
   vouchers?: VoucherItem[];
+  googleSheetWebhookUrl?: string;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -71,6 +73,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   customerAccount,
   initialSelectedVoucher = null,
   vouchers = DEFAULT_VOUCHERS,
+  googleSheetWebhookUrl,
 }) => {
   const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
   const [customerName, setCustomerName] = useState(() => customerAccount?.fullName || '');
@@ -98,7 +101,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<StoredOrder | null>(null);
 
-  // Prepare items list
+  // Prepare items list (omit optional undefined fields for Firestore compatibility)
   const orderItems: OrderItem[] = React.useMemo(() => {
     if (selectedCombo) {
       return [
@@ -107,7 +110,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           name: `${selectedCombo.name} (${selectedCombo.subtitle})`,
           price: selectedCombo.priceNote,
           quantity: quantities[selectedCombo.id] || 1,
-          imageUrl: selectedCombo.image,
+          ...(selectedCombo.image ? { imageUrl: selectedCombo.image } : {}),
         },
       ];
     }
@@ -119,10 +122,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         {
           id: singleProduct.id,
           name: singleProduct.name,
-          modelCode: singleProduct.modelCode,
+          ...(singleProduct.modelCode ? { modelCode: singleProduct.modelCode } : {}),
           price: price,
           quantity: quantities[singleProduct.id] || 1,
-          imageUrl: img,
+          ...(img ? { imageUrl: img } : {}),
         },
       ];
     }
@@ -134,10 +137,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         return {
           id: p.id,
           name: p.name,
-          modelCode: p.modelCode,
+          ...(p.modelCode ? { modelCode: p.modelCode } : {}),
           price: price,
           quantity: quantities[p.id] || 1,
-          imageUrl: img,
+          ...(img ? { imageUrl: img } : {}),
         };
       });
     }
@@ -317,23 +320,36 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const initialAddress =
-        step2Address.trim() || 'Sale xác nhận tồn, quà tặng & khu vực giao (Giữ giá 24h)';
+      const initialAddress = (
+        step2Address.trim() || 'Sale xác nhận tồn, quà tặng & khu vực giao (Giữ giá 24h)'
+      ).slice(0, 300);
+
+      // Avoid bloated custom base64 data URLs inside the order document (keep under Firestore 1MB limit)
+      const safeOrderItems: OrderItem[] = orderItems.slice(0, 30).map((it) => ({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        quantity: it.quantity,
+        ...(it.modelCode ? { modelCode: it.modelCode } : {}),
+        ...(it.imageUrl && it.imageUrl.length <= 120_000 ? { imageUrl: it.imageUrl } : {}),
+      }));
 
       const payload: OrderPayload = {
-        customerName: trimmedName,
-        phoneNumber: trimmedPhone,
+        customerName: trimmedName.slice(0, 100),
+        phoneNumber: trimmedPhone.slice(0, 25),
         address: initialAddress,
-        items: orderItems,
-        totalAmount,
-        recipient: isRecipientHidden ? undefined : recipient,
-        giftCardRequested: isRecipientHidden ? false : giftCardRequested,
+        items: safeOrderItems,
+        totalAmount: totalAmount.slice(0, 50),
+        ...(!isRecipientHidden && recipient ? { recipient: recipient.slice(0, 100) } : {}),
+        giftCardRequested: isRecipientHidden ? false : Boolean(giftCardRequested),
         paymentMethod: 'Thanh toán khi nhận hàng & kiểm tra (COD)',
-        appliedVoucher: selectedVoucher ? selectedVoucher.code : undefined,
-        voucherDiscount: selectedVoucher
-          ? `-${selectedVoucher.discountAmount.toLocaleString('vi-VN')} đ`
-          : undefined,
-        note: step2Note.trim() || 'Giữ giá 24h – Sale gọi xác nhận trong 5 phút',
+        ...(selectedVoucher
+          ? {
+              appliedVoucher: selectedVoucher.code.slice(0, 50),
+              voucherDiscount: `-${selectedVoucher.discountAmount.toLocaleString('vi-VN')} đ`.slice(0, 50),
+            }
+          : {}),
+        note: (step2Note.trim() || 'Giữ giá 24h – Sale gọi xác nhận trong 5 phút').slice(0, 1000),
         status: 'Mới',
       };
 
@@ -351,12 +367,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
       const storedOrder: StoredOrder = {
         ...payload,
+        items: orderItems,
         id: orderId,
         createdAt: new Date().toISOString(),
       };
 
-      // Silent background email notification for admin (never exposed in customer UI)
+      // Silent background email notification & Google Sheet 24/7 webhook for admin/warehouse
       sendOrderEmailNotification(storedOrder, ADMIN_NOTIFICATION_EMAIL).catch(() => {});
+      pushOrderToSheetWebhook(googleSheetWebhookUrl, 'new_order', storedOrder).catch(() => {});
 
       trackEvent('submit_hold_success', {
         orderId,
@@ -372,9 +390,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       }
     } catch (err: any) {
       console.error('Lỗi đặt giữ giá:', err);
-      setSubmitError(
-        err.message || 'Có lỗi xảy ra khi giữ suất. Vui lòng thử lại hoặc nhắn Zalo.'
-      );
+      const rawMsg = typeof err?.message === 'string' ? err.message : '';
+      let friendlyMsg = 'Có lỗi xảy ra khi giữ suất. Vui lòng thử lại hoặc nhắn Zalo 0397.017.013.';
+      if (rawMsg.toLowerCase().includes('quota') || rawMsg.toLowerCase().includes('resource-exhausted')) {
+        friendlyMsg = 'Hệ thống đang quá tải tạm thời. Anh/chị vui lòng thử lại sau ít phút hoặc nhắn Zalo 0397.017.013 để sale giữ giá ngay.';
+      } else if (rawMsg && !rawMsg.trim().startsWith('{')) {
+        friendlyMsg = rawMsg;
+      }
+      setSubmitError(friendlyMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -395,9 +418,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     setIsSavingAddress(true);
     try {
       await updateOrderAddressInFirestore(completedOrder.id, trimmedAddr, step2Note);
-      setCompletedOrder((prev) =>
-        prev ? { ...prev, address: trimmedAddr, note: step2Note || prev.note } : prev
-      );
+      const updatedOrder: StoredOrder = {
+        ...completedOrder,
+        address: trimmedAddr,
+        note: step2Note || completedOrder.note,
+      };
+      setCompletedOrder(updatedOrder);
+      pushOrderToSheetWebhook(googleSheetWebhookUrl, 'update_address', updatedOrder).catch(() => {});
       setIsAddressSaved(true);
     } catch (err: any) {
       setAddressError(err.message || 'Không thể lưu địa chỉ lúc này, sale sẽ gọi xác nhận trực tiếp.');

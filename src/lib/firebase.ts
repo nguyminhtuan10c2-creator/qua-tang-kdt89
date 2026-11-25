@@ -480,7 +480,10 @@ export async function submitConsultationLead(lead: ConsultationLeadPayload): Pro
 
 export const ADMIN_OWNER_EMAIL = 'nguyminhtuan10C2@gmail.com';
 export const ADMIN_PASSWORD_LOGIN_EMAIL = 'ngmtuan241@gmail.com';
-export const ADMIN_ALLOWED_UIDS = ['3STmRAtnyWgEupbAxIkbzfC7vSk1'];
+export const ADMIN_ALLOWED_UIDS = [
+  '3STmRAtnyWgEupbAxIkbzfC7vSk1',
+  'Eal5QlU6ALSidbA5Zb06s0s0hQU2',
+];
 export const ADMIN_NOTIFICATION_EMAIL = ADMIN_OWNER_EMAIL;
 
 export function isAuthorizedAdminUser(user: User | null | undefined): boolean {

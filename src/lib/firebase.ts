@@ -482,7 +482,9 @@ export const ADMIN_OWNER_EMAIL = 'nguyminhtuan10C2@gmail.com';
 export const ADMIN_PASSWORD_LOGIN_EMAIL = 'ngmtuan241@gmail.com';
 export const ADMIN_ALLOWED_UIDS = [
   '3STmRAtnyWgEupbAxIkbzfC7vSk1',
+  'Eal5QIU6ALSidbA5Zb06s0s0hQU2',
   'Eal5QlU6ALSidbA5Zb06s0s0hQU2',
+  'EaI5QIU6ALSidbA5Zb06s0s0hQU2',
 ];
 export const ADMIN_NOTIFICATION_EMAIL = ADMIN_OWNER_EMAIL;
 

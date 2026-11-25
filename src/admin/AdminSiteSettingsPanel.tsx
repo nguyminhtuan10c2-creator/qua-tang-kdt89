@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet } from 'lucide-react';
+import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet, DatabaseBackup } from 'lucide-react';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { resolveVouchers, getTotalVoucherAmount } from '../data/vouchers';
 import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
@@ -18,6 +18,7 @@ interface AdminSiteSettingsPanelProps {
   onOpenVoucherEditor?: () => void;
   onOpenHeroSlidesModal?: () => void;
   onOpenGoogleSheetsModal?: () => void;
+  onOpenLegacyRecovery?: () => void;
 }
 
 export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
@@ -34,6 +35,7 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
   onOpenVoucherEditor,
   onOpenHeroSlidesModal,
   onOpenGoogleSheetsModal,
+  onOpenLegacyRecovery,
 }) => {
   const isWelcomePopupEnabled =
     decorSettings?.showWelcomePopup !== false && !hiddenSections.includes('welcome_popup');
@@ -352,6 +354,29 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               <span>Cài đặt Google Sheets Kho</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {onOpenLegacyRecovery && (
+          <div className="bg-white border-2 border-amber-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:col-span-2">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 flex-wrap">
+                <DatabaseBackup className="w-4 h-4 text-amber-700" />
+                <span>Khôi phục hình cũ &amp; cài đặt từ project second-spanner-gvxch</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Quét và chép toàn bộ ảnh sản phẩm, banner, mascot, giá bán và cài đặt cũ từ project Firebase cũ về database hiện tại chỉ với 1 bấm (không ảnh hưởng Google Sheets hay đơn mới).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenLegacyRecovery}
+              className="py-2.5 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <DatabaseBackup className="w-3.5 h-3.5" />
+              <span>Quét &amp; Khôi phục hình cũ</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

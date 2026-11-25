@@ -10,6 +10,7 @@ import {
   EyeOff,
   Trash2,
   Zap,
+  DatabaseBackup,
 } from 'lucide-react';
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
 import type { StoredOrder } from '../lib/firebase';
@@ -33,6 +34,7 @@ interface AdminDashboardProps {
   lastUpdatedAt?: string;
   onNavigateTab: (tab: AdminTabId) => void;
   onOpenFlashSaleShowcase?: () => void;
+  onOpenLegacyRecovery?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -45,6 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   lastUpdatedAt,
   onNavigateTab,
   onOpenFlashSaleShowcase,
+  onOpenLegacyRecovery,
 }) => {
   const activeProducts = resolvedProducts.filter((p) => !p.isDeleted);
   const visibleProducts = activeProducts.filter((p) => !p.isHidden);
@@ -243,6 +246,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <span>Chỉnh tiêu đề &amp; sản phẩm Flash Sale</span>
                   </span>
                   <ArrowRight className="w-4 h-4 text-rose-400" />
+                </button>
+              )}
+
+              {onOpenLegacyRecovery && (
+                <button
+                  type="button"
+                  onClick={onOpenLegacyRecovery}
+                  className="w-full py-2.5 px-4 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-left flex items-center justify-between text-sm font-semibold text-amber-900 transition-colors cursor-pointer"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <DatabaseBackup className="w-4 h-4 text-amber-700" />
+                    <span>Khôi phục hình cũ từ second-spanner-gvxch</span>
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-amber-600" />
                 </button>
               )}
 

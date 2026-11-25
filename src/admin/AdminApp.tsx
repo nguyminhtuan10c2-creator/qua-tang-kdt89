@@ -47,6 +47,7 @@ import { FlashSaleShowcaseModal } from './FlashSaleShowcaseModal';
 import { VoucherEditorModal } from './VoucherEditorModal';
 import { HeroSlidesModal } from './HeroSlidesModal';
 import { GoogleSheetsSyncModal } from './GoogleSheetsSyncModal';
+import { LegacyRecoveryModal } from './LegacyRecoveryModal';
 import {
   initSheetsAuthListener,
   getSheetsAccessToken,
@@ -102,6 +103,7 @@ export default function AdminApp() {
   const [isVoucherEditorOpen, setIsVoucherEditorOpen] = useState(false);
   const [isHeroSlidesOpen, setIsHeroSlidesOpen] = useState(false);
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
+  const [isLegacyRecoveryOpen, setIsLegacyRecoveryOpen] = useState(false);
   const [sheetsConnected, setSheetsConnected] = useState(false);
   const [sheetsEmail, setSheetsEmail] = useState<string | null>(null);
   const lastAutoSyncedSigRef = useRef<string>('');
@@ -559,6 +561,7 @@ export default function AdminApp() {
               lastUpdatedAt={rawSettings.updatedAt}
               onNavigateTab={setActiveTab}
               onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
+              onOpenLegacyRecovery={() => setIsLegacyRecoveryOpen(true)}
             />
           )}
 
@@ -663,6 +666,7 @@ export default function AdminApp() {
               onOpenVoucherEditor={() => setIsVoucherEditorOpen(true)}
               onOpenHeroSlidesModal={() => setIsHeroSlidesOpen(true)}
               onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
+              onOpenLegacyRecovery={() => setIsLegacyRecoveryOpen(true)}
               onToggleWelcomePopup={() => {
                 const currentlyEnabled =
                   decorSettings?.showWelcomePopup !== false &&
@@ -895,6 +899,15 @@ export default function AdminApp() {
             },
           });
         }}
+      />
+
+      <LegacyRecoveryModal
+        isOpen={isLegacyRecoveryOpen}
+        onClose={() => setIsLegacyRecoveryOpen(false)}
+        currentSettings={rawSettings}
+        existingOrders={orders}
+        existingCustomers={customers}
+        candidateProductIds={resolvedProducts.map((p) => p.id)}
       />
     </div>
   );

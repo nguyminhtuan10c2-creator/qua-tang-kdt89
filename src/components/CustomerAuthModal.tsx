@@ -180,8 +180,14 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-neutral-200 overflow-hidden max-h-[92vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 h-[100dvh] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-neutral-200 overflow-hidden max-h-[calc(100dvh-1.5rem)] sm:max-h-[90dvh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Ribbon */}
         <div className="bg-gradient-to-r from-blue-600 via-sky-600 to-blue-700 text-white p-4 sm:p-5 text-center relative shrink-0">
           <button

@@ -218,6 +218,25 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     });
   }, [isOpen, selectedCombo, singleProduct, selectedProducts, customerAccount, initialSelectedVoucher, customerName, phoneNumber]);
 
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   // Calculate raw numeric subtotal
   const numericSubtotal = React.useMemo((): number => {
     let sum = 0;
@@ -499,16 +518,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-neutral-950/80 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 h-[100dvh] flex items-center justify-center p-2.5 sm:p-4 bg-neutral-950/80 backdrop-blur-xs animate-in fade-in duration-200 overflow-hidden"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-neutral-100 overflow-hidden flex flex-col max-h-[92vh]"
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-neutral-100 overflow-hidden flex flex-col max-h-[calc(100dvh-1.25rem)] sm:max-h-[90dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="relative bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 px-4 sm:px-6 py-3.5 sm:py-4 text-white shrink-0">
-          <div className="flex items-center justify-between gap-3">
+        <div className="relative bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 px-4 sm:px-6 py-3 sm:py-4 text-white shrink-0">
+          <div className="flex items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -531,9 +552,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Đóng form đặt mua"
-              className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+              className="h-9 px-2.5 sm:w-9 sm:px-0 rounded-full bg-black/25 hover:bg-black/40 border border-white/25 flex items-center justify-center gap-1 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 shrink-0" />
+              <span className="sm:hidden">Đóng</span>
             </button>
           </div>
         </div>
@@ -781,7 +803,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Vd: Anh Tuấn"
-                        className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white"
+                        className="w-full pl-9 pr-3 py-2 text-base sm:text-sm rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white"
                       />
                     </div>
                   </div>
@@ -798,7 +820,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder="Vd: 0912 345 678"
-                        className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white tabular-nums"
+                        className="w-full pl-9 pr-3 py-2 text-base sm:text-sm rounded-xl border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white tabular-nums"
                       />
                     </div>
                   </div>
@@ -1011,23 +1033,32 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   </div>
                 )}
               </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 hover:from-rose-800 hover:to-amber-700 text-white font-extrabold text-xs sm:text-sm shadow-md active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Đang giữ suất giá sale...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 shrink-0" />
-                    <span>Giữ giá 24h – Sale xác nhận trong 5 phút</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="py-3 px-3.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-semibold text-xs sm:text-sm transition-colors cursor-pointer shrink-0"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-rose-700 via-rose-600 to-amber-600 hover:from-rose-800 hover:to-amber-700 text-white font-extrabold text-xs sm:text-sm shadow-md active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Đang giữ suất giá sale...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Giữ giá 24h – Sale xác nhận trong 5 phút</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         )}

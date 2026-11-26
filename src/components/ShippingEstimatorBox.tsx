@@ -355,7 +355,7 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
                   }
                 }}
                 placeholder="Nhập số nhà, tên đường hoặc Quận/Huyện..."
-                className="w-full pl-8 pr-8 py-2 text-xs sm:text-sm rounded-xl border border-neutral-300 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/15 focus:border-neutral-500 text-neutral-900"
+                className="w-full pl-8 pr-8 py-2 text-base sm:text-sm rounded-xl border border-neutral-300 bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/15 focus:border-neutral-500 text-neutral-900"
               />
               {addressValue && (
                 <button

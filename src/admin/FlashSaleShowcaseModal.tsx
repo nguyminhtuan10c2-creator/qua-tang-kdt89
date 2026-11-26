@@ -13,6 +13,8 @@ import {
   EyeOff,
   Tag,
   Sparkles,
+  Radio,
+  Clock,
 } from 'lucide-react';
 import {
   CategoryItem,
@@ -36,13 +38,16 @@ interface FlashSaleShowcaseModalProps {
     flagshipHint: string;
     showFlagshipDeals: boolean;
     flagshipProductIds: string[];
+    livestreamMode: boolean;
+    livestreamEndTime: string;
+    livestreamShowDealNumbers: boolean;
   }) => Promise<void>;
   onEditPrice?: (product: ProductItem) => void;
 }
 
-const DEFAULT_BADGE = 'Ưu tiên chốt nhanh hôm nay';
-const DEFAULT_TITLE = '6 Deal Chủ Lực Giá Sale Tại Kho';
-const DEFAULT_HINT = 'Bấm "Đặt giữ giá 24h" để sale giữ suất ngay';
+const DEFAULT_BADGE = 'Đang phát Livestream · Chốt giá tại kho';
+const DEFAULT_TITLE = 'Flash Sale Phiên Live Hôm Nay';
+const DEFAULT_HINT = 'Chọn đúng mã số Deal trên Live · Bấm "Đặt giữ giá 24h" để giữ suất ngay';
 
 export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
   isOpen,
@@ -59,6 +64,9 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
   const [titleText, setTitleText] = useState(DEFAULT_TITLE);
   const [hintText, setHintText] = useState(DEFAULT_HINT);
   const [showSection, setShowSection] = useState(true);
+  const [livestreamMode, setLivestreamMode] = useState(true);
+  const [showDealNumbers, setShowDealNumbers] = useState(true);
+  const [livestreamEndTime, setLivestreamEndTime] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -89,6 +97,9 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setTitleText(customTexts.flagshipTitle || DEFAULT_TITLE);
       setHintText(customTexts.flagshipHint || DEFAULT_HINT);
       setShowSection(decorSettings?.showFlagshipDeals !== false);
+      setLivestreamMode(decorSettings?.livestreamMode !== false);
+      setShowDealNumbers(decorSettings?.livestreamShowDealNumbers !== false);
+      setLivestreamEndTime(decorSettings?.livestreamEndTime || '');
 
       const configured = decorSettings?.flagshipProductIds;
       if (Array.isArray(configured) && configured.length > 0) {
@@ -164,11 +175,21 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
     }
   };
 
+  const handleSetQuickEndHours = (hoursFromNow: number) => {
+    const d = new Date(Date.now() + hoursFromNow * 3600 * 1000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    setLivestreamEndTime(formatted);
+  };
+
   const handleResetDefault = () => {
     setBadgeText(DEFAULT_BADGE);
     setTitleText(DEFAULT_TITLE);
     setHintText(DEFAULT_HINT);
     setShowSection(true);
+    setLivestreamMode(true);
+    setShowDealNumbers(true);
+    setLivestreamEndTime('');
     setSelectedIds(resolveDefaultIds);
   };
 
@@ -182,6 +203,9 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
         flagshipHint: hintText.trim() || DEFAULT_HINT,
         showFlagshipDeals: showSection,
         flagshipProductIds: selectedIds,
+        livestreamMode,
+        livestreamEndTime: livestreamEndTime.trim(),
+        livestreamShowDealNumbers: showDealNumbers,
       });
       setSavedSuccess(true);
       setTimeout(() => {
@@ -246,64 +270,141 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
             </div>
 
             <div
-              className={`p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-opacity ${
+              className={`p-4 rounded-2xl bg-neutral-950 border border-rose-500/30 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity ${
                 showSection ? 'opacity-100' : 'opacity-45'
               }`}
             >
               <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-yellow-200">
-                  <Zap className="w-3.5 h-3.5 fill-yellow-300 text-yellow-300" />
+                <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-300">
+                  {livestreamMode ? (
+                    <Radio className="w-3.5 h-3.5 text-rose-400" />
+                  ) : (
+                    <Zap className="w-3.5 h-3.5 text-amber-300" />
+                  )}
                   <span>{badgeText || DEFAULT_BADGE}</span>
+                  <span className="text-neutral-500">·</span>
+                  <span className="text-amber-300 tabular-nums">{selectedProducts.length} mã lên sóng</span>
                 </div>
-                <div className="text-base sm:text-xl font-black tracking-tight">
+                <div className="text-base sm:text-xl font-black tracking-tight mt-0.5">
                   {titleText || DEFAULT_TITLE}
                 </div>
+                <div className="text-xs text-neutral-300 mt-0.5">
+                  {hintText || DEFAULT_HINT}
+                </div>
               </div>
-              <span className="text-xs text-rose-50 font-medium">
-                {hintText || DEFAULT_HINT}
-              </span>
+              <div className="flex items-center gap-1.5 font-mono font-black text-xs tabular-nums shrink-0">
+                <span className="text-neutral-400 font-sans font-medium mr-1">Đếm ngược:</span>
+                <span className="bg-white text-neutral-950 px-2 py-1 rounded">02</span>
+                <span className="text-rose-400">:</span>
+                <span className="bg-white text-neutral-950 px-2 py-1 rounded">15</span>
+                <span className="text-rose-400">:</span>
+                <span className="bg-rose-600 text-white px-2 py-1 rounded">00</span>
+              </div>
             </div>
           </div>
 
-          {/* Banner Title Inputs */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                1. Dòng chữ nhỏ phía trên:
-              </label>
-              <input
-                type="text"
-                value={badgeText}
-                onChange={(e) => setBadgeText(e.target.value)}
-                placeholder={DEFAULT_BADGE}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
-              />
+          {/* Livestream Controls + Banner Title Inputs */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  1. Dòng chữ phiên Live phía trên:
+                </label>
+                <input
+                  type="text"
+                  value={badgeText}
+                  onChange={(e) => setBadgeText(e.target.value)}
+                  placeholder={DEFAULT_BADGE}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  2. Tiêu đề chính lớn:
+                </label>
+                <input
+                  type="text"
+                  value={titleText}
+                  onChange={(e) => setTitleText(e.target.value)}
+                  placeholder={DEFAULT_TITLE}
+                  className="w-full px-3 py-2 text-sm font-bold rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  3. Hướng dẫn cho khách xem Live:
+                </label>
+                <input
+                  type="text"
+                  value={hintText}
+                  onChange={(e) => setHintText(e.target.value)}
+                  placeholder={DEFAULT_HINT}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                2. Tiêu đề chính lớn:
-              </label>
-              <input
-                type="text"
-                value={titleText}
-                onChange={(e) => setTitleText(e.target.value)}
-                placeholder={DEFAULT_TITLE}
-                className="w-full px-3 py-2 text-sm font-bold rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
-              />
-            </div>
+            <div className="pt-3 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3.5 items-center">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={livestreamMode}
+                    onChange={(e) => setLivestreamMode(e.target.checked)}
+                    className="w-4 h-4 accent-rose-600"
+                  />
+                  <span>Gắn nhãn Trực tiếp Phiên Live ngay dưới Banner đầu trang</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showDealNumbers}
+                    onChange={(e) => setShowDealNumbers(e.target.checked)}
+                    className="w-4 h-4 accent-rose-600"
+                  />
+                  <span>Hiện mã số Deal (#01, #02, #03...) để khách bấm đúng mã đọc trên Live</span>
+                </label>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                3. Ghi chú bên phải:
-              </label>
-              <input
-                type="text"
-                value={hintText}
-                onChange={(e) => setHintText(e.target.value)}
-                placeholder={DEFAULT_HINT}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
-              />
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                  <Clock className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Giờ kết thúc đếm ngược (để trống = đến 23:59 hôm nay):</span>
+                </label>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <input
+                    type="datetime-local"
+                    value={livestreamEndTime}
+                    onChange={(e) => setLivestreamEndTime(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleSetQuickEndHours(2)}
+                    className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-[11px] font-semibold text-slate-700 cursor-pointer"
+                  >
+                    +2 giờ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetQuickEndHours(4)}
+                    className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-[11px] font-semibold text-slate-700 cursor-pointer"
+                  >
+                    +4 giờ
+                  </button>
+                  {livestreamEndTime && (
+                    <button
+                      type="button"
+                      onClick={() => setLivestreamEndTime('')}
+                      className="px-2 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-[11px] text-slate-500 cursor-pointer"
+                    >
+                      23:59 hôm nay
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

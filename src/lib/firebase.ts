@@ -178,8 +178,11 @@ export interface SiteDecorSettings {
   showBudgetFilter?: boolean; // Bật / Tắt bộ lọc bảng giá ngân sách (Price Range Slider)
   megaSaleConfig?: MegaSaleCampaignConfig;
   flashSaleMode?: 'auto' | 'teaser' | 'live'; // 'auto': tự động theo ngày | 'teaser': đếm đến ngày sale | 'live': đang diễn ra flash sale ngay bây giờ
-  showFlagshipDeals?: boolean; // Bật / Tắt khối Deal Chủ Lực / Flash Sale đầu danh mục
+  showFlagshipDeals?: boolean; // Bật / Tắt khối Deal Chủ Lực / Flash Sale Livestream đầu trang
   flagshipProductIds?: string[]; // Danh sách ID sản phẩm hiển thị trong khối Deal Chủ Lực / Flash Sale (theo thứ tự)
+  livestreamMode?: boolean; // Chế độ hiển thị nổi bật phục vụ Livestream ngay dưới Banner đầu
+  livestreamEndTime?: string; // Thời gian kết thúc đếm ngược phiên Live (ISO datetime hoặc rỗng = 23:59 hôm nay)
+  livestreamShowDealNumbers?: boolean; // Hiện mã số Deal #01, #02... trên từng sản phẩm đang Live
   showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh

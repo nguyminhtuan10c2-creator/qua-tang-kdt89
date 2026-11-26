@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CATEGORIES, PRODUCTS, DEFAULT_FLAGSHIP_PRODUCT_IDS, ProductItem, CategoryItem, MAX_CATALOG_PRICE, isProductInPriceRange } from '../data/products';
+import { CATEGORIES, PRODUCTS, ProductItem, CategoryItem, MAX_CATALOG_PRICE, isProductInPriceRange } from '../data/products';
+import { resolveFlagshipDeals } from '../lib/flagshipDeals';
 import { ProductCard } from './ProductCard';
 import { CategorySection } from './CategorySection';
 import { BudgetFilter } from './BudgetFilter';
@@ -107,12 +108,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileLayout, setMobileLayout] = useState<'horizontal' | 'grid'>('grid');
   const [isBulkImportOpen, setIsBulkImportOpen] = useState<boolean>(false);
-  const [showAllCatalog, setShowAllCatalog] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && window.location.hash.startsWith('#cat-')) {
-      return true;
-    }
-    return false;
-  });
+  const [showAllCatalog, setShowAllCatalog] = useState<boolean>(true);
 
   useEffect(() => {
     const handleExpand = (e: Event) => {
@@ -179,62 +175,17 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
     [displayedCategories]
   );
 
-  // Flagship / Flash Sale showcase products at top of catalog
-  // Uses admin-curated decorSettings.flagshipProductIds when configured, otherwise falls back to 6 default flagship deals
-  const flagshipDeals = useMemo(() => {
-    const visiblePool = allProducts.filter((p) => isAdmin || !hiddenProductIds.includes(p.id));
-    const configuredIds = decorSettings?.flagshipProductIds;
-
-    if (Array.isArray(configuredIds) && configuredIds.length > 0) {
-      const pickedFromConfig: ProductItem[] = [];
-      for (const id of configuredIds) {
-        const match = visiblePool.find((p) => p.id === id);
-        if (match && !pickedFromConfig.some((x) => x.id === match.id)) {
-          pickedFromConfig.push(match);
-        }
-      }
-      if (pickedFromConfig.length > 0) {
-        return pickedFromConfig;
-      }
-    }
-
-    const picks: ProductItem[] = [];
-    const pickFirst = (predicate: (p: ProductItem) => boolean) => {
-      const found = visiblePool.find((p) => !picks.some((x) => x.id === p.id) && predicate(p));
-      if (found) picks.push(found);
-    };
-
-    for (const defId of DEFAULT_FLAGSHIP_PRODUCT_IDS.slice(0, 3)) {
-      pickFirst((p) => p.id === defId);
-    }
-    while (picks.length < 3) {
-      const before = picks.length;
-      pickFirst((p) => p.category === 'rice_cooker_appliances' && p.name.toLowerCase().includes('cuckoo'));
-      if (picks.length === before) break;
-    }
-
-    pickFirst((p) => p.id === 'prod-ferroli-ic4200bn');
-    if (picks.filter((p) => p.category === 'kitchen_stoves').length === 0) {
-      pickFirst((p) => p.category === 'kitchen_stoves');
-    }
-
-    pickFirst((p) => p.id === 'prod-atlantic-lona-lite-4000');
-    if (picks.filter((p) => p.category === 'water_heaters').length === 0) {
-      pickFirst((p) => p.category === 'water_heaters');
-    }
-
-    pickFirst((p) => p.id === 'prod-tivi-casper-43fga610');
-    if (picks.filter((p) => p.category === 'televisions').length === 0) {
-      pickFirst((p) => p.category === 'televisions');
-    }
-
-    for (const p of visiblePool) {
-      if (picks.length >= 6) break;
-      if (!picks.some((x) => x.id === p.id)) picks.push(p);
-    }
-
-    return picks;
-  }, [allProducts, isAdmin, hiddenProductIds, decorSettings?.flagshipProductIds]);
+  // Flagship / Livestream Flash Sale showcase products
+  const flagshipDeals = useMemo(
+    () =>
+      resolveFlagshipDeals({
+        allProducts,
+        configuredIds: decorSettings?.flagshipProductIds,
+        hiddenProductIds,
+        includeHidden: isAdmin,
+      }),
+    [allProducts, isAdmin, hiddenProductIds, decorSettings?.flagshipProductIds]
+  );
 
   // Filter products: For regular customers, completely hide products marked as hidden
   const filteredProducts = useMemo(() => {
@@ -572,50 +523,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({
           />
         )}
 
-        {/* =========================================================================
-            6 DEAL CHỦ LỰC BÁN CHẠY HÔM NAY (HIỂN THỊ NGAY ĐẦU DANH MỤC ĐỂ CHỐT ĐƠN NHANH)
-           ========================================================================= */}
-        {isDefaultFullView && decorSettings?.showFlagshipDeals !== false && flagshipDeals.length > 0 && (
-          <div id="top-deals" className="mb-8 scroll-mt-24">
-            <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-yellow-200">
-                  <Zap className="w-3.5 h-3.5 fill-yellow-300 text-yellow-300" />
-                  <span>{customTexts.flagshipBadge || 'Ưu tiên chốt nhanh hôm nay'}</span>
-                </div>
-                <h3 className="text-base sm:text-xl font-black tracking-tight">
-                  {customTexts.flagshipTitle || '6 Deal Chủ Lực Giá Sale Tại Kho'}
-                </h3>
-              </div>
-              <span className="text-xs text-rose-50 font-medium">
-                {customTexts.flagshipHint || 'Bấm "Đặt giữ giá 24h" để sale giữ suất ngay'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3">
-              {flagshipDeals.map((product) => (
-                <div key={`flagship-${product.id}`} className="w-full flex flex-col">
-                  <ProductCard
-                    product={product}
-                    customImage={customImages[product.id]}
-                    customPrice={customPrices[product.id]}
-                    onSelect={onToggleProduct}
-                    onBuyProduct={onBuyProduct}
-                    onConsultProduct={onConsultProduct}
-                    onOpenImageUpdater={onOpenImageUpdater}
-                    onOpenPriceEditor={onOpenPriceEditor}
-                    onEditProduct={onEditProduct}
-                    onDeleteProduct={onDeleteProduct}
-                    isSelected={selectedProductIds.includes(product.id)}
-                    isAdmin={isAdmin}
-                    isHidden={hiddenProductIds.includes(product.id)}
-                    onToggleHide={(p) => onToggleHideProduct?.(p.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Livestream Flash Sale showcase is now rendered prominently right below Hero (#top-deals) */}
 
         {/* Budget Filter Bar with Range Slider - Bật/Tắt theo nhu cầu của Admin */}
         {(showBudgetFilter || isAdmin) && (

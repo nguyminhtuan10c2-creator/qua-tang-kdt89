@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
+import { LivestreamFlashSaleSection } from './components/LivestreamFlashSaleSection';
 import { FlashSaleCountdown } from './components/FlashSaleCountdown';
 import { MegaSaleCampaignCountdown } from './components/MegaSaleCampaignCountdown';
 import { StoreDecorations } from './components/StoreDecorations';
@@ -43,6 +44,7 @@ import {
   CategoryOverride,
   SiteDecorSettings,
 } from './lib/firebase';
+import { resolveFlagshipDeals } from './lib/flagshipDeals';
 import { trackEvent } from './lib/tracking';
 
 export default function App() {
@@ -534,7 +536,19 @@ export default function App() {
     setIsConsultationOpen(true);
   };
 
+  const flagshipDeals = useMemo(
+    () =>
+      resolveFlagshipDeals({
+        allProducts,
+        configuredIds: decorSettings?.flagshipProductIds,
+        hiddenProductIds,
+        includeHidden: false,
+      }),
+    [allProducts, decorSettings?.flagshipProductIds, hiddenProductIds]
+  );
+
   const handleExploreProducts = () => {
+    window.dispatchEvent(new CustomEvent('kdt89:expand-catalog'));
     const el = document.getElementById('products');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
@@ -619,7 +633,34 @@ export default function App() {
           </div>
         )}
 
-        {/* 2.4. Mega Sale Campaign Countdown */}
+        {/* 2.2. Flash Sale Phiên Livestream nổi bật ngay dưới Banner đầu */}
+        {decorSettings?.showFlagshipDeals !== false &&
+          !hiddenSections.includes('flash_sale') &&
+          flagshipDeals.length > 0 && (
+            <LivestreamFlashSaleSection
+              deals={flagshipDeals}
+              selectedProductIds={selectedProductIds}
+              customImages={customImages}
+              customPrices={customPrices}
+              customTexts={customTexts}
+              decorSettings={decorSettings}
+              hiddenProductIds={hiddenProductIds}
+              isAdmin={false}
+              onToggleProduct={handleToggleProduct}
+              onBuyProduct={handleOpenOrderProduct}
+              onConsultProduct={(product) =>
+                handleOpenConsultation(
+                  `${product.name}${product.modelCode ? ` (Mã: ${product.modelCode})` : ''}`
+                )
+              }
+              onExploreFullCatalog={handleExploreProducts}
+              onOpenConsultation={(note) =>
+                handleOpenConsultation(note || 'Tư vấn chốt đơn Flash Sale phiên Live')
+              }
+            />
+          )}
+
+        {/* 2.4. Mega Sale Campaign Countdown (nếu đang trong chiến dịch lớn) */}
         {isMegaSaleActive && !hiddenSections.includes('mega_sale_countdown') && (
           <div className="relative">
             <MegaSaleCampaignCountdown
@@ -632,18 +673,20 @@ export default function App() {
           </div>
         )}
 
-        {/* 2.5. Flash Sale Hằng Ngày */}
-        {!isMegaSaleActive && !hiddenSections.includes('flash_sale') && (
-          <div className="relative">
-            <FlashSaleCountdown
-              decorSettings={decorSettings}
-              onExploreProducts={handleExploreProducts}
-              onOpenOrderModal={handleOpenOrderCart}
-              onOpenConsultation={(note) => handleOpenConsultation(note || 'Tư vấn săn deal sale lớn')}
-              isAdmin={false}
-            />
-          </div>
-        )}
+        {/* 2.5. Flash Sale Countdown dự phòng (chỉ hiện nếu Admin tắt khối Deal Phiên Live ở trên) */}
+        {(decorSettings?.showFlagshipDeals === false || flagshipDeals.length === 0) &&
+          !isMegaSaleActive &&
+          !hiddenSections.includes('flash_sale') && (
+            <div className="relative">
+              <FlashSaleCountdown
+                decorSettings={decorSettings}
+                onExploreProducts={handleExploreProducts}
+                onOpenOrderModal={handleOpenOrderCart}
+                onOpenConsultation={(note) => handleOpenConsultation(note || 'Tư vấn săn deal sale lớn')}
+                isAdmin={false}
+              />
+            </div>
+          )}
 
         {/* 3. Suggested Combos */}
         {!hiddenSections.includes('combos') && (

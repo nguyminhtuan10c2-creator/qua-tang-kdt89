@@ -179,18 +179,18 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
                 <Zap className="w-4 h-4 text-rose-600 fill-rose-600" />
-                <span>Tiêu đề &amp; Sản phẩm Khung Deal Chủ Lực / Flash Sale (Banner đỏ cam)</span>
+                <span>Flash Sale Phiên Livestream &amp; Deal Chủ Lực (Nổi bật ngay đầu trang)</span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Sửa trực tiếp tiêu đề (&quot;6 Deal Chủ Lực Giá Sale Tại Kho&quot;), dòng chữ nhỏ, ghi chú và chọn/sắp xếp các sản phẩm hiển thị trong khối Flash Sale đầu danh mục.
+                Chọn danh sách sản phẩm đang lên sóng Livestream (tự đánh mã #01, #02...), chỉnh giờ kết thúc đếm ngược và tiêu đề để khách bấm link Live là thấy ngay đầu trang.
               </p>
               <div className="pt-1 text-xs text-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>
                   <span className="text-slate-400">Tiêu đề hiện tại:</span>{' '}
-                  <strong>{customTexts?.flagshipTitle || '6 Deal Chủ Lực Giá Sale Tại Kho'}</strong>
+                  <strong>{customTexts?.flagshipTitle || 'Flash Sale Phiên Live Hôm Nay'}</strong>
                 </span>
                 <span>
-                  <span className="text-slate-400">Số SP đang chọn:</span>{' '}
+                  <span className="text-slate-400">Số SP đang lên sóng:</span>{' '}
                   <strong>
                     {decorSettings?.flagshipProductIds?.length
                       ? `${decorSettings.flagshipProductIds.length} SP tùy chọn`

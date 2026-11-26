@@ -36,6 +36,7 @@ interface ProductCardProps {
   isAdmin?: boolean;
   isHidden?: boolean;
   onToggleHide?: (product: ProductItem) => void;
+  liveOrderNumber?: number;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -53,6 +54,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isAdmin = false,
   isHidden = false,
   onToggleHide,
+  liveOrderNumber,
 }) => {
   // If not admin and product is marked as hidden, do not render to regular customers
   if (!isAdmin && isHidden) {
@@ -220,12 +222,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           renderProductIllustration()
         )}
 
-        {/* Feature Pill tag on image (e.g. Inverter tiết kiệm điện) */}
-        {meta.featureBadge && (
+        {/* Deal order tag for Livestream or Feature tag (never stacked together) */}
+        {liveOrderNumber !== undefined ? (
+          <div className="absolute top-2 left-2 z-10 bg-neutral-950 text-white text-[10px] sm:text-xs font-mono font-bold tabular-nums px-2 py-0.5 rounded-md shadow-xs">
+            Deal #{String(liveOrderNumber).padStart(2, '0')}
+          </div>
+        ) : meta.featureBadge ? (
           <div className="absolute top-2 left-2 z-10 bg-neutral-100/90 backdrop-blur-xs text-neutral-600 text-[9px] sm:text-[10px] font-medium px-2 py-0.5 rounded-full border border-neutral-200 shadow-2xs max-w-[85%] truncate">
             {meta.featureBadge}
           </div>
-        )}
+        ) : null}
 
         {/* Top-Right: Admin Controls / Model tag */}
         {isAdmin ? (
@@ -303,6 +309,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               >
                 Hiện
               </button>
+            </div>
+          )}
+
+          {liveOrderNumber !== undefined && meta.featureBadge && (
+            <div className="text-[11px] text-neutral-500 font-medium truncate mb-0.5">
+              {meta.featureBadge}
             </div>
           )}
 

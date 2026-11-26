@@ -823,6 +823,9 @@ export default function AdminApp() {
           flagshipHint,
           showFlagshipDeals,
           flagshipProductIds,
+          livestreamMode,
+          livestreamEndTime,
+          livestreamShowDealNumbers,
         }) => {
           await persistSettings({
             customTexts: {
@@ -835,6 +838,9 @@ export default function AdminApp() {
               ...decorSettings,
               showFlagshipDeals,
               flagshipProductIds,
+              livestreamMode,
+              livestreamEndTime,
+              livestreamShowDealNumbers,
             },
           });
         }}

@@ -48,7 +48,9 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
     onEstimateChange?.(next);
   };
 
-  // Recalculate fee if order subtotal changes while we already have distance
+  const configKey = JSON.stringify(cfg);
+
+  // Recalculate fee if order subtotal or shipping pricing config changes while we already have distance
   useEffect(() => {
     if (!estimate) return;
     const updated = calculateShippingFeeFromDistance({
@@ -63,7 +65,7 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
     setEstimate(updated);
     onEstimateChange?.(updated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderSubtotal]);
+  }, [orderSubtotal, configKey]);
 
   const handleSelectArea = async (areaId: string) => {
     setSelectedAreaId(areaId);

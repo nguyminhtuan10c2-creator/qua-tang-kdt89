@@ -8,11 +8,16 @@ import {
   CheckCircle2,
   Loader2,
   ExternalLink,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import {
   ShippingConfig,
+  ShippingTier,
   DEFAULT_SHIPPING_CONFIG,
+  DEFAULT_SHIPPING_TIERS,
   resolveShippingConfig,
+  sortShippingTiers,
   geocodeVietnameseAddress,
 } from '../lib/shipping';
 import { ShippingEstimatorBox } from '../components/ShippingEstimatorBox';
@@ -91,14 +96,59 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
     );
   };
 
+  const handleUpdateTier = (id: string, patch: Partial<ShippingTier>) => {
+    setForm((prev) => ({
+      ...prev,
+      tiers: prev.tiers.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    }));
+  };
+
+  const handleSortTiers = () => {
+    setForm((prev) => ({
+      ...prev,
+      tiers: sortShippingTiers(prev.tiers),
+    }));
+  };
+
+  const handleAddTier = () => {
+    setForm((prev) => {
+      const sorted = sortShippingTiers(prev.tiers);
+      const last = sorted[sorted.length - 1];
+      const nextMaxKm = last ? Math.round((last.maxKm + 5) * 10) / 10 : 5;
+      const nextFee = last ? last.fee + 15000 : 0;
+      const newTier: ShippingTier = {
+        id: `tier-${Date.now()}`,
+        maxKm: nextMaxKm,
+        fee: nextFee,
+      };
+      return {
+        ...prev,
+        tiers: [...sorted, newTier],
+      };
+    });
+  };
+
+  const handleRemoveTier = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tiers: prev.tiers.filter((t) => t.id !== id),
+    }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setStatusMsg(null);
     try {
+      const sortedTiers = sortShippingTiers(form.tiers);
+      const firstFreeTier = sortedTiers.find((t) => t.fee === 0);
       await onSaveConfig({
         ...form,
-        freeRadiusKm: Math.max(0, Number(form.freeRadiusKm) || 0),
+        tiers: sortedTiers,
+        freeRadiusKm:
+          form.pricingMode === 'tiers' && firstFreeTier
+            ? firstFreeTier.maxKm
+            : Math.max(0, Number(form.freeRadiusKm) || 0),
         freeOrderThreshold: Math.max(0, Number(form.freeOrderThreshold) || 0),
         freeOrderMaxKm: Math.max(0, Number(form.freeOrderMaxKm) || 0),
         baseFee: Math.max(0, Number(form.baseFee) || 0),
@@ -106,7 +156,8 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
         maxLocalKm: Math.max(1, Number(form.maxLocalKm) || 40),
         provinceBaseFee: Math.max(0, Number(form.provinceBaseFee) || 0),
       });
-      setStatusMsg('Đã lưu cấu hình kho & bảng giá ship!');
+      setForm((prev) => ({ ...prev, tiers: sortedTiers }));
+      setStatusMsg('Đã lưu cấu hình kho & các mốc phí ship!');
     } finally {
       setSaving(false);
     }
@@ -251,86 +302,283 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Pricing Formula */}
-          <div className="border border-slate-200 rounded-xl p-4 space-y-3">
-            <div className="text-xs font-bold text-slate-900">
-              2. Bảng tính phí ship tạm tính theo km
+          {/* Pricing Mode & Distance Tiers */}
+          <div className="border border-slate-200 rounded-xl p-4 space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="text-xs font-bold text-slate-900">
+                2. Thiết lập các mốc phí ship theo khoảng cách
+              </div>
+              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-[11px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, pricingMode: 'tiers' })}
+                  className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors ${
+                    form.pricingMode !== 'per_km'
+                      ? 'bg-white text-emerald-800 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Theo mốc km (5km, 7km, 10km...)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, pricingMode: 'per_km' })}
+                  className={`px-2.5 py-1 rounded-md cursor-pointer transition-colors ${
+                    form.pricingMode === 'per_km'
+                      ? 'bg-white text-emerald-800 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Tính từng km
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Miễn phí trong (km đầu)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.5"
-                  value={form.freeRadiusKm}
-                  onChange={(e) => setForm({ ...form, freeRadiusKm: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                />
+
+            {form.pricingMode !== 'per_km' ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 grid grid-cols-12 gap-2 text-[11px] font-bold text-slate-600">
+                    <div className="col-span-6">Khoảng cách từ kho</div>
+                    <div className="col-span-4">Phí ship (VNĐ)</div>
+                    <div className="col-span-2 text-right">Xóa</div>
+                  </div>
+                  <div className="divide-y divide-slate-100 bg-white">
+                    {form.tiers.map((tier, idx) => {
+                      const prevMaxKm = idx === 0 ? 0 : form.tiers[idx - 1].maxKm;
+                      return (
+                        <div
+                          key={tier.id}
+                          className="px-3 py-2 grid grid-cols-12 gap-2 items-center text-xs"
+                        >
+                          <div className="col-span-6 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-slate-600 font-medium whitespace-nowrap">
+                              {idx === 0 ? 'Dưới' : `Từ ${prevMaxKm} –`}
+                            </span>
+                            <input
+                              type="number"
+                              min={0.5}
+                              step="0.5"
+                              value={tier.maxKm}
+                              onChange={(e) =>
+                                handleUpdateTier(tier.id, {
+                                  maxKm: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                              onBlur={handleSortTiers}
+                              className="w-16 px-2 py-1 rounded-md border border-slate-300 font-mono font-bold text-slate-900 text-center"
+                            />
+                            <span className="text-slate-500">km</span>
+                          </div>
+
+                          <div className="col-span-4 flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={0}
+                              step={1000}
+                              value={tier.fee}
+                              onChange={(e) =>
+                                handleUpdateTier(tier.id, {
+                                  fee: Math.max(0, parseInt(e.target.value, 10) || 0),
+                                })
+                              }
+                              className="w-full px-2 py-1 rounded-md border border-slate-300 font-mono font-bold text-slate-900"
+                            />
+                            {tier.fee === 0 && (
+                              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold whitespace-nowrap">
+                                Free
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="col-span-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTier(tier.id)}
+                              disabled={form.tiers.length <= 1}
+                              title="Xóa mốc này"
+                              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddTier}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Thêm mốc khoảng cách</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, tiers: DEFAULT_SHIPPING_TIERS })}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  >
+                    Đặt lại mốc mẫu (&lt;5km, 5-7km, 7-10km...)
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-slate-100">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Vượt mốc cuối (+đ/km, 0 = giữ nguyên)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={500}
+                      value={form.pricePerKm}
+                      onChange={(e) =>
+                        setForm({ ...form, pricePerKm: parseInt(e.target.value, 10) || 0 })
+                      }
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Giới hạn nội vùng (km)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.maxLocalKm}
+                      onChange={(e) =>
+                        setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 40 })
+                      }
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">
+                      Phí chành xe ngoài {form.maxLocalKm}km (VNĐ)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={5000}
+                      value={form.provinceBaseFee}
+                      onChange={(e) =>
+                        setForm({ ...form, provinceBaseFee: parseInt(e.target.value, 10) || 0 })
+                      }
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Phí cơ bản (VNĐ)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={form.baseFee}
-                  onChange={(e) => setForm({ ...form, baseFee: parseInt(e.target.value, 10) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Miễn phí trong (km đầu)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.5"
+                    value={form.freeRadiusKm}
+                    onChange={(e) =>
+                      setForm({ ...form, freeRadiusKm: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Phí cơ bản (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={form.baseFee}
+                    onChange={(e) =>
+                      setForm({ ...form, baseFee: parseInt(e.target.value, 10) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Đơn giá mỗi km thêm (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={500}
+                    value={form.pricePerKm}
+                    onChange={(e) =>
+                      setForm({ ...form, pricePerKm: parseInt(e.target.value, 10) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Giới hạn nội vùng (km)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.maxLocalKm}
+                    onChange={(e) =>
+                      setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 40 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Phí chành xe ngoài {form.maxLocalKm}km (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={5000}
+                    value={form.provinceBaseFee}
+                    onChange={(e) =>
+                      setForm({ ...form, provinceBaseFee: parseInt(e.target.value, 10) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
               </div>
+            )}
+
+            {/* Common Free Order Threshold */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Đơn giá mỗi km thêm (VNĐ)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={500}
-                  value={form.pricePerKm}
-                  onChange={(e) => setForm({ ...form, pricePerKm: parseInt(e.target.value, 10) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Freeship đơn từ (VNĐ, 0 = tắt)
+                  Ưu đãi Freeship đơn từ (VNĐ, nhập 0 nếu tắt)
                 </label>
                 <input
                   type="number"
                   min={0}
                   step={100000}
                   value={form.freeOrderThreshold}
-                  onChange={(e) => setForm({ ...form, freeOrderThreshold: parseInt(e.target.value, 10) || 0 })}
+                  onChange={(e) =>
+                    setForm({ ...form, freeOrderThreshold: parseInt(e.target.value, 10) || 0 })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
                 />
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Freeship tối đa (km)
+                  Áp dụng Freeship theo giá đơn trong bán kính (km)
                 </label>
                 <input
                   type="number"
                   min={0}
                   value={form.freeOrderMaxKm}
-                  onChange={(e) => setForm({ ...form, freeOrderMaxKm: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Phí chành xe ngoài {form.maxLocalKm}km (VNĐ)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={5000}
-                  value={form.provinceBaseFee}
-                  onChange={(e) => setForm({ ...form, provinceBaseFee: parseInt(e.target.value, 10) || 0 })}
+                  onChange={(e) =>
+                    setForm({ ...form, freeOrderMaxKm: parseFloat(e.target.value) || 0 })
+                  }
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
                 />
               </div>

@@ -352,7 +352,25 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Cài đặt địa chỉ &amp; tọa độ kho ({resolvedShipping.warehouseName}), bán kính freeship ({resolvedShipping.freeRadiusKm} km đầu) và đơn giá/km ({resolvedShipping.pricePerKm.toLocaleString('vi-VN')}đ/km) dùng OpenStreetMap miễn phí không cần API Key.
+                {resolvedShipping.pricingMode === 'tiers' && resolvedShipping.tiers.length > 0 ? (
+                  <>
+                    Kho ({resolvedShipping.warehouseName}): đang cài{' '}
+                    <strong>{resolvedShipping.tiers.length} mốc phí</strong> (
+                    {resolvedShipping.tiers
+                      .slice(0, 3)
+                      .map((t, i) =>
+                        `${i === 0 ? `≤${t.maxKm}km` : `${resolvedShipping.tiers[i - 1].maxKm}-${t.maxKm}km`}: ${
+                          t.fee === 0 ? 'Free' : `${Math.round(t.fee / 1000)}k`
+                        }`
+                      )
+                      .join(' · ')}
+                    {resolvedShipping.tiers.length > 3 ? ' ...' : ''}).
+                  </>
+                ) : (
+                  <>
+                    Cài đặt địa chỉ &amp; tọa độ kho ({resolvedShipping.warehouseName}), bán kính freeship ({resolvedShipping.freeRadiusKm} km đầu) và đơn giá/km ({resolvedShipping.pricePerKm.toLocaleString('vi-VN')}đ/km).
+                  </>
+                )}
               </p>
             </div>
             <button

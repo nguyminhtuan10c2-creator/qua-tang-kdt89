@@ -133,6 +133,7 @@ import type {
   HeroSlideFit,
 } from '../data/heroSlides';
 import { SHEETS_SCOPES, setSheetsAccessToken } from './googleSheets';
+import type { ShippingConfig } from './shipping';
 
 export interface CategoryOverride {
   name?: string;
@@ -194,6 +195,7 @@ export interface SiteDecorSettings {
   googleSheetUrl?: string; // Link mở nhanh Google Sheet
   googleSheetWebhookUrl?: string; // Link Google Apps Script Web App nhận đơn tự động 24/7 khi livestream
   googleSheetAutoSyncOnAdmin?: boolean; // Tự động đẩy đơn mới vào Sheet khi đang mở /admin
+  shippingConfig?: ShippingConfig; // Cấu hình tọa độ kho & bảng giá tính tạm phí ship (OpenStreetMap)
 }
 
 export interface SiteSettingsData {

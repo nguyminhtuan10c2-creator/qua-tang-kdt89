@@ -780,6 +780,7 @@ export default function App() {
         onOpenCustomerAuth={() => setIsCustomerAuthOpen(true)}
         vouchers={activeVouchers}
         googleSheetWebhookUrl={decorSettings?.googleSheetWebhookUrl}
+        shippingConfig={decorSettings?.shippingConfig}
         onOrderSuccess={() => {
           setSelectedProductIds([]);
           setSelectedVoucherForOrder(null);

@@ -17,6 +17,7 @@ import {
   ChevronUp,
   MessageCircle,
   Sparkles,
+  Truck,
 } from 'lucide-react';
 import {
   OrderItem,
@@ -39,6 +40,12 @@ import {
 } from '../data/vouchers';
 import { trackEvent } from '../lib/tracking';
 import { pushOrderToSheetWebhook } from '../lib/googleSheets';
+import { ShippingEstimatorBox } from './ShippingEstimatorBox';
+import {
+  ShippingConfig,
+  ShippingEstimateResult,
+  resolveShippingConfig,
+} from '../lib/shipping';
 
 interface OrderModalProps {
   isOpen: boolean;
@@ -57,6 +64,7 @@ interface OrderModalProps {
   onOpenCustomerAuth?: () => void;
   vouchers?: VoucherItem[];
   googleSheetWebhookUrl?: string;
+  shippingConfig?: Partial<ShippingConfig> | null;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -75,6 +83,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   initialSelectedVoucher = null,
   vouchers = DEFAULT_VOUCHERS,
   googleSheetWebhookUrl,
+  shippingConfig,
 }) => {
   const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
   const [customerName, setCustomerName] = useState(() => customerAccount?.fullName || '');
@@ -101,6 +110,12 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<StoredOrder | null>(null);
+  const [shippingEstimate, setShippingEstimate] = useState<ShippingEstimateResult | null>(null);
+  const [showStep1Shipping, setShowStep1Shipping] = useState(false);
+  const resolvedShipCfg = React.useMemo(
+    () => resolveShippingConfig(shippingConfig),
+    [shippingConfig]
+  );
 
   // Prepare items list (omit optional undefined fields for Firestore compatibility)
   const orderItems: OrderItem[] = React.useMemo(() => {
@@ -159,6 +174,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       setAddressError(null);
       setStep2Note('');
       setShowOptionalDetails(false);
+      setShippingEstimate(null);
+      setShowStep1Shipping(false);
 
       if (customerAccount) {
         if (!customerName) setCustomerName(customerAccount.fullName);
@@ -335,6 +352,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         ...(it.imageUrl && it.imageUrl.length <= 120_000 ? { imageUrl: it.imageUrl } : {}),
       }));
 
+      const shippingSummary = shippingEstimate
+        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship tạm tính: ${
+            shippingEstimate.isFreeShipping
+              ? 'Miễn phí (0đ)'
+              : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
+          }]`
+        : '';
+      const baseNote = step2Note.trim() || 'Giữ giá 24h – Sale gọi xác nhận trong 5 phút';
+      const combinedNote = [baseNote, shippingSummary].filter(Boolean).join(' · ').slice(0, 1000);
+
       const payload: OrderPayload = {
         customerName: trimmedName.slice(0, 100),
         phoneNumber: trimmedPhone.slice(0, 25),
@@ -350,7 +377,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               voucherDiscount: `-${selectedVoucher.discountAmount.toLocaleString('vi-VN')} đ`.slice(0, 50),
             }
           : {}),
-        note: (step2Note.trim() || 'Giữ giá 24h – Sale gọi xác nhận trong 5 phút').slice(0, 1000),
+        note: combinedNote,
         status: 'Mới',
       };
 
@@ -419,11 +446,24 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
     setIsSavingAddress(true);
     try {
-      await updateOrderAddressInFirestore(completedOrder.id, trimmedAddr, step2Note);
+      const shippingSummary = shippingEstimate
+        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship tạm tính: ${
+            shippingEstimate.isFreeShipping
+              ? 'Miễn phí (0đ)'
+              : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
+          }]`
+        : '';
+      const baseNote = step2Note.trim();
+      const effectiveNote = [baseNote, shippingSummary]
+        .filter(Boolean)
+        .join(' · ')
+        .slice(0, 1000);
+
+      await updateOrderAddressInFirestore(completedOrder.id, trimmedAddr, effectiveNote);
       const updatedOrder: StoredOrder = {
         ...completedOrder,
         address: trimmedAddr,
-        note: step2Note || completedOrder.note,
+        note: effectiveNote || completedOrder.note,
       };
       setCompletedOrder(updatedOrder);
       pushOrderToSheetWebhook(googleSheetWebhookUrl, 'update_address', updatedOrder).catch(() => {});
@@ -574,6 +614,19 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 placeholder="Ghi chú giờ nhận hoặc lắp đặt (tuỳ chọn)..."
                 className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-sky-200 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
+
+              {resolvedShipCfg.enabled && (
+                <ShippingEstimatorBox
+                  addressValue={step2Address}
+                  onAddressChange={(val) => {
+                    setStep2Address(val);
+                    setIsAddressSaved(false);
+                  }}
+                  orderSubtotal={finalNumericTotal || numericSubtotal}
+                  shippingConfig={resolvedShipCfg}
+                  onEstimateChange={setShippingEstimate}
+                />
+              )}
 
               <button
                 type="submit"
@@ -854,6 +907,58 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* 5. OPTIONAL SHIPPING DISTANCE & FEE CHECK IN STEP 1 */}
+              {resolvedShipCfg.enabled && (
+                <div className="rounded-2xl bg-emerald-50/50 border border-emerald-200 p-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowStep1Shipping((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 text-left cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950 min-w-0">
+                      <Truck className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span className="truncate">
+                        {shippingEstimate
+                          ? `Khoảng cách ~${shippingEstimate.distanceKm} km · Ship tạm tính: ${
+                              shippingEstimate.isFreeShipping
+                                ? 'Miễn phí (0đ)'
+                                : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
+                            }`
+                          : 'Kiểm tra khoảng cách từ kho & tạm tính phí ship'}
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-700 shrink-0 flex items-center gap-0.5">
+                      <span>{showStep1Shipping ? 'Thu gọn' : 'Tính thử'}</span>
+                      {showStep1Shipping ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                    </span>
+                  </button>
+
+                  {showStep1Shipping && (
+                    <div className="pt-2 border-t border-emerald-200/70 space-y-2">
+                      <input
+                        type="text"
+                        value={step2Address}
+                        onChange={(e) => setStep2Address(e.target.value)}
+                        placeholder="Nhập địa chỉ hoặc tên Quận/Huyện để đo km từ kho..."
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-emerald-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <ShippingEstimatorBox
+                        compact
+                        addressValue={step2Address}
+                        onAddressChange={setStep2Address}
+                        orderSubtotal={finalNumericTotal || numericSubtotal}
+                        shippingConfig={resolvedShipCfg}
+                        onEstimateChange={setShippingEstimate}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-center gap-3 pt-1 text-[10px] text-neutral-500">
                 <span className="inline-flex items-center gap-1">

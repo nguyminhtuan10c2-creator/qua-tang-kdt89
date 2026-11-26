@@ -51,6 +51,7 @@ import { VoucherEditorModal } from './VoucherEditorModal';
 import { HeroSlidesModal } from './HeroSlidesModal';
 import { GoogleSheetsSyncModal } from './GoogleSheetsSyncModal';
 import { LegacyRecoveryModal } from './LegacyRecoveryModal';
+import { ShippingSettingsModal } from './ShippingSettingsModal';
 import {
   initSheetsAuthListener,
   getSheetsAccessToken,
@@ -109,6 +110,7 @@ export default function AdminApp() {
   const [isHeroSlidesOpen, setIsHeroSlidesOpen] = useState(false);
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
   const [isLegacyRecoveryOpen, setIsLegacyRecoveryOpen] = useState(false);
+  const [isShippingSettingsOpen, setIsShippingSettingsOpen] = useState(false);
   const [sheetsConnected, setSheetsConnected] = useState(false);
   const [sheetsEmail, setSheetsEmail] = useState<string | null>(null);
   const lastAutoSyncedSigRef = useRef<string>('');
@@ -662,6 +664,7 @@ export default function AdminApp() {
               googleSheetUrl={decorSettings?.googleSheetUrl}
               isSheetsConnected={sheetsConnected}
               autoSyncEnabled={Boolean(decorSettings?.googleSheetAutoSyncOnAdmin)}
+              shippingConfig={decorSettings?.shippingConfig}
               onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
               onSyncSheetsNow={async () => {
                 const token = getSheetsAccessToken();
@@ -694,6 +697,7 @@ export default function AdminApp() {
               onOpenHeroSlidesModal={() => setIsHeroSlidesOpen(true)}
               onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
               onOpenLegacyRecovery={() => setIsLegacyRecoveryOpen(true)}
+              onOpenShippingSettings={() => setIsShippingSettingsOpen(true)}
               onToggleWelcomePopup={() => {
                 const currentlyEnabled =
                   decorSettings?.showWelcomePopup !== false &&
@@ -935,6 +939,20 @@ export default function AdminApp() {
         existingOrders={orders}
         existingCustomers={customers}
         candidateProductIds={resolvedProducts.map((p) => p.id)}
+      />
+
+      <ShippingSettingsModal
+        isOpen={isShippingSettingsOpen}
+        onClose={() => setIsShippingSettingsOpen(false)}
+        shippingConfig={decorSettings?.shippingConfig}
+        onSaveConfig={async (nextShipping) => {
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              shippingConfig: nextShipping,
+            },
+          });
+        }}
       />
     </div>
   );

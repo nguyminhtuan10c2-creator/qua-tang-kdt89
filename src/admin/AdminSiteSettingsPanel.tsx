@@ -1,8 +1,9 @@
 import React from 'react';
-import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet, DatabaseBackup } from 'lucide-react';
+import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet, DatabaseBackup, Truck } from 'lucide-react';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { resolveVouchers, getTotalVoucherAmount } from '../data/vouchers';
 import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
+import { resolveShippingConfig } from '../lib/shipping';
 
 interface AdminSiteSettingsPanelProps {
   customTexts: Record<string, string>;
@@ -19,6 +20,7 @@ interface AdminSiteSettingsPanelProps {
   onOpenHeroSlidesModal?: () => void;
   onOpenGoogleSheetsModal?: () => void;
   onOpenLegacyRecovery?: () => void;
+  onOpenShippingSettings?: () => void;
 }
 
 export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
@@ -36,7 +38,9 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
   onOpenHeroSlidesModal,
   onOpenGoogleSheetsModal,
   onOpenLegacyRecovery,
+  onOpenShippingSettings,
 }) => {
+  const resolvedShipping = resolveShippingConfig(decorSettings?.shippingConfig);
   const isWelcomePopupEnabled =
     decorSettings?.showWelcomePopup !== false && !hiddenSections.includes('welcome_popup');
   const activeVouchers = resolveVouchers(decorSettings?.customVouchers);
@@ -330,6 +334,38 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
             </button>
           </div>
         </div>
+
+        {onOpenShippingSettings && (
+          <div className="bg-white border-2 border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:col-span-2">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 flex-wrap">
+                <Truck className="w-4 h-4 text-emerald-700" />
+                <span>Khoảng cách Kho &amp; Tạm tính Phí Ship (Bản đồ OpenStreetMap)</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    resolvedShipping.enabled
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {resolvedShipping.enabled ? 'Đang BẬT' : 'Đang TẮT'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Cài đặt địa chỉ &amp; tọa độ kho ({resolvedShipping.warehouseName}), bán kính freeship ({resolvedShipping.freeRadiusKm} km đầu) và đơn giá/km ({resolvedShipping.pricePerKm.toLocaleString('vi-VN')}đ/km) dùng OpenStreetMap miễn phí không cần API Key.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenShippingSettings}
+              className="py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Truck className="w-3.5 h-3.5" />
+              <span>Cài đặt Kho &amp; Phí Ship</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {onOpenGoogleSheetsModal && (
           <div className="bg-white border-2 border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 md:col-span-2">

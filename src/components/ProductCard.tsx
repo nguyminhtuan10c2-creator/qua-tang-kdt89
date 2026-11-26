@@ -343,13 +343,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               )}
             </div>
-            {customPrice?.isFlashSaleActive &&
+            {customPrice?.isLivestreamPriceActive ? (
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-semibold text-rose-600 tabular-nums">
+                Giá trên Live
+                {customPrice.regularSalePrice && customPrice.regularSalePrice !== programPriceStr
+                  ? ` · Giá thường: ${customPrice.regularSalePrice}`
+                  : ''}
+              </div>
+            ) : customPrice?.isFlashSaleActive &&
               customPrice.regularSalePrice &&
-              customPrice.regularSalePrice !== programPriceStr && (
-                <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-rose-700 tabular-nums">
-                  Giá sale thường: {customPrice.regularSalePrice}
-                </div>
-              )}
+              customPrice.regularSalePrice !== programPriceStr ? (
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-amber-800 tabular-nums">
+                Giá Flash Sale · Giá thường: {customPrice.regularSalePrice}
+              </div>
+            ) : null}
           </div>
 
           {/* Optional Rating & Sold text (only shown if Admin enters it) */}

@@ -178,13 +178,21 @@ export interface SiteDecorSettings {
   showBudgetFilter?: boolean; // Bật / Tắt bộ lọc bảng giá ngân sách (Price Range Slider)
   megaSaleConfig?: MegaSaleCampaignConfig;
   flashSaleMode?: 'auto' | 'teaser' | 'live'; // 'auto': tự động theo ngày | 'teaser': đếm đến ngày sale | 'live': đang diễn ra flash sale ngay bây giờ
-  showFlagshipDeals?: boolean; // Bật / Tắt khối Deal Chủ Lực / Flash Sale Livestream đầu trang
-  flagshipProductIds?: string[]; // Danh sách ID sản phẩm hiển thị trong khối Deal Chủ Lực / Flash Sale (theo thứ tự)
-  livestreamMode?: boolean; // Chế độ hiển thị nổi bật phục vụ Livestream ngay dưới Banner đầu
-  livestreamEndTime?: string; // Thời gian kết thúc đếm ngược phiên Live (ISO datetime hoặc rỗng = 23:59 hôm nay)
-  livestreamShowDealNumbers?: boolean; // Hiện mã số Deal #01, #02... trên từng sản phẩm đang Live
+  showFlagshipDeals?: boolean; // Bật / Tắt khối Flash Sale đầu trang
+  flagshipProductIds?: string[]; // Danh sách ID sản phẩm hiển thị trong khối Flash Sale (theo thứ tự)
+  flashSaleEndTime?: string; // Thời gian kết thúc đếm ngược Flash Sale (ISO datetime hoặc rỗng = 23:59 hôm nay)
   flashSalePrices?: Record<string, string>; // Giá Flash Sale tạm thời theo ID sản phẩm (hết giờ tự về giá sale thường)
-  flashSalePricesEnabled?: boolean; // Bật/tắt áp dụng giá Flash Sale tạm thời trong phiên Live
+  flashSalePricesEnabled?: boolean; // Bật/tắt áp dụng giá Flash Sale tạm thời
+  livestreamMode?: boolean; // Legacy flag (kept for backwards compatibility)
+  livestreamEndTime?: string; // Legacy Flash Sale end time fallback
+  livestreamActive?: boolean; // CHỈ HIỆN Khu Giá Trên Live khi Admin bật (default false)
+  livestreamProductIds?: string[]; // Danh sách ID sản phẩm riêng cho Khu Giá Trên Live
+  livestreamPrices?: Record<string, string>; // Bảng giá riêng trên Livestream theo ID sản phẩm
+  livestreamSessionEndTime?: string; // Giờ kết thúc phiên Live (tùy chọn; rỗng = chạy đến khi Admin tắt)
+  livestreamShowDealNumbers?: boolean; // Hiện mã số Deal #01, #02... trên từng sản phẩm đang Live
+  livestreamBadge?: string; // Dòng chữ trên cùng của Khu Giá Trên Live
+  livestreamTitle?: string; // Tiêu đề lớn Khu Giá Trên Live
+  livestreamHint?: string; // Hướng dẫn ngắn cho khách xem Live
   showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh

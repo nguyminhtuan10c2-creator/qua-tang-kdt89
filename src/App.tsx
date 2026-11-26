@@ -48,6 +48,7 @@ import { resolveFlagshipDeals } from './lib/flagshipDeals';
 import {
   buildEffectiveCustomPrices,
   getFlashSaleWindowStatus,
+  getLivestreamWindowStatus,
   parseLivestreamEndMs,
 } from './lib/flashSalePricing';
 import { trackEvent } from './lib/tracking';
@@ -266,28 +267,47 @@ export default function App() {
   useEffect(() => {
     const syncClockIfWindowChanged = () => {
       const now = Date.now();
-      const prevStatus = getFlashSaleWindowStatus(
+      const prevFlash = getFlashSaleWindowStatus(
         decorSettings,
         hiddenSections,
         flashSaleClockRef.current
       );
-      const nextStatus = getFlashSaleWindowStatus(decorSettings, hiddenSections, now);
-      if (prevStatus.isActive !== nextStatus.isActive || prevStatus.isExpired !== nextStatus.isExpired) {
+      const nextFlash = getFlashSaleWindowStatus(decorSettings, hiddenSections, now);
+      const prevLive = getLivestreamWindowStatus(decorSettings, flashSaleClockRef.current);
+      const nextLive = getLivestreamWindowStatus(decorSettings, now);
+
+      if (
+        prevFlash.isActive !== nextFlash.isActive ||
+        prevFlash.isExpired !== nextFlash.isExpired ||
+        prevLive.isActive !== nextLive.isActive ||
+        prevLive.isExpired !== nextLive.isExpired
+      ) {
         setFlashSaleClockMs(now);
       }
     };
 
-    const endMs = parseLivestreamEndMs(decorSettings?.livestreamEndTime);
-    let exactTimeout: ReturnType<typeof setTimeout> | null = null;
-    if (endMs !== null && endMs > Date.now()) {
-      const waitMs = Math.min(endMs - Date.now() + 80, 2147483647);
-      exactTimeout = setTimeout(() => setFlashSaleClockMs(Date.now()), waitMs);
+    const timeouts: Array<ReturnType<typeof setTimeout>> = [];
+    const scheduleBoundary = (rawIso?: string) => {
+      const endMs = parseLivestreamEndMs(rawIso);
+      if (endMs !== null && endMs > Date.now()) {
+        const waitMs = Math.min(endMs - Date.now() + 80, 2147483647);
+        timeouts.push(setTimeout(() => setFlashSaleClockMs(Date.now()), waitMs));
+      }
+    };
+
+    const flashRawEnd =
+      decorSettings?.flashSaleEndTime !== undefined
+        ? decorSettings.flashSaleEndTime
+        : decorSettings?.livestreamEndTime;
+    scheduleBoundary(flashRawEnd);
+    if (decorSettings?.livestreamActive === true) {
+      scheduleBoundary(decorSettings?.livestreamSessionEndTime);
     }
 
     const periodicInterval = setInterval(syncClockIfWindowChanged, 30000);
     window.addEventListener('focus', syncClockIfWindowChanged);
     return () => {
-      if (exactTimeout) clearTimeout(exactTimeout);
+      timeouts.forEach((t) => clearTimeout(t));
       clearInterval(periodicInterval);
       window.removeEventListener('focus', syncClockIfWindowChanged);
     };
@@ -601,6 +621,43 @@ export default function App() {
     [allProducts, decorSettings?.flagshipProductIds, hiddenProductIds]
   );
 
+  const livestreamWindow = useMemo(
+    () => getLivestreamWindowStatus(decorSettings, flashSaleClockMs),
+    [decorSettings, flashSaleClockMs]
+  );
+
+  const livestreamDeals = useMemo(() => {
+    if (!livestreamWindow.isActive) return [];
+    const configuredLiveIds = decorSettings?.livestreamProductIds;
+    if (Array.isArray(configuredLiveIds) && configuredLiveIds.length > 0) {
+      return resolveFlagshipDeals({
+        allProducts,
+        configuredIds: configuredLiveIds,
+        hiddenProductIds,
+        includeHidden: false,
+      });
+    }
+    const pricedLiveIds = Object.entries(decorSettings?.livestreamPrices || {})
+      .filter(([, price]) => Boolean((price || '').trim()))
+      .map(([id]) => id);
+    if (pricedLiveIds.length > 0) {
+      return resolveFlagshipDeals({
+        allProducts,
+        configuredIds: pricedLiveIds,
+        hiddenProductIds,
+        includeHidden: false,
+      });
+    }
+    return flagshipDeals;
+  }, [
+    livestreamWindow.isActive,
+    decorSettings?.livestreamProductIds,
+    decorSettings?.livestreamPrices,
+    allProducts,
+    hiddenProductIds,
+    flagshipDeals,
+  ]);
+
   const handleExploreProducts = () => {
     window.dispatchEvent(new CustomEvent('kdt89:expand-catalog'));
     const el = document.getElementById('products');
@@ -695,11 +752,38 @@ export default function App() {
           </div>
         )}
 
-        {/* 2.2. Flash Sale Phiên Livestream nổi bật ngay dưới Banner đầu */}
+        {/* 2.1. Khu Giá Trên Live — CHỈ HIỆN KHI ADMIN BẬT LIVESTREAM */}
+        {livestreamWindow.isActive && livestreamDeals.length > 0 && (
+          <LivestreamFlashSaleSection
+            variant="livestream"
+            deals={livestreamDeals}
+            selectedProductIds={selectedProductIds}
+            customImages={customImages}
+            customPrices={effectiveCustomPrices}
+            customTexts={customTexts}
+            decorSettings={decorSettings}
+            hiddenProductIds={hiddenProductIds}
+            isAdmin={false}
+            onToggleProduct={handleToggleProduct}
+            onBuyProduct={handleOpenOrderProduct}
+            onConsultProduct={(product) =>
+              handleOpenConsultation(
+                `${product.name}${product.modelCode ? ` (Mã: ${product.modelCode})` : ''} - Giá trên Live`
+              )
+            }
+            onExploreFullCatalog={handleExploreProducts}
+            onOpenConsultation={(note) =>
+              handleOpenConsultation(note || 'Tư vấn chốt đơn giá trên Livestream')
+            }
+          />
+        )}
+
+        {/* 2.2. Khu Flash Sale (Tách biệt hoàn toàn với Livestream) */}
         {decorSettings?.showFlagshipDeals !== false &&
           !hiddenSections.includes('flash_sale') &&
           flagshipDeals.length > 0 && (
             <LivestreamFlashSaleSection
+              variant="flash_sale"
               deals={flagshipDeals}
               selectedProductIds={selectedProductIds}
               customImages={customImages}
@@ -717,7 +801,7 @@ export default function App() {
               }
               onExploreFullCatalog={handleExploreProducts}
               onOpenConsultation={(note) =>
-                handleOpenConsultation(note || 'Tư vấn chốt đơn Flash Sale phiên Live')
+                handleOpenConsultation(note || 'Tư vấn chốt đơn Flash Sale')
               }
             />
           )}

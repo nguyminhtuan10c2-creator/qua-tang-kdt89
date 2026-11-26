@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Tag, Check, RotateCcw, AlertCircle, Sparkles } from 'lucide-react';
+import { X, DollarSign, Tag, Check, RotateCcw, AlertCircle, Sparkles, Radio } from 'lucide-react';
 import { PRODUCTS, ProductItem } from '../data/products';
 
 export interface CustomPrice {
@@ -17,6 +17,8 @@ interface ProductPriceModalProps {
   productsList?: ProductItem[];
   flashSalePrices?: Record<string, string>;
   onSaveFlashSalePrice?: (productId: string, flashPrice: string) => void;
+  livestreamPrices?: Record<string, string>;
+  onSaveLivestreamPrice?: (productId: string, livePrice: string) => void;
 }
 
 export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
@@ -29,6 +31,8 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   productsList,
   flashSalePrices = {},
   onSaveFlashSalePrice,
+  livestreamPrices = {},
+  onSaveLivestreamPrice,
 }) => {
   const catalog = productsList && productsList.length > 0 ? productsList : PRODUCTS;
   const [selectedProductId, setSelectedProductId] = useState<string>(
@@ -37,6 +41,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   const [programPriceInput, setProgramPriceInput] = useState<string>('');
   const [referencePriceInput, setReferencePriceInput] = useState<string>('');
   const [flashSalePriceInput, setFlashSalePriceInput] = useState<string>('');
+  const [livestreamPriceInput, setLivestreamPriceInput] = useState<string>('');
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
 
@@ -55,8 +60,9 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
       setProgramPriceInput(existing?.programPrice ?? currentProduct.programPrice);
       setReferencePriceInput(existing?.referencePrice ?? currentProduct.referencePrice);
       setFlashSalePriceInput(flashSalePrices[currentProduct.id] || '');
+      setLivestreamPriceInput(livestreamPrices[currentProduct.id] || '');
     }
-  }, [selectedProductId, customPrices, flashSalePrices, currentProduct]);
+  }, [selectedProductId, customPrices, flashSalePrices, livestreamPrices, currentProduct]);
 
   if (!isOpen || !currentProduct) return null;
 
@@ -71,6 +77,9 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
     if (onSaveFlashSalePrice) {
       onSaveFlashSalePrice(currentProduct.id, flashSalePriceInput.trim());
     }
+    if (onSaveLivestreamPrice) {
+      onSaveLivestreamPrice(currentProduct.id, livestreamPriceInput.trim());
+    }
     setSuccessMsg(`Đã cập nhật giá mới cho "${currentProduct.name}"!`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
@@ -80,9 +89,13 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
     if (onSaveFlashSalePrice) {
       onSaveFlashSalePrice(currentProduct.id, '');
     }
+    if (onSaveLivestreamPrice) {
+      onSaveLivestreamPrice(currentProduct.id, '');
+    }
     setProgramPriceInput(currentProduct.programPrice);
     setReferencePriceInput(currentProduct.referencePrice);
     setFlashSalePriceInput('');
+    setLivestreamPriceInput('');
     setSuccessMsg(`Đã khôi phục giá gốc mặc định.`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
@@ -218,7 +231,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
                 <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <label className="text-xs font-bold text-amber-950 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
                       <span>Giá Flash Sale tạm thời (tùy chọn):</span>
                     </label>
                     {flashSalePriceInput.trim() && (
@@ -236,10 +249,41 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
                     value={flashSalePriceInput}
                     onChange={(e) => setFlashSalePriceInput(e.target.value)}
                     placeholder="VD: 1.090.000đ (hết giờ Flash Sale tự về giá sale thường ở trên)"
-                    className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white text-sm font-bold text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                    className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white text-sm font-bold text-amber-900 outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                   />
                   <p className="text-[11px] text-amber-900">
                     Nếu điền, khách sẽ thấy giá này trong lúc phiên Flash Sale còn giờ; hết giờ hệ thống tự trả về Giá chương trình ở trên.
+                  </p>
+                </div>
+              )}
+
+              {/* Optional Livestream-only Price */}
+              {onSaveLivestreamPrice && (
+                <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-rose-950 flex items-center gap-1">
+                      <Radio className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Giá trên Live (chỉ hiện khi bật Livestream):</span>
+                    </label>
+                    {livestreamPriceInput.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setLivestreamPriceInput('')}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Xóa giá Live
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={livestreamPriceInput}
+                    onChange={(e) => setLivestreamPriceInput(e.target.value)}
+                    placeholder="VD: 990.000đ (chỉ áp dụng khi bạn gạt BẬT Khu Giá Trên Live)"
+                    className="w-full px-3 py-2 rounded-lg border border-rose-300 bg-white text-sm font-bold text-rose-700 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  />
+                  <p className="text-[11px] text-rose-900">
+                    Khi bạn tắt Livestream, giá tự động quay về Giá Flash Sale (nếu có) hoặc Giá chương trình.
                   </p>
                 </div>
               )}

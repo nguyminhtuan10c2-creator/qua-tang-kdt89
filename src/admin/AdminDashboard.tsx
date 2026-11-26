@@ -11,6 +11,7 @@ import {
   Trash2,
   Zap,
   DatabaseBackup,
+  Radio,
 } from 'lucide-react';
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
 import type { StoredOrder } from '../lib/firebase';
@@ -34,7 +35,9 @@ interface AdminDashboardProps {
   customImagesCount: number;
   lastUpdatedAt?: string;
   onNavigateTab: (tab: AdminTabId) => void;
-  onOpenFlashSaleShowcase?: () => void;
+  onOpenFlashSaleShowcase?: (initialTab?: 'flash_sale' | 'livestream') => void;
+  livestreamActive?: boolean;
+  onToggleLivestreamActive?: (nextActive: boolean) => void;
   onOpenLegacyRecovery?: () => void;
 }
 
@@ -48,6 +51,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   lastUpdatedAt,
   onNavigateTab,
   onOpenFlashSaleShowcase,
+  livestreamActive = false,
+  onToggleLivestreamActive,
   onOpenLegacyRecovery,
 }) => {
   const activeProducts = resolvedProducts.filter((p) => !p.isDeleted);
@@ -236,17 +241,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </button>
 
+              {onToggleLivestreamActive && (
+                <button
+                  type="button"
+                  onClick={() => onToggleLivestreamActive(!livestreamActive)}
+                  className={`w-full py-2.5 px-4 rounded-lg border text-left flex items-center justify-between text-sm font-semibold transition-colors cursor-pointer ${
+                    livestreamActive
+                      ? 'border-rose-400 bg-rose-600 hover:bg-rose-700 text-white'
+                      : 'border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-800'
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Radio className="w-4 h-4 shrink-0" />
+                    <span>
+                      {livestreamActive
+                        ? 'Khu Giá Trên Live: ĐANG BẬT (Bấm tắt)'
+                        : 'Bật Khu Giá Trên Live (Livestream)'}
+                    </span>
+                  </span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+              )}
+
               {onOpenFlashSaleShowcase && (
                 <button
                   type="button"
-                  onClick={onOpenFlashSaleShowcase}
-                  className="w-full py-2.5 px-4 rounded-lg border border-rose-200 bg-rose-50/70 hover:bg-rose-50 text-left flex items-center justify-between text-sm font-semibold text-rose-800 transition-colors cursor-pointer"
+                  onClick={() => onOpenFlashSaleShowcase('flash_sale')}
+                  className="w-full py-2.5 px-4 rounded-lg border border-amber-200 bg-amber-50/70 hover:bg-amber-100 text-left flex items-center justify-between text-sm font-semibold text-amber-900 transition-colors cursor-pointer"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-rose-600" />
-                    <span>Chỉnh tiêu đề &amp; sản phẩm Flash Sale</span>
+                    <Zap className="w-4 h-4 text-amber-600" />
+                    <span>Quản lý Khu Flash Sale &amp; Giá Live</span>
                   </span>
-                  <ArrowRight className="w-4 h-4 text-rose-400" />
+                  <ArrowRight className="w-4 h-4 text-amber-600" />
                 </button>
               )}
 

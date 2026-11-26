@@ -1,11 +1,15 @@
 import type { ProductItem } from '../data/products';
 import type { SiteDecorSettings } from './firebase';
 
+export type ActivePriceTier = 'livestream' | 'flash_sale' | 'regular';
+
 export interface EffectiveCustomPrice {
   programPrice?: string;
   referencePrice?: string;
   regularSalePrice?: string;
   isFlashSaleActive?: boolean;
+  isLivestreamPriceActive?: boolean;
+  activePriceTier?: ActivePriceTier;
 }
 
 export interface FlashSaleWindowStatus {
@@ -15,11 +19,45 @@ export interface FlashSaleWindowStatus {
   mode: 'custom_timer' | 'daily' | 'disabled';
 }
 
-export function parseLivestreamEndMs(livestreamEndTime?: string): number | null {
-  const raw = (livestreamEndTime || '').trim();
+export interface LivestreamWindowStatus {
+  isActive: boolean;
+  isExpired: boolean;
+  targetEndMs: number | null;
+}
+
+export function parseLivestreamEndMs(endTime?: string): number | null {
+  const raw = (endTime || '').trim();
   if (!raw) return null;
   const parsed = new Date(raw).getTime();
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+export function getLivestreamWindowStatus(
+  decorSettings?: SiteDecorSettings,
+  nowMs: number = Date.now()
+): LivestreamWindowStatus {
+  if (decorSettings?.livestreamActive !== true) {
+    return {
+      isActive: false,
+      isExpired: false,
+      targetEndMs: null,
+    };
+  }
+
+  const endMs = parseLivestreamEndMs(decorSettings?.livestreamSessionEndTime);
+  if (endMs !== null && nowMs > endMs) {
+    return {
+      isActive: false,
+      isExpired: true,
+      targetEndMs: endMs,
+    };
+  }
+
+  return {
+    isActive: true,
+    isExpired: false,
+    targetEndMs: endMs,
+  };
 }
 
 export function getFlashSaleWindowStatus(
@@ -40,7 +78,13 @@ export function getFlashSaleWindowStatus(
     };
   }
 
-  const customEndMs = parseLivestreamEndMs(decorSettings?.livestreamEndTime);
+  // Prefer dedicated flashSaleEndTime; fallback to legacy livestreamEndTime if flashSaleEndTime is unset
+  const rawEndTime =
+    decorSettings?.flashSaleEndTime !== undefined
+      ? decorSettings.flashSaleEndTime
+      : decorSettings?.livestreamEndTime;
+
+  const customEndMs = parseLivestreamEndMs(rawEndTime);
   if (customEndMs !== null) {
     if (nowMs > customEndMs) {
       return {
@@ -77,6 +121,7 @@ export function buildEffectiveCustomPrices(params: {
 }): {
   effectivePrices: Record<string, EffectiveCustomPrice>;
   windowStatus: FlashSaleWindowStatus;
+  livestreamStatus: LivestreamWindowStatus;
 } {
   const {
     products,
@@ -87,16 +132,31 @@ export function buildEffectiveCustomPrices(params: {
   } = params;
 
   const windowStatus = getFlashSaleWindowStatus(decorSettings, hiddenSections, nowMs);
+  const livestreamStatus = getLivestreamWindowStatus(decorSettings, nowMs);
   const flashMap = decorSettings?.flashSalePrices || {};
+  const liveMap = decorSettings?.livestreamPrices || {};
   const effectivePrices: Record<string, EffectiveCustomPrice> = {};
 
   for (const prod of products) {
     const base = baseCustomPrices[prod.id];
     const regularSalePrice = (base?.programPrice || prod.programPrice || '').trim();
     const baseReferencePrice = (base?.referencePrice || prod.referencePrice || '').trim();
+    const liveRaw = (liveMap[prod.id] || '').trim();
     const flashRaw = (flashMap[prod.id] || '').trim();
 
-    if (windowStatus.isActive && flashRaw) {
+    if (livestreamStatus.isActive && liveRaw) {
+      const hasDistinctRegular = regularSalePrice !== '' && regularSalePrice !== liveRaw;
+      effectivePrices[prod.id] = {
+        programPrice: liveRaw,
+        referencePrice:
+          baseReferencePrice && baseReferencePrice !== liveRaw
+            ? baseReferencePrice
+            : regularSalePrice || baseReferencePrice,
+        regularSalePrice: hasDistinctRegular ? regularSalePrice : undefined,
+        isLivestreamPriceActive: true,
+        activePriceTier: 'livestream',
+      };
+    } else if (windowStatus.isActive && flashRaw) {
       const hasDistinctRegular = regularSalePrice !== '' && regularSalePrice !== flashRaw;
       effectivePrices[prod.id] = {
         programPrice: flashRaw,
@@ -106,11 +166,13 @@ export function buildEffectiveCustomPrices(params: {
             : regularSalePrice || baseReferencePrice,
         regularSalePrice: hasDistinctRegular ? regularSalePrice : undefined,
         isFlashSaleActive: true,
+        activePriceTier: 'flash_sale',
       };
     } else if (base) {
       effectivePrices[prod.id] = {
         programPrice: base.programPrice,
         referencePrice: base.referencePrice,
+        activePriceTier: 'regular',
       };
     }
   }
@@ -121,9 +183,10 @@ export function buildEffectiveCustomPrices(params: {
       effectivePrices[pid] = {
         programPrice: base.programPrice,
         referencePrice: base.referencePrice,
+        activePriceTier: 'regular',
       };
     }
   }
 
-  return { effectivePrices, windowStatus };
+  return { effectivePrices, windowStatus, livestreamStatus };
 }

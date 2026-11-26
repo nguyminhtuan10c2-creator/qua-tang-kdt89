@@ -1,5 +1,5 @@
 import React from 'react';
-import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet, DatabaseBackup, Truck } from 'lucide-react';
+import { Type, Palette, Sliders, Camera, EyeOff, ArrowRight, Zap, UserPlus, Ticket, Images, FileSpreadsheet, DatabaseBackup, Truck, Radio } from 'lucide-react';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { resolveVouchers, getTotalVoucherAmount } from '../data/vouchers';
 import { DEFAULT_HERO_SLIDES } from '../data/heroSlides';
@@ -13,7 +13,8 @@ interface AdminSiteSettingsPanelProps {
   onOpenSiteTextEditor: () => void;
   onOpenDecorationModal: () => void;
   onOpenSectionVisibility: () => void;
-  onOpenFlashSaleShowcase: () => void;
+  onOpenFlashSaleShowcase: (initialTab?: 'flash_sale' | 'livestream') => void;
+  onToggleLivestreamActive?: (nextActive: boolean) => void;
   onOpenBrandingImages: (targetId: string) => void;
   onToggleWelcomePopup?: () => void;
   onOpenVoucherEditor?: () => void;
@@ -32,6 +33,7 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
   onOpenDecorationModal,
   onOpenSectionVisibility,
   onOpenFlashSaleShowcase,
+  onToggleLivestreamActive,
   onOpenBrandingImages,
   onToggleWelcomePopup,
   onOpenVoucherEditor,
@@ -174,23 +176,117 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
           </div>
         </div>
 
-        <div className="bg-white border-2 border-rose-200 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-2">
+        {/* Khu Giá Trên Live (CHỈ HIỆN KHI BẬT) */}
+        <div
+          className={`bg-white border-2 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-2 ${
+            decorSettings?.livestreamActive === true ? 'border-rose-400' : 'border-slate-200'
+          }`}
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <Zap className="w-4 h-4 text-rose-600 fill-rose-600" />
-                <span>Flash Sale Phiên Livestream &amp; Deal Chủ Lực (Nổi bật ngay đầu trang)</span>
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 flex-wrap">
+                <Radio
+                  className={`w-4 h-4 ${
+                    decorSettings?.livestreamActive === true ? 'text-rose-600' : 'text-slate-400'
+                  }`}
+                />
+                <span>Khu Giá Trên Live (Chỉ hiện trên trang khách khi bạn BẬT Livestream)</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    decorSettings?.livestreamActive === true
+                      ? 'bg-rose-100 text-rose-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {decorSettings?.livestreamActive === true ? 'ĐANG PHÁT LIVE' : 'Đang TẮT (Ẩn với khách)'}
+                </span>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Chọn danh sách sản phẩm đang lên sóng Livestream (tự đánh mã #01, #02...), chỉnh giờ kết thúc đếm ngược và tiêu đề để khách bấm link Live là thấy ngay đầu trang.
+                Cài giá riêng cho phiên Livestream tách biệt hoàn toàn với giá Flash Sale. Khi bạn tắt Livestream, khu vực này tự ẩn khỏi trang khách và giá quay về Flash Sale / giá thường.
+              </p>
+              <div className="pt-1 text-xs text-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span>
+                  <span className="text-slate-400">SP khu Live:</span>{' '}
+                  <strong>
+                    {decorSettings?.livestreamProductIds?.length
+                      ? `${decorSettings.livestreamProductIds.length} SP riêng`
+                      : 'Theo danh sách Flash Sale'}
+                  </strong>
+                </span>
+                <span>
+                  <span className="text-slate-400">Số món có Giá Live:</span>{' '}
+                  <strong>
+                    {
+                      Object.values(decorSettings?.livestreamPrices || {}).filter((v) =>
+                        Boolean((v || '').trim())
+                      ).length
+                    }{' '}
+                    sản phẩm
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {onToggleLivestreamActive && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onToggleLivestreamActive(decorSettings?.livestreamActive !== true)
+                  }
+                  className={`py-2.5 px-4 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                    decorSettings?.livestreamActive === true
+                      ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                      : 'bg-rose-600 hover:bg-rose-700 text-white'
+                  }`}
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>
+                    {decorSettings?.livestreamActive === true
+                      ? 'Tắt Khu Giá Trên Live'
+                      : 'Bật Khu Giá Trên Live'}
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onOpenFlashSaleShowcase('livestream')}
+                className="py-2.5 px-4 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold inline-flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Chọn SP &amp; Giá Live</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Khu Flash Sale (Tách riêng với Livestream) */}
+        <div className="bg-white border-2 border-amber-200 rounded-xl p-5 flex flex-col justify-between gap-4 md:col-span-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900 flex-wrap">
+                <Zap className="w-4 h-4 text-amber-600 fill-amber-400" />
+                <span>Khu Flash Sale Hôm Nay (Độc lập với Livestream)</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                    decorSettings?.showFlagshipDeals !== false
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {decorSettings?.showFlagshipDeals !== false ? 'Đang HIỆN' : 'Đang ẨN'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Chọn danh sách sản phẩm Flash Sale, cài giá Flash Sale riêng và giờ kết thúc (hết giờ tự động về giá bán thường).
               </p>
               <div className="pt-1 text-xs text-slate-700 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span>
                   <span className="text-slate-400">Tiêu đề hiện tại:</span>{' '}
-                  <strong>{customTexts?.flagshipTitle || 'Flash Sale Phiên Live Hôm Nay'}</strong>
+                  <strong>{customTexts?.flagshipTitle || 'Flash Sale Giá Sốc Hôm Nay'}</strong>
                 </span>
                 <span>
-                  <span className="text-slate-400">Số SP đang lên sóng:</span>{' '}
+                  <span className="text-slate-400">Số SP Flash Sale:</span>{' '}
                   <strong>
                     {decorSettings?.flagshipProductIds?.length
                       ? `${decorSettings.flagshipProductIds.length} SP tùy chọn`
@@ -202,10 +298,10 @@ export const AdminSiteSettingsPanel: React.FC<AdminSiteSettingsPanelProps> = ({
 
             <button
               type="button"
-              onClick={onOpenFlashSaleShowcase}
-              className="py-2.5 px-4 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              onClick={() => onOpenFlashSaleShowcase('flash_sale')}
+              className="py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer"
             >
-              <span>Sửa tiêu đề &amp; chọn SP Flash Sale</span>
+              <span>Sửa Khu &amp; Giá Flash Sale</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

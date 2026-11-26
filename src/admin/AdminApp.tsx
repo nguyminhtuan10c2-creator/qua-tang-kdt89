@@ -106,6 +106,9 @@ export default function AdminApp() {
   const [isDecorOpen, setIsDecorOpen] = useState(false);
   const [isSectionVisOpen, setIsSectionVisOpen] = useState(false);
   const [isFlashSaleShowcaseOpen, setIsFlashSaleShowcaseOpen] = useState(false);
+  const [showcaseInitialTab, setShowcaseInitialTab] = useState<'flash_sale' | 'livestream'>(
+    'flash_sale'
+  );
   const [isVoucherEditorOpen, setIsVoucherEditorOpen] = useState(false);
   const [isHeroSlidesOpen, setIsHeroSlidesOpen] = useState(false);
   const [isSheetsModalOpen, setIsSheetsModalOpen] = useState(false);
@@ -287,6 +290,20 @@ export default function AdminApp() {
   const persistSettings = async (patch: Partial<SiteSettingsData>) => {
     setRawSettings((prev) => ({ ...prev, ...patch }));
     await saveSiteSettingsToFirestore(patch);
+  };
+
+  const openShowcaseTab = (tab: 'flash_sale' | 'livestream' = 'flash_sale') => {
+    setShowcaseInitialTab(tab);
+    setIsFlashSaleShowcaseOpen(true);
+  };
+
+  const handleToggleLivestreamActive = async (nextActive: boolean) => {
+    await persistSettings({
+      decorSettings: {
+        ...decorSettings,
+        livestreamActive: nextActive,
+      },
+    });
   };
 
   const handleSaveProduct = async (updatedProduct: ProductItem) => {
@@ -573,7 +590,9 @@ export default function AdminApp() {
               customImagesCount={Object.keys(customImages).length}
               lastUpdatedAt={rawSettings.updatedAt}
               onNavigateTab={setActiveTab}
-              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
+              onOpenFlashSaleShowcase={(tab) => openShowcaseTab(tab)}
+              livestreamActive={decorSettings?.livestreamActive === true}
+              onToggleLivestreamActive={(next) => void handleToggleLivestreamActive(next)}
               onOpenLegacyRecovery={() => setIsLegacyRecoveryOpen(true)}
             />
           )}
@@ -606,7 +625,7 @@ export default function AdminApp() {
               onSoftDelete={handleSoftDeleteProduct}
               onRestoreProduct={handleRestoreProduct}
               onGoImportExport={() => setActiveTab('import_export')}
-              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
+              onOpenFlashSaleShowcase={() => openShowcaseTab('flash_sale')}
             />
           )}
 
@@ -692,7 +711,8 @@ export default function AdminApp() {
               onOpenSiteTextEditor={() => setIsSiteTextOpen(true)}
               onOpenDecorationModal={() => setIsDecorOpen(true)}
               onOpenSectionVisibility={() => setIsSectionVisOpen(true)}
-              onOpenFlashSaleShowcase={() => setIsFlashSaleShowcaseOpen(true)}
+              onOpenFlashSaleShowcase={(tab) => openShowcaseTab(tab)}
+              onToggleLivestreamActive={(next) => void handleToggleLivestreamActive(next)}
               onOpenVoucherEditor={() => setIsVoucherEditorOpen(true)}
               onOpenHeroSlidesModal={() => setIsHeroSlidesOpen(true)}
               onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
@@ -754,6 +774,21 @@ export default function AdminApp() {
             decorSettings: {
               ...decorSettings,
               flashSalePrices: nextFlashMap,
+            },
+          });
+        }}
+        livestreamPrices={decorSettings?.livestreamPrices || {}}
+        onSaveLivestreamPrice={async (productId, livePrice) => {
+          const nextLiveMap = { ...(decorSettings?.livestreamPrices || {}) };
+          if (livePrice) {
+            nextLiveMap[productId] = livePrice;
+          } else {
+            delete nextLiveMap[productId];
+          }
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              livestreamPrices: nextLiveMap,
             },
           });
         }}
@@ -823,6 +858,7 @@ export default function AdminApp() {
       <FlashSaleShowcaseModal
         isOpen={isFlashSaleShowcaseOpen}
         onClose={() => setIsFlashSaleShowcaseOpen(false)}
+        initialTab={showcaseInitialTab}
         products={resolvedProducts}
         categories={allCategories}
         deletedCategoryIds={deletedCategoryIds}
@@ -838,11 +874,17 @@ export default function AdminApp() {
           flagshipHint,
           showFlagshipDeals,
           flagshipProductIds,
-          livestreamMode,
-          livestreamEndTime,
-          livestreamShowDealNumbers,
+          flashSaleEndTime,
           flashSalePrices,
           flashSalePricesEnabled,
+          livestreamActive,
+          livestreamProductIds,
+          livestreamPrices,
+          livestreamSessionEndTime,
+          livestreamShowDealNumbers,
+          livestreamBadge,
+          livestreamTitle,
+          livestreamHint,
         }) => {
           await persistSettings({
             customTexts: {
@@ -855,11 +897,17 @@ export default function AdminApp() {
               ...decorSettings,
               showFlagshipDeals,
               flagshipProductIds,
-              livestreamMode,
-              livestreamEndTime,
-              livestreamShowDealNumbers,
+              flashSaleEndTime,
               flashSalePrices,
               flashSalePricesEnabled,
+              livestreamActive,
+              livestreamProductIds,
+              livestreamPrices,
+              livestreamSessionEndTime,
+              livestreamShowDealNumbers,
+              livestreamBadge,
+              livestreamTitle,
+              livestreamHint,
             },
           });
         }}

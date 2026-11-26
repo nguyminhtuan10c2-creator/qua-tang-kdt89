@@ -470,6 +470,106 @@ export async function estimateDistanceByAddress(params: {
   });
 }
 
+export interface AddressSuggestion {
+  id: string;
+  label: string;
+  sublabel?: string;
+  lat: number;
+  lng: number;
+  source: 'area_preset' | 'osm_place';
+}
+
+const suggestNominatimCache = new Map<string, AddressSuggestion[]>();
+
+export async function searchAddressSuggestions(
+  query: string,
+  signal?: AbortSignal
+): Promise<AddressSuggestion[]> {
+  const trimmed = query.trim();
+  const norm = stripVietnameseAccents(trimmed);
+  if (!norm) {
+    return VIETNAM_AREA_POINTS.slice(0, 6).map((p) => ({
+      id: p.id,
+      label: p.label,
+      sublabel: p.group,
+      lat: p.lat,
+      lng: p.lng,
+      source: 'area_preset',
+    }));
+  }
+
+  const presetMatches: AddressSuggestion[] = [];
+  for (const pt of VIETNAM_AREA_POINTS) {
+    const labelNorm = stripVietnameseAccents(pt.label);
+    const matchedKw = pt.keywords.some((kw) => labelNorm.includes(norm) || kw.includes(norm) || norm.includes(kw));
+    if (labelNorm.includes(norm) || matchedKw) {
+      presetMatches.push({
+        id: pt.id,
+        label: pt.label,
+        sublabel: pt.group,
+        lat: pt.lat,
+        lng: pt.lng,
+        source: 'area_preset',
+      });
+    }
+  }
+
+  const topPresets = presetMatches.slice(0, 4);
+
+  // Query Nominatim only when the user is typing a specific street/address (>= 4 chars)
+  if (norm.length < 4) {
+    return topPresets;
+  }
+
+  const cached = suggestNominatimCache.get(norm);
+  if (cached) {
+    return [...topPresets, ...cached].slice(0, 6);
+  }
+
+  try {
+    const q = trimmed.toLowerCase().includes('viet') ? trimmed : `${trimmed}, Vietnam`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=vn&limit=4&addressdetails=1&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal,
+    });
+    if (!res.ok) return topPresets;
+    const data = (await res.json()) as Array<{
+      place_id?: number;
+      lat: string;
+      lon: string;
+      display_name?: string;
+    }>;
+
+    const osmHits: AddressSuggestion[] = [];
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        if (isNaN(lat) || isNaN(lng)) continue;
+        const parts = (item.display_name || '')
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const shortLabel = parts.slice(0, 3).join(', ') || trimmed;
+        const sublabel = parts.slice(3, 5).join(', ');
+        osmHits.push({
+          id: `osm-${item.place_id || `${lat}-${lng}`}`,
+          label: shortLabel,
+          sublabel: sublabel || 'OpenStreetMap',
+          lat,
+          lng,
+          source: 'osm_place',
+        });
+      }
+    }
+    suggestNominatimCache.set(norm, osmHits);
+    return [...topPresets, ...osmHits].slice(0, 6);
+  } catch {
+    return topPresets;
+  }
+}
+
 export async function geocodeVietnameseAddress(
   address: string
 ): Promise<{ lat: number; lng: number; displayName: string } | null> {

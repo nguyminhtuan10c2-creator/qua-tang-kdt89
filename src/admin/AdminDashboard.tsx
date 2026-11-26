@@ -22,6 +22,7 @@ export type AdminTabId =
   | 'categories'
   | 'import_export'
   | 'orders'
+  | 'customers'
   | 'settings';
 
 interface AdminDashboardProps {
@@ -80,8 +81,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       value: orders.length,
       meta: `${newOrdersCount} đơn mới · ${customersCount} KH đã đăng ký`,
       icon: ShoppingBag,
-      actionLabel: 'Xem đơn & data KH',
-      targetTab: 'orders' as AdminTabId,
+      actionLabel: 'Xem Data Khách Hàng',
+      targetTab: 'customers' as AdminTabId,
     },
     {
       label: 'Danh mục đang bật',

@@ -17,7 +17,12 @@ import {
   LogOut,
   Ticket,
 } from 'lucide-react';
-import { registerCustomerAccount, loginCustomerAccount } from '../lib/firebase';
+import {
+  registerCustomerAccount,
+  loginCustomerAccount,
+  sendCustomerRegistrationEmailNotification,
+} from '../lib/firebase';
+import { pushCustomerToSheetWebhook } from '../lib/googleSheets';
 import {
   CustomerAccount,
   DEFAULT_VOUCHERS,
@@ -35,6 +40,7 @@ interface CustomerAuthModalProps {
   initialPhone?: string;
   initialName?: string;
   vouchers?: VoucherItem[];
+  googleSheetWebhookUrl?: string;
 }
 
 export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
@@ -48,6 +54,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   initialPhone = '',
   initialName = '',
   vouchers = DEFAULT_VOUCHERS,
+  googleSheetWebhookUrl,
 }) => {
   const activeVouchers = vouchers.length > 0 ? vouchers : DEFAULT_VOUCHERS;
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(initialMode);
@@ -118,13 +125,20 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         voucherCodes: activeVouchers.map((v) => v.code),
       });
 
-      // Save locally
+      // Save locally & push background webhook/email
       localStorage.setItem('kdt89_customer_account', JSON.stringify(account));
+      pushCustomerToSheetWebhook(googleSheetWebhookUrl, account).catch(() => {});
+      sendCustomerRegistrationEmailNotification(account).catch(() => {});
       setWelcomeSuccess(account);
       onLoginSuccess(account);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || 'Có lỗi xảy ra khi tạo tài khoản. Vui lòng thử lại!');
+      const rawMsg = typeof err?.message === 'string' ? err.message : '';
+      const friendlyMsg =
+        rawMsg && !rawMsg.trim().startsWith('{')
+          ? rawMsg
+          : 'Có lỗi xảy ra khi lưu tài khoản. Vui lòng thử lại sau ít phút!';
+      setError(friendlyMsg);
     } finally {
       setIsLoading(false);
     }

@@ -1000,41 +1000,133 @@ export async function registerCustomerAccount(data: {
   address?: string;
   voucherCodes?: string[];
 }): Promise<CustomerAccount> {
-  const cleanPhone = data.phoneNumber.replace(/[^0-9]/g, '');
-  const docRef = doc(db, 'customers', cleanPhone);
+  const cleanPhone = data.phoneNumber.replace(/[^0-9]/g, '').slice(0, 25);
+  if (cleanPhone.length < 8) {
+    throw new Error('Số điện thoại phải có ít nhất 8 chữ số hợp lệ.');
+  }
 
-  const existingSnap = await getDoc(docRef).catch(() => null);
+  const cleanName = data.fullName.trim().slice(0, 100);
+  if (!cleanName) {
+    throw new Error('Vui lòng nhập họ và tên hợp lệ.');
+  }
+
+  const docRef = doc(db, 'customers', cleanPhone);
+  const path = `customers/${cleanPhone}`;
+
+  const existingSnap = await getDocFromServer(docRef).catch(() => getDoc(docRef).catch(() => null));
   if (existingSnap && existingSnap.exists()) {
     throw new Error('Số điện thoại này đã được đăng ký tài khoản trước đó. Vui lòng bấm sang tab Đăng Nhập!');
   }
 
-  const claimedCodes =
+  const rawCodes =
     data.voucherCodes && data.voucherCodes.length > 0
       ? data.voucherCodes
       : ['KDT89-50K', 'KDT89-100K', 'KDT89-200K'];
+  const claimedCodes = rawCodes
+    .map((c) => String(c || '').trim())
+    .filter(Boolean)
+    .slice(0, 20);
 
-  const newAccount: CustomerAccount = {
-    fullName: data.fullName.trim(),
+  const nowIso = new Date().toISOString();
+  const newAccount: CustomerAccount = stripUndefinedDeep({
+    fullName: cleanName,
     phoneNumber: cleanPhone,
-    registeredAt: new Date().toISOString(),
-    lastLoginAt: new Date().toISOString(),
+    registeredAt: nowIso,
+    lastLoginAt: nowIso,
     vouchersClaimed: claimedCodes,
-  };
-
-  if (data.password && data.password.trim()) {
-    newAccount.password = data.password.trim();
-  }
-  if (data.address && data.address.trim()) {
-    newAccount.address = data.address.trim();
-  }
+    ...(data.password && data.password.trim()
+      ? { password: data.password.trim().slice(0, 100) }
+      : {}),
+    ...(data.address && data.address.trim()
+      ? { address: data.address.trim().slice(0, 300) }
+      : {}),
+  });
 
   try {
     await setDoc(docRef, newAccount);
   } catch (error) {
-    console.warn('Firestore set customer account error:', error);
+    handleFirestoreError(error, OperationType.CREATE, path);
   }
 
   return newAccount;
+}
+
+/**
+ * Sync delivery address back to registered customer profile when they place/update an order
+ */
+export async function updateCustomerAddressIfRegistered(
+  phoneNumber: string,
+  address?: string,
+  fullName?: string
+): Promise<void> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '').slice(0, 25);
+  if (cleanPhone.length < 8) return;
+  const docRef = doc(db, 'customers', cleanPhone);
+  try {
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return;
+    const updates: Record<string, string> = {
+      lastLoginAt: new Date().toISOString(),
+    };
+    const trimmedAddr = (address || '').trim();
+    if (
+      trimmedAddr &&
+      !trimmedAddr.startsWith('Sale xác nhận tồn')
+    ) {
+      updates.address = trimmedAddr.slice(0, 300);
+    }
+    const trimmedName = (fullName || '').trim();
+    if (trimmedName) {
+      updates.fullName = trimmedName.slice(0, 100);
+    }
+    await updateDoc(docRef, updates);
+  } catch {
+    // Non-blocking profile enrichment
+  }
+}
+
+/**
+ * Non-blocking email alert when a customer registers an account
+ */
+export async function sendCustomerRegistrationEmailNotification(
+  account: CustomerAccount,
+  targetEmail = ADMIN_NOTIFICATION_EMAIL
+): Promise<void> {
+  try {
+    await fetch(`https://formsubmit.co/ajax/${targetEmail}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        _subject: `👤 [KHÁCH ĐĂNG KÝ MỚI KDT-89] ${account.fullName} - ${account.phoneNumber}`,
+        _template: 'table',
+        _captcha: 'false',
+        'Họ và tên': account.fullName,
+        'Số điện thoại / Zalo': account.phoneNumber,
+        'Địa chỉ': account.address || 'Chưa cập nhật',
+        'Voucher đã nhận': (account.vouchersClaimed || []).join(', '),
+        'Thời gian đăng ký': new Date(account.registeredAt).toLocaleString('vi-VN'),
+      }),
+    });
+  } catch {
+    // Non-blocking; Firestore already persisted the customer record
+  }
+}
+
+/**
+ * Admin: Delete a customer record from Firestore
+ */
+export async function deleteCustomerFromFirestore(phoneNumber: string): Promise<void> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  if (!cleanPhone) return;
+  const path = `customers/${cleanPhone}`;
+  try {
+    await deleteDoc(doc(db, 'customers', cleanPhone));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+  }
 }
 
 /**

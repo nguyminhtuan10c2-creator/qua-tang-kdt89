@@ -5,6 +5,7 @@ import {
   Layers,
   FileSpreadsheet,
   ShoppingBag,
+  Users,
   Settings,
   LogOut,
   ExternalLink,
@@ -22,10 +23,12 @@ import {
   deleteCustomImageFromFirestore,
   subscribeToOrders,
   subscribeToCustomers,
+  subscribeToLeads,
   SiteSettingsData,
   SiteDecorSettings,
   CategoryOverride,
   StoredOrder,
+  StoredLead,
 } from '../lib/firebase';
 import type { CustomerAccount } from '../data/vouchers';
 import { CATEGORIES, ProductItem, CategoryItem } from '../data/products';
@@ -62,6 +65,7 @@ const NAV_ITEMS: Array<{ id: AdminTabId; label: string; icon: React.ComponentTyp
   { id: 'categories', label: 'Quản lý danh mục', icon: Layers },
   { id: 'import_export', label: 'Nhập / Xuất sản phẩm', icon: FileSpreadsheet },
   { id: 'orders', label: 'Quản lý đơn hàng', icon: ShoppingBag },
+  { id: 'customers', label: 'Data Khách Hàng', icon: Users },
   { id: 'settings', label: 'Cài đặt website', icon: Settings },
 ];
 
@@ -84,6 +88,7 @@ export default function AdminApp() {
   const [customers, setCustomers] = useState<CustomerAccount[]>([]);
   const [customersLoading, setCustomersLoading] = useState(true);
   const [customersError, setCustomersError] = useState<string | null>(null);
+  const [leads, setLeads] = useState<StoredLead[]>([]);
 
   // Sub-modals inside /admin
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
@@ -178,11 +183,17 @@ export default function AdminApp() {
       }
     );
 
+    const unsubLeads = subscribeToLeads(
+      (list) => setLeads(list),
+      (err) => console.warn('Admin leads sync error:', err)
+    );
+
     return () => {
       unsubSettings();
       unsubImages();
       unsubOrders();
       unsubCustomers();
+      unsubLeads();
     };
   }, [isAuthorizedAdmin]);
 
@@ -638,7 +649,7 @@ export default function AdminApp() {
             />
           )}
 
-          {activeTab === 'orders' && (
+          {(activeTab === 'orders' || activeTab === 'customers') && (
             <AdminOrdersPanel
               orders={orders}
               loading={ordersLoading}
@@ -646,10 +657,26 @@ export default function AdminApp() {
               customers={customers}
               customersLoading={customersLoading}
               customersError={customersError}
+              leads={leads}
+              initialSubTab={activeTab === 'customers' ? 'customers' : 'orders'}
               googleSheetUrl={decorSettings?.googleSheetUrl}
               isSheetsConnected={sheetsConnected}
               autoSyncEnabled={Boolean(decorSettings?.googleSheetAutoSyncOnAdmin)}
               onOpenGoogleSheetsModal={() => setIsSheetsModalOpen(true)}
+              onSyncSheetsNow={async () => {
+                const token = getSheetsAccessToken();
+                const sheetId = decorSettings?.googleSheetId;
+                if (!token || !sheetId) {
+                  setIsSheetsModalOpen(true);
+                  return;
+                }
+                await syncOrdersAndCustomersToSheet({
+                  accessToken: token,
+                  spreadsheetId: sheetId,
+                  orders,
+                  customers,
+                });
+              }}
             />
           )}
 

@@ -28,6 +28,7 @@ import {
   ADMIN_NOTIFICATION_EMAIL,
   checkVoucherRedeemed,
   recordVoucherRedemption,
+  updateCustomerAddressIfRegistered,
 } from '../lib/firebase';
 import { ProductItem, ComboItem, COMPANY_INFO } from '../data/products';
 import {
@@ -372,9 +373,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
         createdAt: new Date().toISOString(),
       };
 
-      // Silent background email notification & Google Sheet 24/7 webhook for admin/warehouse
+      // Silent background email notification, profile address enrichment & Google Sheet 24/7 webhook
       sendOrderEmailNotification(storedOrder, ADMIN_NOTIFICATION_EMAIL).catch(() => {});
       pushOrderToSheetWebhook(googleSheetWebhookUrl, 'new_order', storedOrder).catch(() => {});
+      updateCustomerAddressIfRegistered(trimmedPhone, initialAddress, trimmedName).catch(() => {});
 
       trackEvent('submit_hold_success', {
         orderId,
@@ -425,6 +427,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       };
       setCompletedOrder(updatedOrder);
       pushOrderToSheetWebhook(googleSheetWebhookUrl, 'update_address', updatedOrder).catch(() => {});
+      updateCustomerAddressIfRegistered(
+        completedOrder.phoneNumber,
+        trimmedAddr,
+        completedOrder.customerName
+      ).catch(() => {});
       setIsAddressSaved(true);
     } catch (err: any) {
       setAddressError(err.message || 'Không thể lưu địa chỉ lúc này, sale sẽ gọi xác nhận trực tiếp.');

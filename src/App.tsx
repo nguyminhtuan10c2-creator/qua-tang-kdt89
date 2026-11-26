@@ -795,6 +795,7 @@ export default function App() {
         currentAccount={customerAccount}
         onLogoutCustomer={handleLogoutCustomer}
         vouchers={activeVouchers}
+        googleSheetWebhookUrl={decorSettings?.googleSheetWebhookUrl}
         onOpenVoucherWallet={() => {
           setIsCustomerAuthOpen(false);
           setIsVoucherWalletOpen(true);
@@ -857,6 +858,7 @@ export default function App() {
         customHeroImage={customImages['site-hero-image']}
         customMascotImage={customImages['site-welcome-mascot']}
         vouchers={activeVouchers}
+        googleSheetWebhookUrl={decorSettings?.googleSheetWebhookUrl}
       />
 
       {/* 17. Floating Welcome Mascot (Tụt vào mép màn hình khi lướt mobile, bấm để mở Voucher & Đăng ký) */}

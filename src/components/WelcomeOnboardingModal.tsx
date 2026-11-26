@@ -20,7 +20,9 @@ import { DEFAULT_WELCOME_MASCOT_IMAGE } from '../data/heroSlides';
 import {
   registerCustomerAccount,
   loginCustomerAccount,
+  sendCustomerRegistrationEmailNotification,
 } from '../lib/firebase';
+import { pushCustomerToSheetWebhook } from '../lib/googleSheets';
 import {
   CustomerAccount,
   DEFAULT_VOUCHERS,
@@ -38,6 +40,7 @@ interface WelcomeOnboardingModalProps {
   customHeroImage?: string;
   customMascotImage?: string;
   vouchers?: VoucherItem[];
+  googleSheetWebhookUrl?: string;
 }
 
 export const WelcomeOnboardingModal: React.FC<WelcomeOnboardingModalProps> = ({
@@ -48,6 +51,7 @@ export const WelcomeOnboardingModal: React.FC<WelcomeOnboardingModalProps> = ({
   customTexts = {},
   customMascotImage,
   vouchers = DEFAULT_VOUCHERS,
+  googleSheetWebhookUrl,
 }) => {
   const [slideIdx, setSlideIdx] = useState<0 | 1>(0);
   const [authTab, setAuthTab] = useState<'register' | 'login'>('register');
@@ -106,13 +110,18 @@ export const WelcomeOnboardingModal: React.FC<WelcomeOnboardingModalProps> = ({
         voucherCodes: activeVouchers.map((v) => v.code),
       });
       localStorage.setItem('kdt89_customer_account', JSON.stringify(account));
+      pushCustomerToSheetWebhook(googleSheetWebhookUrl, account).catch(() => {});
+      sendCustomerRegistrationEmailNotification(account).catch(() => {});
       setCreatedAccount(account);
       onLoginSuccess(account);
       onDismissForever();
     } catch (err: any) {
-      setError(
-        err?.message || 'Số điện thoại này có thể đã đăng ký. Bấm sang tab Đã có TK nhé!'
-      );
+      const rawMsg = typeof err?.message === 'string' ? err.message : '';
+      const friendlyMsg =
+        rawMsg && !rawMsg.trim().startsWith('{')
+          ? rawMsg
+          : 'Không thể lưu tài khoản lúc này. Vui lòng thử lại hoặc nhắn Zalo 0397.017.013.';
+      setError(friendlyMsg);
     } finally {
       setIsSubmitting(false);
     }

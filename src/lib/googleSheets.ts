@@ -576,17 +576,96 @@ export async function pushOrderToSheetWebhook(
   }
 }
 
+/**
+ * Push newly registered customer account to Google Apps Script Webhook 24/7 (works even when /admin is closed).
+ */
+export async function pushCustomerToSheetWebhook(
+  webhookUrl: string | undefined,
+  account: CustomerAccount
+): Promise<void> {
+  const url = (webhookUrl || '').trim();
+  if (!url || (!url.startsWith('https://script.google.com/') && !url.startsWith('https://'))) {
+    return;
+  }
+
+  const payload = {
+    eventType: 'new_customer',
+    customerName: account.fullName || '',
+    phoneNumber: account.phoneNumber || '',
+    address: account.address || '',
+    vouchersClaimed: (account.vouchersClaimed || []).join(' | '),
+    createdAt: account.registeredAt
+      ? new Date(account.registeredAt).toLocaleString('vi-VN')
+      : new Date().toLocaleString('vi-VN'),
+  };
+
+  try {
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn('Webhook Google Sheet customer non-blocking warning:', err);
+  }
+}
+
 export const GOOGLE_APPS_SCRIPT_TEMPLATE = `// Dán toàn bộ đoạn mã này vào Google Sheet -> Tiện ích mở rộng -> Apps Script
 // Sau đó bấm: Triển khai (Deploy) -> Tùy chọn triển khai mới -> Ứng dụng web
 // Quyền truy cập: "Bất kỳ ai" (Anyone) -> Sao chép URL dán vào trang Quản trị KDT-89!
 
 const SHEET_NAME = 'Don_Hang_Kho';
-const NOTIFY_EMAIL = ''; // (Tùy chọn) Nhập Gmail của anh nếu muốn nhận thêm email khi có đơn mới
+const CUSTOMER_SHEET_NAME = 'Khach_Hang_Livestream';
+const NOTIFY_EMAIL = ''; // (Tùy chọn) Nhập Gmail của anh nếu muốn nhận thêm email khi có đơn/khách mới
 
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents || '{}');
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    const phoneText = (data.phoneNumber || '').toString().startsWith('0')
+      ? "'" + data.phoneNumber
+      : (data.phoneNumber || '');
+
+    // Nếu là khách hàng đăng ký tài khoản mới -> lưu vào tab Khach_Hang_Livestream
+    if (data.eventType === 'new_customer') {
+      let cSheet = ss.getSheetByName(CUSTOMER_SHEET_NAME);
+      if (!cSheet) {
+        cSheet = ss.insertSheet(CUSTOMER_SHEET_NAME);
+        const cHeaders = [
+          'Họ tên khách hàng', 'SĐT / Zalo', 'Địa chỉ',
+          'Voucher đã nhận', 'Ngày đăng ký', 'Đăng nhập gần nhất'
+        ];
+        cSheet.getRange(1, 1, 1, cHeaders.length).setValues([cHeaders])
+          .setFontWeight('bold').setBackground('#047857').setFontColor('#FFFFFF');
+        cSheet.setFrozenRows(1);
+      }
+      const cleanPhone = (data.phoneNumber || '').toString().replace(/[^0-9]/g, '');
+      const lastCustRow = cSheet.getLastRow();
+      if (lastCustRow > 1 && cleanPhone) {
+        const phones = cSheet.getRange(2, 2, lastCustRow - 1, 1).getValues();
+        for (let i = 0; i < phones.length; i++) {
+          if (String(phones[i][0]).replace(/[^0-9]/g, '') === cleanPhone) {
+            return ContentService.createTextOutput(JSON.stringify({ ok: true, duplicate: true }))
+              .setMimeType(ContentService.MimeType.JSON);
+          }
+        }
+      }
+      cSheet.appendRow([
+        data.customerName || '',
+        phoneText,
+        data.address || '',
+        data.vouchersClaimed || '',
+        data.createdAt || new Date().toLocaleString('vi-VN'),
+        data.createdAt || new Date().toLocaleString('vi-VN')
+      ]);
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, customerSaved: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     let sheet = ss.getSheetByName(SHEET_NAME);
 
     if (!sheet) {
@@ -600,10 +679,6 @@ function doPost(e) {
         .setFontWeight('bold').setBackground('#C81E2E').setFontColor('#FFFFFF');
       sheet.setFrozenRows(1);
     }
-
-    const phoneText = (data.phoneNumber || '').toString().startsWith('0')
-      ? "'" + data.phoneNumber
-      : (data.phoneNumber || '');
 
     // Nếu là cập nhật địa chỉ Bước 2 -> tìm đúng dòng Mã đơn để cập nhật địa chỉ & ghi chú
     if (data.eventType === 'update_address' && data.orderId) {

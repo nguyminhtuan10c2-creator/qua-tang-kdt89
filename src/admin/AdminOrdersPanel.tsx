@@ -13,11 +13,16 @@ import {
   Ticket,
   Calendar,
   FileSpreadsheet,
+  Copy,
+  Check,
+  RefreshCw,
 } from 'lucide-react';
 import {
   StoredOrder,
+  StoredLead,
   updateOrderStatus,
   deleteOrderFromFirestore,
+  deleteCustomerFromFirestore,
   generateOrderMailtoUri,
   ADMIN_NOTIFICATION_EMAIL,
 } from '../lib/firebase';
@@ -31,10 +36,13 @@ interface AdminOrdersPanelProps {
   customers?: CustomerAccount[];
   customersLoading?: boolean;
   customersError?: string | null;
+  leads?: StoredLead[];
+  initialSubTab?: 'orders' | 'customers';
   googleSheetUrl?: string;
   isSheetsConnected?: boolean;
   autoSyncEnabled?: boolean;
   onOpenGoogleSheetsModal?: () => void;
+  onSyncSheetsNow?: () => Promise<void>;
 }
 
 const ORDER_STATUSES: Array<'Mới' | 'Đã liên hệ' | 'Đang giao' | 'Hoàn thành' | 'Đã hủy'> = [
@@ -52,18 +60,28 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
   customers = [],
   customersLoading = false,
   customersError = null,
+  leads = [],
+  initialSubTab = 'orders',
   googleSheetUrl,
   isSheetsConnected = false,
   autoSyncEnabled = false,
   onOpenGoogleSheetsModal,
+  onSyncSheetsNow,
 }) => {
-  const [subTab, setSubTab] = useState<'orders' | 'customers'>('orders');
+  const [subTab, setSubTab] = useState<'orders' | 'customers'>(initialSubTab);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [copiedPhones, setCopiedPhones] = useState(false);
+  const [syncingSheets, setSyncingSheets] = useState(false);
+  const [deletingCustomerPhone, setDeletingCustomerPhone] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setSubTab(initialSubTab);
+  }, [initialSubTab]);
 
   const filteredCustomers = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -102,6 +120,42 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
       `kdt89-khach-hang-${new Date().toISOString().slice(0, 10)}.csv`,
       'text/csv;charset=utf-8;'
     );
+  };
+
+  const handleCopyAllPhones = async () => {
+    const phones = filteredCustomers.map((c) => c.phoneNumber).filter(Boolean).join('\n');
+    if (!phones) return;
+    try {
+      await navigator.clipboard.writeText(phones);
+      setCopiedPhones(true);
+      setTimeout(() => setCopiedPhones(false), 2000);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
+
+  const handleQuickSheetsSync = async () => {
+    if (!onSyncSheetsNow) {
+      onOpenGoogleSheetsModal?.();
+      return;
+    }
+    setSyncingSheets(true);
+    try {
+      await onSyncSheetsNow();
+    } finally {
+      setSyncingSheets(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (phoneNumber: string) => {
+    setDeletingCustomerPhone(phoneNumber);
+    try {
+      await deleteCustomerFromFirestore(phoneNumber);
+    } catch (err) {
+      console.error('Lỗi xóa khách hàng:', err);
+    } finally {
+      setDeletingCustomerPhone(null);
+    }
   };
 
   const filteredOrders = useMemo(() => {
@@ -244,6 +298,18 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap shrink-0">
+              {isSheetsConnected && onSyncSheetsNow && (
+                <button
+                  type="button"
+                  onClick={() => void handleQuickSheetsSync()}
+                  disabled={syncingSheets}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-bold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-2xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingSheets ? 'animate-spin' : ''}`} />
+                  <span>{syncingSheets ? 'Đang đồng bộ...' : 'Đồng bộ ngay lên Sheet'}</span>
+                </button>
+              )}
+
               {onOpenGoogleSheetsModal && (
                 <button
                   type="button"
@@ -272,12 +338,26 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
 
               <button
                 type="button"
+                onClick={() => void handleCopyAllPhones()}
+                disabled={filteredCustomers.length === 0}
+                className="px-3 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              >
+                {copiedPhones ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span>{copiedPhones ? 'Đã copy SĐT' : 'Copy SĐT'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleExportCustomersCSV}
                 disabled={filteredCustomers.length === 0}
                 className="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Xuất CSV ({filteredCustomers.length})</span>
+                <span>Xuất Excel / CSV ({filteredCustomers.length})</span>
               </button>
             </div>
           </div>
@@ -319,6 +399,7 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                       <th className="py-3 px-4">Địa chỉ</th>
                       <th className="py-3 px-4">Voucher đã nhận</th>
                       <th className="py-3 px-4">Ngày đăng ký</th>
+                      <th className="py-3 px-4 text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -374,6 +455,69 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                                   : '—'}
                               </span>
                             </div>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteCustomer(cust.phoneNumber)}
+                              disabled={deletingCustomerPhone === cust.phoneNumber}
+                              title="Xóa khách hàng này"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-40"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {leads.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden mt-4">
+              <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-2">
+                <div className="text-xs font-bold text-slate-800">
+                  Khách để lại SĐT tư vấn ({leads.length})
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  Từ form đăng ký tư vấn / chọn quà
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-2.5 px-4">Họ tên</th>
+                      <th className="py-2.5 px-4">SĐT / Zalo</th>
+                      <th className="py-2.5 px-4">Nhu cầu / Sản phẩm</th>
+                      <th className="py-2.5 px-4">Ngày gửi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {leads.map((lead) => {
+                      const cleanPhone = (lead.phoneNumber || '').replace(/[^0-9]/g, '');
+                      return (
+                        <tr key={lead.id} className="hover:bg-slate-50/70">
+                          <td className="py-2.5 px-4 font-semibold text-slate-900">
+                            {lead.fullName}
+                          </td>
+                          <td className="py-2.5 px-4 font-mono font-bold text-blue-700">
+                            <a href={`tel:${cleanPhone}`} className="hover:underline">
+                              {lead.phoneNumber}
+                            </a>
+                          </td>
+                          <td className="py-2.5 px-4 text-xs text-slate-600">
+                            {[lead.recipient, lead.budgetTier, lead.interestedProducts, lead.giftNote]
+                              .filter(Boolean)
+                              .join(' · ') || 'Cần tư vấn'}
+                          </td>
+                          <td className="py-2.5 px-4 text-xs text-slate-500 tabular-nums whitespace-nowrap">
+                            {lead.createdAt
+                              ? new Date(lead.createdAt).toLocaleString('vi-VN')
+                              : '—'}
                           </td>
                         </tr>
                       );

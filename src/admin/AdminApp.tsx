@@ -885,6 +885,8 @@ export default function AdminApp() {
           livestreamBadge,
           livestreamTitle,
           livestreamHint,
+          flashSaleTheme,
+          livestreamTheme,
         }) => {
           await persistSettings({
             customTexts: {
@@ -908,6 +910,8 @@ export default function AdminApp() {
               livestreamBadge,
               livestreamTitle,
               livestreamHint,
+              flashSaleTheme,
+              livestreamTheme,
             },
           });
         }}

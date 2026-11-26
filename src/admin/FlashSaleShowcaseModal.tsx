@@ -25,6 +25,16 @@ import {
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { parseLivestreamEndMs } from '../lib/flashSalePricing';
+import {
+  DEFAULT_FLASH_SALE_THEME,
+  DEFAULT_LIVESTREAM_THEME,
+  SECTION_PATTERN_OPTIONS,
+  SECTION_THEME_PRESETS,
+  type SectionBgTheme,
+  isLightGradient,
+  normalizeSectionTheme,
+} from '../lib/sectionTheme';
+import { SectionThemeBackdrop } from '../components/SectionThemeBackdrop';
 
 export type ShowcaseModalTab = 'flash_sale' | 'livestream';
 
@@ -56,6 +66,8 @@ interface FlashSaleShowcaseModalProps {
     livestreamBadge: string;
     livestreamTitle: string;
     livestreamHint: string;
+    flashSaleTheme: SectionBgTheme;
+    livestreamTheme: SectionBgTheme;
   }) => Promise<void>;
   onEditPrice?: (product: ProductItem) => void;
 }
@@ -101,6 +113,7 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
   const [flashSalePricesEnabled, setFlashSalePricesEnabled] = useState(true);
   const [flashSalePricesMap, setFlashSalePricesMap] = useState<Record<string, string>>({});
   const [selectedFlashIds, setSelectedFlashIds] = useState<string[]>([]);
+  const [flashSaleTheme, setFlashSaleTheme] = useState<SectionBgTheme>(DEFAULT_FLASH_SALE_THEME);
 
   // Tab 2: Livestream-only state
   const [livestreamActive, setLivestreamActive] = useState(false);
@@ -111,6 +124,7 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
   const [livestreamSessionEndTime, setLivestreamSessionEndTime] = useState('');
   const [livestreamPricesMap, setLivestreamPricesMap] = useState<Record<string, string>>({});
   const [selectedLiveIds, setSelectedLiveIds] = useState<string[]>([]);
+  const [livestreamTheme, setLivestreamTheme] = useState<SectionBgTheme>(DEFAULT_LIVESTREAM_THEME);
 
   // Shared search & saving state
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,6 +166,9 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setFlashSaleEndTime(initialFlashEnd);
       setFlashSalePricesEnabled(decorSettings?.flashSalePricesEnabled !== false);
       setFlashSalePricesMap(decorSettings?.flashSalePrices || {});
+      setFlashSaleTheme(
+        normalizeSectionTheme(decorSettings?.flashSaleTheme, DEFAULT_FLASH_SALE_THEME)
+      );
 
       const configuredFlash = decorSettings?.flagshipProductIds;
       const resolvedFlash =
@@ -168,6 +185,9 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setShowDealNumbers(decorSettings?.livestreamShowDealNumbers !== false);
       setLivestreamSessionEndTime(decorSettings?.livestreamSessionEndTime || '');
       setLivestreamPricesMap(decorSettings?.livestreamPrices || {});
+      setLivestreamTheme(
+        normalizeSectionTheme(decorSettings?.livestreamTheme, DEFAULT_LIVESTREAM_THEME)
+      );
 
       const configuredLive = decorSettings?.livestreamProductIds;
       if (Array.isArray(configuredLive) && configuredLive.length > 0) {
@@ -269,6 +289,7 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setLiveHintText(DEFAULT_LIVE_HINT);
       setShowDealNumbers(true);
       setLivestreamSessionEndTime('');
+      setLivestreamTheme(DEFAULT_LIVESTREAM_THEME);
       setSelectedLiveIds(selectedFlashIds.length > 0 ? selectedFlashIds : resolveDefaultIds);
     } else {
       setBadgeText(DEFAULT_FLASH_BADGE);
@@ -277,6 +298,7 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setShowSection(true);
       setFlashSaleEndTime('');
       setFlashSalePricesEnabled(true);
+      setFlashSaleTheme(DEFAULT_FLASH_SALE_THEME);
       setSelectedFlashIds(resolveDefaultIds);
     }
   };
@@ -319,6 +341,8 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
         livestreamBadge: liveBadgeText.trim() || DEFAULT_LIVE_BADGE,
         livestreamTitle: liveTitleText.trim() || DEFAULT_LIVE_TITLE,
         livestreamHint: liveHintText.trim() || DEFAULT_LIVE_HINT,
+        flashSaleTheme,
+        livestreamTheme,
       });
       setSavedSuccess(true);
       setTimeout(() => {
@@ -499,27 +523,46 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
 
               {/* Preview Stage Banner */}
               <div
-                className={`p-4 rounded-2xl bg-neutral-950 border border-rose-500/40 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity ${
-                  livestreamActive ? 'opacity-100' : 'opacity-50'
+                className={`relative p-4 rounded-2xl border-2 border-yellow-300/80 overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity ${
+                  livestreamActive ? 'opacity-100' : 'opacity-55'
                 }`}
               >
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-300">
-                    <Radio className="w-3.5 h-3.5 text-rose-400" />
+                <SectionThemeBackdrop theme={livestreamTheme} />
+                <div className="relative z-10">
+                  <div
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                      isLightGradient(livestreamTheme.fromColor, livestreamTheme.toColor)
+                        ? 'text-neutral-900'
+                        : 'text-white'
+                    }`}
+                  >
+                    <Radio className="w-3.5 h-3.5 text-yellow-300" />
                     <span>{liveBadgeText || DEFAULT_LIVE_BADGE}</span>
-                    <span className="text-neutral-500">·</span>
-                    <span className="text-amber-300 tabular-nums">
+                    <span className="opacity-50">·</span>
+                    <span className="text-yellow-300 tabular-nums">
                       {selectedProducts.length} mã trên Live
                     </span>
                   </div>
-                  <div className="text-base sm:text-xl font-black tracking-tight mt-0.5">
+                  <div
+                    className={`text-base sm:text-xl font-black tracking-tight mt-0.5 ${
+                      isLightGradient(livestreamTheme.fromColor, livestreamTheme.toColor)
+                        ? 'text-neutral-950'
+                        : 'text-white'
+                    }`}
+                  >
                     {liveTitleText || DEFAULT_LIVE_TITLE}
                   </div>
-                  <div className="text-xs text-neutral-300 mt-0.5">
+                  <div
+                    className={`text-xs mt-0.5 ${
+                      isLightGradient(livestreamTheme.fromColor, livestreamTheme.toColor)
+                        ? 'text-neutral-800'
+                        : 'text-white/90'
+                    }`}
+                  >
                     {liveHintText || DEFAULT_LIVE_HINT}
                   </div>
                 </div>
-                <div className="text-xs font-semibold text-rose-200 bg-rose-600/25 border border-rose-400/30 rounded-xl px-3 py-1.5 shrink-0 whitespace-nowrap">
+                <div className="relative z-10 text-xs font-bold text-red-950 bg-yellow-300 rounded-xl px-3 py-1.5 shrink-0 whitespace-nowrap shadow-xs">
                   {livestreamSessionEndTime ? 'Có hẹn giờ tự tắt' : 'Chạy đến khi tắt tay'}
                 </div>
               </div>
@@ -625,33 +668,52 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
             <>
               {/* Preview Flash Sale Banner */}
               <div
-                className={`p-4 rounded-2xl bg-gradient-to-br from-rose-50 via-white to-amber-50 border border-amber-200 text-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity ${
+                className={`relative p-4 rounded-2xl border border-black/10 overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-opacity ${
                   showSection ? 'opacity-100' : 'opacity-45'
                 }`}
               >
-                <div>
-                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700">
-                    <Zap className="w-3.5 h-3.5 text-rose-600 fill-amber-400" />
+                <SectionThemeBackdrop theme={flashSaleTheme} />
+                <div className="relative z-10">
+                  <div
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold ${
+                      isLightGradient(flashSaleTheme.fromColor, flashSaleTheme.toColor)
+                        ? 'text-neutral-900'
+                        : 'text-white'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
                     <span>{badgeText || DEFAULT_FLASH_BADGE}</span>
-                    <span className="text-slate-300">·</span>
-                    <span className="text-amber-800 tabular-nums">
+                    <span className="opacity-50">·</span>
+                    <span className="text-yellow-200 tabular-nums">
                       {selectedProducts.length} deal nổi bật
                     </span>
                   </div>
-                  <div className="text-base sm:text-xl font-black tracking-tight mt-0.5">
+                  <div
+                    className={`text-base sm:text-xl font-black tracking-tight mt-0.5 ${
+                      isLightGradient(flashSaleTheme.fromColor, flashSaleTheme.toColor)
+                        ? 'text-neutral-950'
+                        : 'text-white'
+                    }`}
+                  >
                     {titleText || DEFAULT_FLASH_TITLE}
                   </div>
-                  <div className="text-xs text-slate-600 mt-0.5">
+                  <div
+                    className={`text-xs mt-0.5 ${
+                      isLightGradient(flashSaleTheme.fromColor, flashSaleTheme.toColor)
+                        ? 'text-neutral-800'
+                        : 'text-white/90'
+                    }`}
+                  >
                     {hintText || DEFAULT_FLASH_HINT}
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 font-mono font-black text-xs tabular-nums shrink-0">
-                  <span className="text-slate-500 font-sans font-medium mr-1">Flash Sale:</span>
-                  <span className="bg-slate-900 text-white px-2 py-1 rounded">02</span>
-                  <span className="text-rose-500">:</span>
-                  <span className="bg-slate-900 text-white px-2 py-1 rounded">15</span>
-                  <span className="text-rose-500">:</span>
-                  <span className="bg-rose-600 text-white px-2 py-1 rounded">00</span>
+                <div className="relative z-10 flex items-center gap-1.5 font-mono font-black text-xs tabular-nums shrink-0 bg-black/20 px-2.5 py-1.5 rounded-xl">
+                  <span className="text-white font-sans font-medium mr-1">Flash Sale:</span>
+                  <span className="bg-white text-orange-700 px-2 py-0.5 rounded">02</span>
+                  <span className="text-yellow-200">:</span>
+                  <span className="bg-white text-orange-700 px-2 py-0.5 rounded">15</span>
+                  <span className="text-yellow-200">:</span>
+                  <span className="bg-red-600 text-white px-2 py-0.5 rounded">00</span>
                 </div>
               </div>
 
@@ -755,6 +817,147 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
               </div>
             </>
           )}
+
+          {/* Background Color Gradient & Pattern Customizer (Applies to active Tab) */}
+          {(() => {
+            const activeTheme = isLiveTab ? livestreamTheme : flashSaleTheme;
+            const setActiveTheme = isLiveTab ? setLivestreamTheme : setFlashSaleTheme;
+            return (
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-bold text-slate-900">
+                    {isLiveTab
+                      ? 'Màu nền Gradient & Hoa văn — Khu Giá Trên Live'
+                      : 'Màu nền Gradient & Hoa văn — Khu Flash Sale'}
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <span>Xem trước trực tiếp ở khung trên</span>
+                  </div>
+                </div>
+
+                {/* Preset Swatches */}
+                <div className="flex flex-wrap gap-1.5">
+                  {SECTION_THEME_PRESETS.map((preset) => {
+                    const isActive =
+                      activeTheme.fromColor.toLowerCase() === preset.fromColor.toLowerCase() &&
+                      activeTheme.toColor.toLowerCase() === preset.toColor.toLowerCase();
+                    const gradSvgId = `sw-${preset.id}`;
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() =>
+                          setActiveTheme((prev) => ({
+                            ...prev,
+                            presetId: preset.id,
+                            fromColor: preset.fromColor,
+                            toColor: preset.toColor,
+                          }))
+                        }
+                        className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border inline-flex items-center gap-1.5 cursor-pointer transition-all ${
+                          isActive
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <svg className="w-3.5 h-3.5 rounded-xs shrink-0" viewBox="0 0 16 16">
+                          <defs>
+                            <linearGradient id={gradSvgId} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor={preset.fromColor} />
+                              <stop offset="100%" stopColor={preset.toColor} />
+                            </linearGradient>
+                          </defs>
+                          <rect width="16" height="16" rx="3" fill={`url(#${gradSvgId})`} />
+                        </svg>
+                        <span>{preset.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom 2-Color Pickers + Pattern Toggle */}
+                <div className="pt-2 border-t border-slate-200/80 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <label className="inline-flex items-center gap-1.5 font-semibold text-slate-700 cursor-pointer">
+                      <span>Màu đầu:</span>
+                      <input
+                        type="color"
+                        value={activeTheme.fromColor}
+                        onChange={(e) =>
+                          setActiveTheme((prev) => ({
+                            ...prev,
+                            presetId: 'custom',
+                            fromColor: e.target.value,
+                          }))
+                        }
+                        className="w-7 h-7 p-0.5 rounded border border-slate-300 bg-white cursor-pointer"
+                      />
+                      <span className="font-mono text-[11px] text-slate-500">
+                        {activeTheme.fromColor}
+                      </span>
+                    </label>
+
+                    <label className="inline-flex items-center gap-1.5 font-semibold text-slate-700 cursor-pointer">
+                      <span>Màu cuối:</span>
+                      <input
+                        type="color"
+                        value={activeTheme.toColor}
+                        onChange={(e) =>
+                          setActiveTheme((prev) => ({
+                            ...prev,
+                            presetId: 'custom',
+                            toColor: e.target.value,
+                          }))
+                        }
+                        className="w-7 h-7 p-0.5 rounded border border-slate-300 bg-white cursor-pointer"
+                      />
+                      <span className="font-mono text-[11px] text-slate-500">
+                        {activeTheme.toColor}
+                      </span>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setActiveTheme((prev) => ({
+                          ...prev,
+                          presetId: 'custom',
+                          fromColor: prev.toColor,
+                          toColor: prev.fromColor,
+                        }))
+                      }
+                      className="px-2 py-1 rounded-md bg-white border border-slate-200 hover:bg-slate-100 text-[11px] font-semibold text-slate-700 cursor-pointer"
+                    >
+                      Đảo chiều màu
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-semibold text-slate-700 mr-1">Hoa văn:</span>
+                    {SECTION_PATTERN_OPTIONS.map((pat) => (
+                      <button
+                        key={pat.id}
+                        type="button"
+                        onClick={() =>
+                          setActiveTheme((prev) => ({
+                            ...prev,
+                            pattern: pat.id,
+                          }))
+                        }
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border cursor-pointer transition-colors ${
+                          activeTheme.pattern === pat.id
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {pat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Product Picker & Per-Tier Price Editor */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

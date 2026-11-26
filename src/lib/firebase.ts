@@ -28,6 +28,7 @@ import {
   Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import type { SectionBgTheme } from './sectionTheme';
 
 const FIRESTORE_DATABASE_ID: string =
   (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId ||
@@ -193,6 +194,8 @@ export interface SiteDecorSettings {
   livestreamBadge?: string; // Dòng chữ trên cùng của Khu Giá Trên Live
   livestreamTitle?: string; // Tiêu đề lớn Khu Giá Trên Live
   livestreamHint?: string; // Hướng dẫn ngắn cho khách xem Live
+  flashSaleTheme?: SectionBgTheme; // Tùy chỉnh màu nền gradient & hoa văn Khu Flash Sale
+  livestreamTheme?: SectionBgTheme; // Tùy chỉnh màu nền gradient & hoa văn Khu Giá Trên Live
   showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh

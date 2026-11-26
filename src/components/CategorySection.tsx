@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { ProductItem, CategoryItem } from '../data/products';
 import { ProductCard } from './ProductCard';
 import { ChevronLeft, ChevronRight, Sparkles, Plus, Pencil } from 'lucide-react';
+import type { EffectiveCustomPrice } from '../lib/flashSalePricing';
 
 interface CategorySectionProps {
   category: {
@@ -14,7 +15,7 @@ interface CategorySectionProps {
   icon: React.ReactNode;
   selectedProductIds: string[];
   customImages?: Record<string, string>;
-  customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
+  customPrices?: Record<string, EffectiveCustomPrice>;
   onToggleProduct: (product: ProductItem) => void;
   onBuyProduct?: (product: ProductItem) => void;
   onConsultProduct?: (product: ProductItem) => void;

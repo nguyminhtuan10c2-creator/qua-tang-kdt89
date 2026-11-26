@@ -183,6 +183,8 @@ export interface SiteDecorSettings {
   livestreamMode?: boolean; // Chế độ hiển thị nổi bật phục vụ Livestream ngay dưới Banner đầu
   livestreamEndTime?: string; // Thời gian kết thúc đếm ngược phiên Live (ISO datetime hoặc rỗng = 23:59 hôm nay)
   livestreamShowDealNumbers?: boolean; // Hiện mã số Deal #01, #02... trên từng sản phẩm đang Live
+  flashSalePrices?: Record<string, string>; // Giá Flash Sale tạm thời theo ID sản phẩm (hết giờ tự về giá sale thường)
+  flashSalePricesEnabled?: boolean; // Bật/tắt áp dụng giá Flash Sale tạm thời trong phiên Live
   showWelcomePopup?: boolean; // Bật / Tắt Pop-up / Slide chào mừng hướng dẫn đăng ký & giỏ hàng cho khách mới
   customVouchers?: VoucherItem[]; // Danh sách Voucher tùy chỉnh giá trị từ Admin
   heroLayoutMode?: 'slider' | 'classic'; // 'slider': Slide ảnh kiểu ĐMX | 'classic': Chữ + Ảnh

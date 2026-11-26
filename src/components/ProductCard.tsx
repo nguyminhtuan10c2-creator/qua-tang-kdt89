@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ProductItem, COMPANY_INFO } from '../data/products';
 import { trackEvent } from '../lib/tracking';
+import type { EffectiveCustomPrice } from '../lib/flashSalePricing';
 
 interface ProductCardProps {
   product: ProductItem;
@@ -30,7 +31,7 @@ interface ProductCardProps {
   onOpenPriceEditor?: (product: ProductItem) => void;
   onEditProduct?: (product: ProductItem) => void;
   onDeleteProduct?: (productId: string) => void;
-  customPrice?: { programPrice?: string; referencePrice?: string };
+  customPrice?: EffectiveCustomPrice;
   customImage?: string;
   isSelected?: boolean;
   isAdmin?: boolean;
@@ -342,6 +343,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               )}
             </div>
+            {customPrice?.isFlashSaleActive &&
+              customPrice.regularSalePrice &&
+              customPrice.regularSalePrice !== programPriceStr && (
+                <div className="mt-0.5 text-[10px] sm:text-[11px] font-medium text-rose-700 tabular-nums">
+                  Giá sale thường: {customPrice.regularSalePrice}
+                </div>
+              )}
           </div>
 
           {/* Optional Rating & Sold text (only shown if Admin enters it) */}

@@ -45,6 +45,7 @@ import {
   SiteDecorSettings,
 } from './lib/firebase';
 import { resolveFlagshipDeals } from './lib/flagshipDeals';
+import { buildEffectiveCustomPrices, parseLivestreamEndMs } from './lib/flashSalePricing';
 import { trackEvent } from './lib/tracking';
 
 export default function App() {
@@ -252,6 +253,29 @@ export default function App() {
     }
   });
 
+  // Real-time clock tick for automatic Flash Sale -> regular price reversion on expiry
+  const [flashSaleClockMs, setFlashSaleClockMs] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const syncClock = () => setFlashSaleClockMs(Date.now());
+    syncClock();
+
+    const endMs = parseLivestreamEndMs(decorSettings?.livestreamEndTime);
+    let exactTimeout: ReturnType<typeof setTimeout> | null = null;
+    if (endMs !== null && endMs > Date.now()) {
+      const waitMs = Math.min(endMs - Date.now() + 80, 2147483647);
+      exactTimeout = setTimeout(syncClock, waitMs);
+    }
+
+    const periodicInterval = setInterval(syncClock, 15000);
+    window.addEventListener('focus', syncClock);
+    return () => {
+      if (exactTimeout) clearTimeout(exactTimeout);
+      clearInterval(periodicInterval);
+      window.removeEventListener('focus', syncClock);
+    };
+  }, [decorSettings?.livestreamEndTime, decorSettings?.flashSalePricesEnabled]);
+
   // Dynamic vouchers configured by Admin (fallback to defaults)
   const activeVouchers = useMemo(
     () => resolveVouchers(decorSettings?.customVouchers),
@@ -290,6 +314,19 @@ export default function App() {
 
     return [...list, ...validCustom];
   }, [deletedProductIds, editedProducts, customProducts]);
+
+  // Effective prices (applies temporary Flash Sale price while live/unexpired, reverts to regular sale price immediately on expiry)
+  const effectiveCustomPrices = useMemo(
+    () =>
+      buildEffectiveCustomPrices({
+        products: allProducts,
+        baseCustomPrices: customPrices,
+        decorSettings,
+        hiddenSections,
+        nowMs: flashSaleClockMs,
+      }).effectivePrices,
+    [allProducts, customPrices, decorSettings, hiddenSections, flashSaleClockMs]
+  );
 
   // Check if gift recipient selector is hidden either via hiddenSections or customTexts
   const isGiftRecipientHidden = useMemo(() => {
@@ -641,7 +678,7 @@ export default function App() {
               deals={flagshipDeals}
               selectedProductIds={selectedProductIds}
               customImages={customImages}
-              customPrices={customPrices}
+              customPrices={effectiveCustomPrices}
               customTexts={customTexts}
               decorSettings={decorSettings}
               hiddenProductIds={hiddenProductIds}
@@ -718,7 +755,7 @@ export default function App() {
               allCategories={allCategories}
               deletedCategoryIds={deletedCategoryIds}
               customImages={customImages}
-              customPrices={customPrices}
+              customPrices={effectiveCustomPrices}
               customCategories={customCategories}
               customTexts={customTexts}
               decorSettings={decorSettings}
@@ -814,7 +851,7 @@ export default function App() {
             : allProducts.filter((p) => selectedProductIds.includes(p.id))
         }
         selectedCombo={orderSelectedCombo}
-        customPrices={customPrices}
+        customPrices={effectiveCustomPrices}
         customImages={customImages}
         isRecipientHidden={isGiftRecipientHidden}
         isAdmin={false}
@@ -873,7 +910,7 @@ export default function App() {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         cartProducts={allProducts.filter((p) => selectedProductIds.includes(p.id))}
-        customPrices={customPrices}
+        customPrices={effectiveCustomPrices}
         customImages={customImages}
         customerAccount={customerAccount}
         vouchers={activeVouchers}

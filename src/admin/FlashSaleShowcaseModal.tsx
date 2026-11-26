@@ -23,6 +23,7 @@ import {
 } from '../data/products';
 import type { ResolvedAdminProduct } from '../lib/productImportExport';
 import type { SiteDecorSettings } from '../lib/firebase';
+import { parseLivestreamEndMs } from '../lib/flashSalePricing';
 
 interface FlashSaleShowcaseModalProps {
   isOpen: boolean;
@@ -41,6 +42,8 @@ interface FlashSaleShowcaseModalProps {
     livestreamMode: boolean;
     livestreamEndTime: string;
     livestreamShowDealNumbers: boolean;
+    flashSalePrices: Record<string, string>;
+    flashSalePricesEnabled: boolean;
   }) => Promise<void>;
   onEditPrice?: (product: ProductItem) => void;
 }
@@ -67,6 +70,8 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
   const [livestreamMode, setLivestreamMode] = useState(true);
   const [showDealNumbers, setShowDealNumbers] = useState(true);
   const [livestreamEndTime, setLivestreamEndTime] = useState('');
+  const [flashSalePricesEnabled, setFlashSalePricesEnabled] = useState(true);
+  const [flashSalePricesMap, setFlashSalePricesMap] = useState<Record<string, string>>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -100,6 +105,8 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
       setLivestreamMode(decorSettings?.livestreamMode !== false);
       setShowDealNumbers(decorSettings?.livestreamShowDealNumbers !== false);
       setLivestreamEndTime(decorSettings?.livestreamEndTime || '');
+      setFlashSalePricesEnabled(decorSettings?.flashSalePricesEnabled !== false);
+      setFlashSalePricesMap(decorSettings?.flashSalePrices || {});
 
       const configured = decorSettings?.flagshipProductIds;
       if (Array.isArray(configured) && configured.length > 0) {
@@ -190,13 +197,26 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
     setLivestreamMode(true);
     setShowDealNumbers(true);
     setLivestreamEndTime('');
+    setFlashSalePricesEnabled(true);
     setSelectedIds(resolveDefaultIds);
   };
+
+  const parsedEndMs = parseLivestreamEndMs(livestreamEndTime);
+  const isCustomEndExpired = parsedEndMs !== null && Date.now() > parsedEndMs;
+  const isFlashWindowRunning = showSection && flashSalePricesEnabled && !isCustomEndExpired;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      const cleanedFlashPrices: Record<string, string> = {};
+      for (const [pid, val] of Object.entries(flashSalePricesMap)) {
+        const trimmed = (val || '').trim();
+        if (trimmed) {
+          cleanedFlashPrices[pid] = trimmed;
+        }
+      }
+
       await onSaveShowcase({
         flagshipBadge: badgeText.trim() || DEFAULT_BADGE,
         flagshipTitle: titleText.trim() || DEFAULT_TITLE,
@@ -206,6 +226,8 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
         livestreamMode,
         livestreamEndTime: livestreamEndTime.trim(),
         livestreamShowDealNumbers: showDealNumbers,
+        flashSalePrices: cleanedFlashPrices,
+        flashSalePricesEnabled,
       });
       setSavedSuccess(true);
       setTimeout(() => {
@@ -366,12 +388,23 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
                   />
                   <span>Hiện mã số Deal (#01, #02, #03...) để khách bấm đúng mã đọc trên Live</span>
                 </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-rose-800 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={flashSalePricesEnabled}
+                    onChange={(e) => setFlashSalePricesEnabled(e.target.checked)}
+                    className="w-4 h-4 accent-rose-600"
+                  />
+                  <span>
+                    Bật giá Flash Sale tạm thời (hết giờ tự động về giá sale thường)
+                  </span>
+                </label>
               </div>
 
               <div className="space-y-1.5">
                 <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
                   <Clock className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Giờ kết thúc đếm ngược (để trống = đến 23:59 hôm nay):</span>
+                  <span>Giờ kết thúc Flash Sale (hết giờ tự về giá thường · trống = 23:59 hôm nay):</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <input
@@ -404,6 +437,11 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
                     </button>
                   )}
                 </div>
+                {isCustomEndExpired && (
+                  <p className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
+                    Đã hết giờ Flash Sale — khách đang thấy giá bán thường. Bấm +2 giờ hoặc +4 giờ để mở phiên mới.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -448,83 +486,137 @@ export const FlashSaleShowcaseModal: React.FC<FlashSaleShowcaseModalProps> = ({
                     Chưa chọn sản phẩm nào. Hãy bấm <strong>+ Thêm</strong> ở cột bên phải (nếu để trống khi lưu sẽ tự dùng 6 món mặc định).
                   </div>
                 ) : (
-                  selectedProducts.map((p, idx) => (
-                    <div
-                      key={p.id}
-                      className="pt-2 first:pt-0 flex items-center justify-between gap-2.5"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-5 h-5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
-                          {idx + 1}
-                        </span>
-                        <div className="w-10 h-10 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
-                          {p.resolvedImageUrl ? (
-                            <img
-                              src={p.resolvedImageUrl}
-                              alt={p.name}
-                              className="w-full h-full object-contain"
-                            />
-                          ) : (
-                            <span className="text-[10px] text-slate-400">No img</span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-semibold text-slate-900 truncate">
-                            {p.name}
-                          </div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-rose-600 tabular-nums">
-                              {p.effectiveProgramPrice}
+                  selectedProducts.map((p, idx) => {
+                    const flashVal = flashSalePricesMap[p.id] || '';
+                    const hasFlashVal = flashVal.trim().length > 0;
+                    return (
+                      <div
+                        key={p.id}
+                        className="pt-2.5 first:pt-0 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-5 h-5 rounded bg-slate-100 text-slate-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0">
+                              {idx + 1}
                             </span>
-                            {p.isHidden && (
-                              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-semibold">
-                                Đang ẩn
-                              </span>
+                            <div className="w-10 h-10 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center">
+                              {p.resolvedImageUrl ? (
+                                <img
+                                  src={p.resolvedImageUrl}
+                                  alt={p.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-slate-400">No img</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-semibold text-slate-900 truncate">
+                                {p.name}
+                              </div>
+                              <div className="text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
+                                <span>
+                                  Giá sale thường:{' '}
+                                  <strong className="text-slate-800 tabular-nums">
+                                    {p.effectiveProgramPrice}
+                                  </strong>
+                                </span>
+                                {p.isHidden && (
+                                  <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px] font-semibold">
+                                    Đang ẩn
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            {onEditPrice && (
+                              <button
+                                type="button"
+                                onClick={() => onEditPrice(p)}
+                                title="Sửa giá sale thường sản phẩm này"
+                                className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <Tag className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleMove(idx, -1)}
+                              disabled={idx === 0}
+                              title="Đưa lên trước"
+                              className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMove(idx, 1)}
+                              disabled={idx === selectedProducts.length - 1}
+                              title="Đưa xuống sau"
+                              className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleProduct(p.id)}
+                              title="Bỏ khỏi danh sách này"
+                              className="p-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline Temporary Flash Sale Price */}
+                        <div className="pl-7 pr-1 flex flex-col sm:flex-row sm:items-center gap-1.5">
+                          <div className="relative flex-1">
+                            <input
+                              type="text"
+                              value={flashVal}
+                              onChange={(e) =>
+                                setFlashSalePricesMap((prev) => ({
+                                  ...prev,
+                                  [p.id]: e.target.value,
+                                }))
+                              }
+                              placeholder={`Giá Flash Sale (trống = giữ ${p.effectiveProgramPrice})`}
+                              className="w-full pl-2.5 pr-7 py-1.5 text-xs font-bold text-rose-700 bg-rose-50/50 border border-rose-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400 tabular-nums"
+                            />
+                            {hasFlashVal && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFlashSalePricesMap((prev) => {
+                                    const next = { ...prev };
+                                    delete next[p.id];
+                                    return next;
+                                  })
+                                }
+                                title="Xóa giá Flash Sale (về giá thường)"
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-rose-600 cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
                             )}
                           </div>
+                          {hasFlashVal && (
+                            <span
+                              className={`text-[10px] font-semibold whitespace-nowrap ${
+                                isFlashWindowRunning ? 'text-rose-600' : 'text-slate-500'
+                              }`}
+                            >
+                              {isFlashWindowRunning
+                                ? `Đang giảm → hết giờ về ${p.effectiveProgramPrice}`
+                                : `Chưa chạy/hết giờ → hiện ${p.effectiveProgramPrice}`}
+                            </span>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {onEditPrice && (
-                          <button
-                            type="button"
-                            onClick={() => onEditPrice(p)}
-                            title="Sửa giá sản phẩm này"
-                            className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
-                          >
-                            <Tag className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleMove(idx, -1)}
-                          disabled={idx === 0}
-                          title="Đưa lên trước"
-                          className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleMove(idx, 1)}
-                          disabled={idx === selectedProducts.length - 1}
-                          title="Đưa xuống sau"
-                          className="p-1.5 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleProduct(p.id)}
-                          title="Bỏ khỏi danh sách này"
-                          className="p-1.5 rounded-md border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

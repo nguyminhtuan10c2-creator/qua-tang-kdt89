@@ -15,6 +15,8 @@ interface ProductPriceModalProps {
   onSavePrice: (productId: string, price: CustomPrice) => void;
   onResetPrice: (productId: string) => void;
   productsList?: ProductItem[];
+  flashSalePrices?: Record<string, string>;
+  onSaveFlashSalePrice?: (productId: string, flashPrice: string) => void;
 }
 
 export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
@@ -25,6 +27,8 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   onSavePrice,
   onResetPrice,
   productsList,
+  flashSalePrices = {},
+  onSaveFlashSalePrice,
 }) => {
   const catalog = productsList && productsList.length > 0 ? productsList : PRODUCTS;
   const [selectedProductId, setSelectedProductId] = useState<string>(
@@ -32,6 +36,7 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
   );
   const [programPriceInput, setProgramPriceInput] = useState<string>('');
   const [referencePriceInput, setReferencePriceInput] = useState<string>('');
+  const [flashSalePriceInput, setFlashSalePriceInput] = useState<string>('');
   const [searchFilter, setSearchFilter] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
 
@@ -49,8 +54,9 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
       const existing = customPrices[currentProduct.id];
       setProgramPriceInput(existing?.programPrice ?? currentProduct.programPrice);
       setReferencePriceInput(existing?.referencePrice ?? currentProduct.referencePrice);
+      setFlashSalePriceInput(flashSalePrices[currentProduct.id] || '');
     }
-  }, [selectedProductId, customPrices, currentProduct]);
+  }, [selectedProductId, customPrices, flashSalePrices, currentProduct]);
 
   if (!isOpen || !currentProduct) return null;
 
@@ -62,14 +68,21 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
       programPrice: programPriceInput.trim(),
       referencePrice: referencePriceInput.trim(),
     });
+    if (onSaveFlashSalePrice) {
+      onSaveFlashSalePrice(currentProduct.id, flashSalePriceInput.trim());
+    }
     setSuccessMsg(`Đã cập nhật giá mới cho "${currentProduct.name}"!`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   const handleReset = () => {
     onResetPrice(currentProduct.id);
+    if (onSaveFlashSalePrice) {
+      onSaveFlashSalePrice(currentProduct.id, '');
+    }
     setProgramPriceInput(currentProduct.programPrice);
     setReferencePriceInput(currentProduct.referencePrice);
+    setFlashSalePriceInput('');
     setSuccessMsg(`Đã khôi phục giá gốc mặc định.`);
     setTimeout(() => setSuccessMsg(''), 3000);
   };
@@ -199,6 +212,37 @@ export const ProductPriceModal: React.FC<ProductPriceModalProps> = ({
                   </span>
                 </div>
               </div>
+
+              {/* Optional Temporary Flash Sale Price */}
+              {onSaveFlashSalePrice && (
+                <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-amber-950 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Giá Flash Sale tạm thời (tùy chọn):</span>
+                    </label>
+                    {flashSalePriceInput.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setFlashSalePriceInput('')}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Xóa (về giá thường)
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={flashSalePriceInput}
+                    onChange={(e) => setFlashSalePriceInput(e.target.value)}
+                    placeholder="VD: 1.090.000đ (hết giờ Flash Sale tự về giá sale thường ở trên)"
+                    className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white text-sm font-bold text-rose-600 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                  />
+                  <p className="text-[11px] text-amber-900">
+                    Nếu điền, khách sẽ thấy giá này trong lúc phiên Flash Sale còn giờ; hết giờ hệ thống tự trả về Giá chương trình ở trên.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Live Preview Box */}

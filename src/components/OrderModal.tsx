@@ -125,7 +125,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           id: selectedCombo.id,
           name: `${selectedCombo.name} (${selectedCombo.subtitle})`,
           price: selectedCombo.priceNote,
-          quantity: quantities[selectedCombo.id] || 1,
+          quantity: quantities[selectedCombo.id] ?? 1,
           ...(selectedCombo.image ? { imageUrl: selectedCombo.image } : {}),
         },
       ];
@@ -140,7 +140,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           name: singleProduct.name,
           ...(singleProduct.modelCode ? { modelCode: singleProduct.modelCode } : {}),
           price: price,
-          quantity: quantities[singleProduct.id] || 1,
+          quantity: quantities[singleProduct.id] ?? 1,
           ...(img ? { imageUrl: img } : {}),
         },
       ];
@@ -155,7 +155,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           name: p.name,
           ...(p.modelCode ? { modelCode: p.modelCode } : {}),
           price: price,
-          quantity: quantities[p.id] || 1,
+          quantity: quantities[p.id] ?? 1,
           ...(img ? { imageUrl: img } : {}),
         };
       });
@@ -163,6 +163,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
     return [];
   }, [selectedCombo, singleProduct, selectedProducts, quantities, customPrices, customImages]);
+
+  const activeOrderItems = React.useMemo(
+    () => orderItems.filter((it) => it.quantity > 0),
+    [orderItems]
+  );
 
   // Reset or initialize on open
   useEffect(() => {
@@ -282,11 +287,14 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   if (!isOpen) return null;
 
   const calculateTotal = (): string => {
+    if (activeOrderItems.length === 0) {
+      return '0 đ';
+    }
     if (numericSubtotal > 0) {
       return `${finalNumericTotal.toLocaleString('vi-VN')} đ`;
     }
-    if (orderItems.length === 1) {
-      return orderItems[0].price;
+    if (activeOrderItems.length === 1) {
+      return activeOrderItems[0].price;
     }
     return 'Giá chương trình ưu đãi';
   };
@@ -295,8 +303,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const handleUpdateQty = (id: string, delta: number) => {
     setQuantities((prev) => {
-      const curr = prev[id] || 1;
-      const next = Math.max(1, Math.min(20, curr + delta));
+      const curr = prev[id] ?? 1;
+      const next = Math.max(0, Math.min(20, curr + delta));
       return { ...prev, [id]: next };
     });
   };
@@ -319,8 +327,8 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return;
     }
 
-    if (orderItems.length === 0) {
-      setSubmitError('Chưa có sản phẩm nào được chọn.');
+    if (activeOrderItems.length === 0) {
+      setSubmitError('Vui lòng chọn ít nhất 1 sản phẩm (số lượng từ 1 trở lên) để đặt giữ giá.');
       return;
     }
 
@@ -343,7 +351,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       ).slice(0, 300);
 
       // Avoid bloated custom base64 data URLs inside the order document (keep under Firestore 1MB limit)
-      const safeOrderItems: OrderItem[] = orderItems.slice(0, 30).map((it) => ({
+      const safeOrderItems: OrderItem[] = activeOrderItems.slice(0, 30).map((it) => ({
         id: it.id,
         name: it.name,
         price: it.price,
@@ -683,53 +691,67 @@ export const OrderModal: React.FC<OrderModalProps> = ({
               {/* 1. Selected Product(s) */}
               <div className="rounded-2xl bg-neutral-50 border border-neutral-200 p-3 space-y-2">
                 <div className="divide-y divide-neutral-200/80 max-h-36 overflow-y-auto pr-1">
-                  {orderItems.map((item) => (
-                    <div key={item.id} className="py-1.5 flex items-center justify-between gap-2.5">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-11 h-11 rounded-xl object-cover border border-neutral-200 shrink-0 bg-white"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">
-                            KDT
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
-                            {item.name}
-                          </h4>
-                          <div className="text-xs font-bold text-rose-600 font-mono">
-                            {item.price}
+                  {orderItems.map((item) => {
+                    const isZero = item.quantity === 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`py-1.5 flex items-center justify-between gap-2.5 transition-opacity ${
+                          isZero ? 'opacity-50' : 'opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-11 h-11 rounded-xl object-cover border border-neutral-200 shrink-0 bg-white"
+                            />
+                          ) : (
+                            <div className="w-11 h-11 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">
+                              KDT
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-neutral-900 truncate">
+                              {item.name}
+                            </h4>
+                            <div className="text-xs font-bold text-rose-600 font-mono flex items-center gap-1.5">
+                              <span>{item.price}</span>
+                              {isZero && (
+                                <span className="text-[10px] font-sans font-semibold text-neutral-500">
+                                  (Đã bỏ chọn)
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-1 shrink-0 bg-white border border-neutral-200 rounded-lg p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQty(item.id, -1)}
-                          aria-label="Giảm số lượng"
-                          className="w-6 h-6 rounded flex items-center justify-center text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-5 text-center text-xs font-bold text-neutral-900 font-mono">
-                          {item.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateQty(item.id, 1)}
-                          aria-label="Tăng số lượng"
-                          className="w-6 h-6 rounded flex items-center justify-center text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0 bg-white border border-neutral-200 rounded-lg p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQty(item.id, -1)}
+                            disabled={isZero}
+                            aria-label="Giảm số lượng"
+                            className="w-6 h-6 rounded flex items-center justify-center text-neutral-600 hover:bg-neutral-100 disabled:opacity-30 transition-colors cursor-pointer disabled:cursor-default"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="w-5 text-center text-xs font-bold text-neutral-900 font-mono tabular-nums">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQty(item.id, 1)}
+                            aria-label="Tăng số lượng"
+                            className="w-6 h-6 rounded flex items-center justify-center text-neutral-600 hover:bg-neutral-100 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

@@ -742,6 +742,21 @@ export default function AdminApp() {
         onSavePrice={handleSaveCustomPrice}
         onResetPrice={handleResetCustomPrice}
         productsList={resolvedProducts.filter((p) => !p.isDeleted)}
+        flashSalePrices={decorSettings?.flashSalePrices || {}}
+        onSaveFlashSalePrice={async (productId, flashPrice) => {
+          const nextFlashMap = { ...(decorSettings?.flashSalePrices || {}) };
+          if (flashPrice) {
+            nextFlashMap[productId] = flashPrice;
+          } else {
+            delete nextFlashMap[productId];
+          }
+          await persistSettings({
+            decorSettings: {
+              ...decorSettings,
+              flashSalePrices: nextFlashMap,
+            },
+          });
+        }}
       />
 
       <ImageUpdateModal
@@ -826,6 +841,8 @@ export default function AdminApp() {
           livestreamMode,
           livestreamEndTime,
           livestreamShowDealNumbers,
+          flashSalePrices,
+          flashSalePricesEnabled,
         }) => {
           await persistSettings({
             customTexts: {
@@ -841,6 +858,8 @@ export default function AdminApp() {
               livestreamMode,
               livestreamEndTime,
               livestreamShowDealNumbers,
+              flashSalePrices,
+              flashSalePricesEnabled,
             },
           });
         }}

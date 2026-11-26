@@ -33,6 +33,7 @@ import {
 import { trackEvent } from '../lib/tracking';
 
 import type { CategoryOverride, SiteDecorSettings } from '../lib/firebase';
+import type { EffectiveCustomPrice } from '../lib/flashSalePricing';
 
 interface ProductCatalogProps {
   selectedProductIds: string[];
@@ -40,7 +41,7 @@ interface ProductCatalogProps {
   allCategories?: CategoryItem[];
   deletedCategoryIds?: string[];
   customImages?: Record<string, string>;
-  customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
+  customPrices?: Record<string, EffectiveCustomPrice>;
   customCategories?: Record<string, CategoryOverride>;
   decorSettings?: SiteDecorSettings;
   onOpenDecorationModal?: () => void;

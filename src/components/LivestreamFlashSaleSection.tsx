@@ -3,12 +3,16 @@ import { Radio, ArrowDown, PhoneCall, Zap } from 'lucide-react';
 import { ProductItem } from '../data/products';
 import type { SiteDecorSettings } from '../lib/firebase';
 import { ProductCard } from './ProductCard';
+import {
+  type EffectiveCustomPrice,
+  getFlashSaleWindowStatus,
+} from '../lib/flashSalePricing';
 
 interface LivestreamFlashSaleSectionProps {
   deals: ProductItem[];
   selectedProductIds: string[];
   customImages?: Record<string, string>;
-  customPrices?: Record<string, { programPrice?: string; referencePrice?: string }>;
+  customPrices?: Record<string, EffectiveCustomPrice>;
   customTexts?: Record<string, string>;
   decorSettings?: SiteDecorSettings;
   hiddenProductIds?: string[];
@@ -52,26 +56,34 @@ export const LivestreamFlashSaleSection: React.FC<LivestreamFlashSaleSectionProp
     return () => clearInterval(timer);
   }, []);
 
+  const windowStatus = useMemo(
+    () => getFlashSaleWindowStatus(decorSettings, [], nowMs),
+    [decorSettings, nowMs]
+  );
+
+  const isCustomTimerExpired =
+    windowStatus.mode === 'custom_timer' && windowStatus.isExpired;
+
   const targetMs = useMemo(() => {
-    if (decorSettings?.livestreamEndTime) {
-      const parsed = new Date(decorSettings.livestreamEndTime).getTime();
-      if (!isNaN(parsed) && parsed > nowMs) {
-        return parsed;
-      }
+    if (windowStatus.targetEndMs !== null) {
+      return windowStatus.targetEndMs;
     }
     const endOfDay = new Date(nowMs);
     endOfDay.setHours(23, 59, 59, 999);
     return endOfDay.getTime();
-  }, [decorSettings?.livestreamEndTime, nowMs]);
+  }, [windowStatus.targetEndMs, nowMs]);
 
   const timeLeft = useMemo(() => {
+    if (isCustomTimerExpired) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
     const diff = Math.max(0, targetMs - nowMs);
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / (1000 * 60)) % 60);
     const seconds = Math.floor((diff / 1000) % 60);
     return { days, hours, minutes, seconds };
-  }, [targetMs, nowMs]);
+  }, [targetMs, nowMs, isCustomTimerExpired]);
 
   if (deals.length === 0) return null;
 
@@ -142,29 +154,31 @@ export const LivestreamFlashSaleSection: React.FC<LivestreamFlashSaleSectionProp
               <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end xl:items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2">
                   <span className="text-[11px] font-semibold text-neutral-300 whitespace-nowrap">
-                    Kết thúc sau
+                    {isCustomTimerExpired ? 'Đã hết giờ Live · Đang hiện giá thường' : 'Kết thúc sau'}
                   </span>
-                  <div className="flex items-center gap-1 font-mono font-black text-sm sm:text-base tabular-nums">
-                    {timeLeft.days > 0 && (
-                      <>
-                        <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
-                          {timeLeft.days}d
-                        </span>
-                        <span className="text-rose-400">:</span>
-                      </>
-                    )}
-                    <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
-                      {String(timeLeft.hours).padStart(2, '0')}
-                    </span>
-                    <span className="text-rose-400">:</span>
-                    <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
-                      {String(timeLeft.minutes).padStart(2, '0')}
-                    </span>
-                    <span className="text-rose-400">:</span>
-                    <span className="bg-rose-600 text-white px-2 py-0.5 rounded-md min-w-[34px] text-center">
-                      {String(timeLeft.seconds).padStart(2, '0')}
-                    </span>
-                  </div>
+                  {!isCustomTimerExpired && (
+                    <div className="flex items-center gap-1 font-mono font-black text-sm sm:text-base tabular-nums">
+                      {timeLeft.days > 0 && (
+                        <>
+                          <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
+                            {timeLeft.days}d
+                          </span>
+                          <span className="text-rose-400">:</span>
+                        </>
+                      )}
+                      <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
+                        {String(timeLeft.hours).padStart(2, '0')}
+                      </span>
+                      <span className="text-rose-400">:</span>
+                      <span className="bg-white text-neutral-950 px-2 py-0.5 rounded-md min-w-[34px] text-center">
+                        {String(timeLeft.minutes).padStart(2, '0')}
+                      </span>
+                      <span className="text-rose-400">:</span>
+                      <span className="bg-rose-600 text-white px-2 py-0.5 rounded-md min-w-[34px] text-center">
+                        {String(timeLeft.seconds).padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">

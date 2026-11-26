@@ -153,8 +153,9 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
         freeOrderMaxKm: Math.max(0, Number(form.freeOrderMaxKm) || 0),
         baseFee: Math.max(0, Number(form.baseFee) || 0),
         pricePerKm: Math.max(0, Number(form.pricePerKm) || 0),
-        maxLocalKm: Math.max(1, Number(form.maxLocalKm) || 40),
+        maxLocalKm: Math.max(1, Number(form.maxLocalKm) || 30),
         provinceBaseFee: Math.max(0, Number(form.provinceBaseFee) || 0),
+        negotiateThresholdConfigured: true,
       });
       setForm((prev) => ({ ...prev, tiers: sortedTiers }));
       setStatusMsg('Đã lưu cấu hình kho & các mốc phí ship!');
@@ -425,7 +426,7 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-100">
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
                       Vượt mốc cuối (+đ/km, 0 = giữ nguyên)
@@ -443,32 +444,20 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
                   </div>
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Giới hạn nội vùng (km)
+                      Trên mức này là Thương lượng / Trao đổi (km)
                     </label>
                     <input
                       type="number"
                       min={1}
                       value={form.maxLocalKm}
                       onChange={(e) =>
-                        setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 40 })
+                        setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 30 })
                       }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
                     />
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Phí chành xe ngoài {form.maxLocalKm}km (VNĐ)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={5000}
-                      value={form.provinceBaseFee}
-                      onChange={(e) =>
-                        setForm({ ...form, provinceBaseFee: parseInt(e.target.value, 10) || 0 })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Khoảng cách &gt; {form.maxLocalKm} km sẽ hiển thị: Thương lượng / Trao đổi với Sale.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -519,34 +508,24 @@ export const ShippingSettingsModal: React.FC<ShippingSettingsModalProps> = ({
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
                   />
                 </div>
-                <div>
+                <div className="sm:col-span-3">
                   <label className="block font-semibold text-slate-700 mb-1">
-                    Giới hạn nội vùng (km)
+                    Trên mức này là Thương lượng / Trao đổi (km)
                   </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={form.maxLocalKm}
-                    onChange={(e) =>
-                      setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 40 })
-                    }
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block font-semibold text-slate-700 mb-1">
-                    Phí chành xe ngoài {form.maxLocalKm}km (VNĐ)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={5000}
-                    value={form.provinceBaseFee}
-                    onChange={(e) =>
-                      setForm({ ...form, provinceBaseFee: parseInt(e.target.value, 10) || 0 })
-                    }
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 font-mono"
-                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={form.maxLocalKm}
+                      onChange={(e) =>
+                        setForm({ ...form, maxLocalKm: parseInt(e.target.value, 10) || 30 })
+                      }
+                      className="w-full sm:w-40 px-3 py-2 rounded-lg border border-slate-300 font-mono"
+                    />
+                    <span className="text-[11px] text-slate-500">
+                      Khoảng cách &gt; {form.maxLocalKm} km sẽ tự động hiện: Thương lượng / Trao đổi với Sale.
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

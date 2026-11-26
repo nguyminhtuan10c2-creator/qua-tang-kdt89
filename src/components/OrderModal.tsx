@@ -389,8 +389,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       }));
 
       const shippingSummary = shippingEstimate
-        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship tạm tính: ${
-            shippingEstimate.isFreeShipping
+        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship: ${
+            shippingEstimate.isNegotiable
+              ? 'Thương lượng / Trao đổi'
+              : shippingEstimate.isFreeShipping
               ? 'Miễn phí (0đ)'
               : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
           }]`
@@ -483,8 +485,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     setIsSavingAddress(true);
     try {
       const shippingSummary = shippingEstimate
-        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship tạm tính: ${
-            shippingEstimate.isFreeShipping
+        ? `[Khoảng cách ~${shippingEstimate.distanceKm} km · Ship: ${
+            shippingEstimate.isNegotiable
+              ? 'Thương lượng / Trao đổi'
+              : shippingEstimate.isFreeShipping
               ? 'Miễn phí (0đ)'
               : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
           }]`
@@ -971,7 +975,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                       <span className="truncate">
                         {shippingEstimate
                           ? `~${shippingEstimate.distanceKm} km · Phí ship: ${
-                              shippingEstimate.isFreeShipping
+                              shippingEstimate.isNegotiable
+                                ? 'Thương lượng / Trao đổi'
+                                : shippingEstimate.isFreeShipping
                                 ? 'Miễn phí (0đ)'
                                 : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`
                             }`
@@ -1025,8 +1031,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
                 {shippingEstimate && (
                   <div className="flex items-center justify-between text-[11px] text-neutral-500">
                     <span>Phí ship tạm tính (~{shippingEstimate.distanceKm} km):</span>
-                    <span className={`font-semibold tabular-nums ${shippingEstimate.isFreeShipping ? 'text-emerald-700' : 'text-neutral-800'}`}>
-                      {shippingEstimate.isFreeShipping
+                    <span
+                      className={`font-semibold tabular-nums ${
+                        shippingEstimate.isNegotiable
+                          ? 'text-amber-700'
+                          : shippingEstimate.isFreeShipping
+                          ? 'text-emerald-700'
+                          : 'text-neutral-800'
+                      }`}
+                    >
+                      {shippingEstimate.isNegotiable
+                        ? 'Thương lượng / Trao đổi'
+                        : shippingEstimate.isFreeShipping
                         ? 'Miễn phí (0đ)'
                         : `${shippingEstimate.estimatedFee.toLocaleString('vi-VN')}đ`}
                     </span>

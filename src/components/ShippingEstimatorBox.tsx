@@ -520,7 +520,11 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
             </div>
             <div className="flex items-baseline gap-1.5 text-xs">
               <span className="text-neutral-600">Phí ship:</span>
-              {estimate.isFreeShipping ? (
+              {estimate.isNegotiable ? (
+                <strong className="text-sm font-bold text-amber-700">
+                  Thương lượng / Trao đổi
+                </strong>
+              ) : estimate.isFreeShipping ? (
                 <strong className="text-sm font-bold text-emerald-700 tabular-nums">
                   Miễn phí (0đ)
                 </strong>

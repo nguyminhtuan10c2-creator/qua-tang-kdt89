@@ -225,7 +225,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Deal order tag for Livestream or Feature tag (never stacked together) */}
         {liveOrderNumber !== undefined ? (
-          <div className="absolute top-2 left-2 z-10 bg-neutral-950 text-white text-[10px] sm:text-xs font-mono font-bold tabular-nums px-2 py-0.5 rounded-md shadow-xs">
+          <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-rose-600 to-fuchsia-600 text-white text-[10px] sm:text-xs font-mono font-bold tabular-nums px-2 py-0.5 rounded-md shadow-xs">
             Deal #{String(liveOrderNumber).padStart(2, '0')}
           </div>
         ) : meta.featureBadge ? (
@@ -344,7 +344,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
             {customPrice?.isLivestreamPriceActive ? (
-              <div className="mt-0.5 text-[10px] sm:text-[11px] font-semibold text-rose-600 tabular-nums">
+              <div className="mt-0.5 text-[10px] sm:text-[11px] font-bold text-fuchsia-700 tabular-nums">
                 Giá trên Live
                 {customPrice.regularSalePrice && customPrice.regularSalePrice !== programPriceStr
                   ? ` · Giá thường: ${customPrice.regularSalePrice}`

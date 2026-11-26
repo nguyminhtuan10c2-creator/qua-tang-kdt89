@@ -793,9 +793,19 @@ export const AdminOrdersPanel: React.FC<AdminOrdersPanelProps> = ({
                         <div className="text-[11px] bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5 space-y-1">
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <span className="font-bold text-emerald-900">
-                              Cách kho ~{est.distanceKm} km · Ship tạm tính:{' '}
-                              <span className="text-rose-700 font-mono">
-                                {est.isFreeShipping
+                              Cách kho ~{est.distanceKm} km · Ship:{' '}
+                              <span
+                                className={
+                                  est.isNegotiable
+                                    ? 'text-amber-700'
+                                    : est.isFreeShipping
+                                    ? 'text-emerald-700 font-mono'
+                                    : 'text-rose-700 font-mono'
+                                }
+                              >
+                                {est.isNegotiable
+                                  ? 'Thương lượng / Trao đổi'
+                                  : est.isFreeShipping
                                   ? 'MIỄN PHÍ (0đ)'
                                   : `${est.estimatedFee.toLocaleString('vi-VN')}đ`}
                               </span>

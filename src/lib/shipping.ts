@@ -17,8 +17,9 @@ export interface ShippingConfig {
   freeOrderMaxKm: number; // Bán kính tối đa áp dụng freeship theo giá trị đơn
   baseFee: number; // Phí cơ bản ngoài bán kính miễn phí (VNĐ)
   pricePerKm: number; // Phí mỗi km vượt mốc (VNĐ/km)
-  maxLocalKm: number; // Tối đa giao nội vùng (trên mức này chuyển sang giao chành xe / liên tỉnh)
-  provinceBaseFee: number; // Phí gửi chành xe / liên tỉnh tham khảo (VNĐ)
+  maxLocalKm: number; // Trên mức này hiện "Thương lượng / Trao đổi" (mặc định 30km)
+  provinceBaseFee: number; // Giữ tương thích cấu hình cũ
+  negotiateThresholdConfigured?: boolean; // Đánh dấu admin đã tự chỉnh ngưỡng thương lượng
 }
 
 export const DEFAULT_SHIPPING_TIERS: ShippingTier[] = [
@@ -42,8 +43,8 @@ export const DEFAULT_SHIPPING_CONFIG: ShippingConfig = {
   freeOrderMaxKm: 15,
   baseFee: 25000,
   pricePerKm: 6000,
-  maxLocalKm: 40,
-  provinceBaseFee: 50000,
+  maxLocalKm: 30,
+  provinceBaseFee: 0,
 };
 
 export interface VietnamAreaPoint {
@@ -149,6 +150,7 @@ export interface ShippingEstimateResult {
   estimatedFee: number;
   isFreeShipping: boolean;
   isInterProvince: boolean;
+  isNegotiable?: boolean;
   source: 'road_osrm' | 'gps' | 'area_estimate';
   matchedLabel: string;
   explanation: string;
@@ -174,8 +176,14 @@ export function resolveShippingConfig(partial?: Partial<ShippingConfig> | null):
   const tiers = Array.isArray(partial?.tiers)
     ? sortShippingTiers(partial.tiers)
     : DEFAULT_SHIPPING_TIERS;
+  const rawMaxLocalKm = Number(partial?.maxLocalKm);
+  const effectiveMaxLocalKm = partial?.negotiateThresholdConfigured
+    ? Math.max(1, Number.isFinite(rawMaxLocalKm) && rawMaxLocalKm > 0 ? rawMaxLocalKm : 30)
+    : Math.min(30, Number.isFinite(rawMaxLocalKm) && rawMaxLocalKm > 0 ? rawMaxLocalKm : 30);
+
   return {
     ...merged,
+    maxLocalKm: effectiveMaxLocalKm,
     pricingMode: partial?.pricingMode === 'per_km' ? 'per_km' : 'tiers',
     tiers,
   };
@@ -194,6 +202,21 @@ export function calculateShippingFeeFromDistance(params: {
   const roundedKm = Math.max(0.5, Math.round(params.distanceKm * 10) / 10);
   const orderSubtotal = params.orderSubtotal || 0;
 
+  if (roundedKm > cfg.maxLocalKm) {
+    return {
+      distanceKm: roundedKm,
+      estimatedFee: 0,
+      isFreeShipping: false,
+      isInterProvince: true,
+      isNegotiable: true,
+      source: params.source,
+      matchedLabel: params.matchedLabel,
+      explanation: `Khoảng cách trên ${cfg.maxLocalKm} km: Phí ship thương lượng / trao đổi trực tiếp với Sale theo tuyến giao thực tế.`,
+      customerLat: params.customerLat,
+      customerLng: params.customerLng,
+    };
+  }
+
   if (
     cfg.freeOrderThreshold > 0 &&
     orderSubtotal >= cfg.freeOrderThreshold &&
@@ -204,6 +227,7 @@ export function calculateShippingFeeFromDistance(params: {
       estimatedFee: 0,
       isFreeShipping: true,
       isInterProvince: false,
+      isNegotiable: false,
       source: params.source,
       matchedLabel: params.matchedLabel,
       explanation: `Freeship đơn từ ${cfg.freeOrderThreshold.toLocaleString('vi-VN')}đ (trong ${cfg.freeOrderMaxKm} km)`,
@@ -252,20 +276,7 @@ export function calculateShippingFeeFromDistance(params: {
       };
     }
 
-    // Exceeded all configured local tiers
-    if (roundedKm > cfg.maxLocalKm) {
-      return {
-        distanceKm: roundedKm,
-        estimatedFee: cfg.provinceBaseFee,
-        isFreeShipping: false,
-        isInterProvince: true,
-        source: params.source,
-        matchedLabel: params.matchedLabel,
-        explanation: `Ngoài ${cfg.maxLocalKm} km: gửi chành xe / bưu cục (tham khảo từ ${cfg.provinceBaseFee.toLocaleString('vi-VN')}đ, sale báo chính xác)`,
-        customerLat: params.customerLat,
-        customerLng: params.customerLng,
-      };
-    }
+    // Fallback if exceeded all configured local tiers within maxLocalKm
 
     const lastTier = sorted[sorted.length - 1];
     const extraKm = Math.max(0, Math.ceil(roundedKm - lastTier.maxKm));
@@ -303,19 +314,7 @@ export function calculateShippingFeeFromDistance(params: {
     };
   }
 
-  if (roundedKm > cfg.maxLocalKm) {
-    return {
-      distanceKm: roundedKm,
-      estimatedFee: cfg.provinceBaseFee,
-      isFreeShipping: false,
-      isInterProvince: true,
-      source: params.source,
-      matchedLabel: params.matchedLabel,
-      explanation: `Ngoài ${cfg.maxLocalKm} km: gửi chành xe / bưu cục (tham khảo từ ${cfg.provinceBaseFee.toLocaleString('vi-VN')}đ, sale báo chính xác)`,
-      customerLat: params.customerLat,
-      customerLng: params.customerLng,
-    };
-  }
+  // Linear calculation for distances within maxLocalKm
 
   const extraKm = Math.max(0, Math.ceil(roundedKm - cfg.freeRadiusKm));
   const rawFee = cfg.baseFee + extraKm * cfg.pricePerKm;

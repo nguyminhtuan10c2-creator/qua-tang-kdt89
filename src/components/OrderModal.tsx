@@ -169,45 +169,54 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     [orderItems]
   );
 
-  // Reset or initialize on open
+  const wasOpenRef = React.useRef(false);
+
+  // Initialize state ONLY when modal transitions from closed -> open
   useEffect(() => {
-    if (isOpen) {
-      setSubmitError(null);
-      setCompletedOrder(null);
-      setVoucherError(null);
-      setIsAddressSaved(false);
-      setAddressError(null);
-      setStep2Note('');
-      setShowOptionalDetails(false);
-      setShippingEstimate(null);
-      setShowStep1Shipping(false);
-
-      if (customerAccount) {
-        if (!customerName) setCustomerName(customerAccount.fullName);
-        if (!phoneNumber) setPhoneNumber(customerAccount.phoneNumber);
-        if (customerAccount.address) setStep2Address(customerAccount.address);
-      }
-      if (initialSelectedVoucher) {
-        setSelectedVoucher(initialSelectedVoucher);
-        setShowVouchers(true);
-      } else {
-        setShowVouchers(false);
-      }
-
-      const initialQty: Record<string, number> = {};
-      if (selectedCombo) initialQty[selectedCombo.id] = 1;
-      if (singleProduct) initialQty[singleProduct.id] = 1;
-      selectedProducts.forEach((p) => {
-        initialQty[p.id] = 1;
-      });
-      setQuantities(initialQty);
-
-      trackEvent('open_checkout', {
-        productId: singleProduct?.id || selectedCombo?.id || 'cart',
-        productName: singleProduct?.name || selectedCombo?.name || `${selectedProducts.length} sản phẩm`,
-      });
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
     }
-  }, [isOpen, selectedCombo, singleProduct, selectedProducts, customerAccount, initialSelectedVoucher]);
+    if (wasOpenRef.current) {
+      return;
+    }
+    wasOpenRef.current = true;
+
+    setSubmitError(null);
+    setCompletedOrder(null);
+    setVoucherError(null);
+    setIsAddressSaved(false);
+    setAddressError(null);
+    setStep2Note('');
+    setShowOptionalDetails(false);
+    setShippingEstimate(null);
+    setShowStep1Shipping(false);
+
+    if (customerAccount) {
+      if (!customerName) setCustomerName(customerAccount.fullName);
+      if (!phoneNumber) setPhoneNumber(customerAccount.phoneNumber);
+      if (customerAccount.address) setStep2Address(customerAccount.address);
+    }
+    if (initialSelectedVoucher) {
+      setSelectedVoucher(initialSelectedVoucher);
+      setShowVouchers(true);
+    } else {
+      setShowVouchers(false);
+    }
+
+    const initialQty: Record<string, number> = {};
+    if (selectedCombo) initialQty[selectedCombo.id] = 1;
+    if (singleProduct) initialQty[singleProduct.id] = 1;
+    selectedProducts.forEach((p) => {
+      initialQty[p.id] = 1;
+    });
+    setQuantities(initialQty);
+
+    trackEvent('open_checkout', {
+      productId: singleProduct?.id || selectedCombo?.id || 'cart',
+      productName: singleProduct?.name || selectedCombo?.name || `${selectedProducts.length} sản phẩm`,
+    });
+  }, [isOpen, selectedCombo, singleProduct, selectedProducts, customerAccount, initialSelectedVoucher, customerName, phoneNumber]);
 
   // Calculate raw numeric subtotal
   const numericSubtotal = React.useMemo((): number => {

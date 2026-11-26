@@ -42,6 +42,8 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
   const [gpsLoading, setGpsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<ShippingEstimateResult | null>(null);
+  const requestIdRef = React.useRef(0);
+  const lastAutoLabelRef = React.useRef('');
 
   const updateEstimate = (next: ShippingEstimateResult | null) => {
     setEstimate(next);
@@ -70,14 +72,26 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
   const handleSelectArea = async (areaId: string) => {
     setSelectedAreaId(areaId);
     setErrorMsg(null);
+    const reqId = ++requestIdRef.current;
+
     if (!areaId) {
       updateEstimate(null);
       return;
     }
+
     const pt = VIETNAM_AREA_POINTS.find((p) => p.id === areaId);
-    if (pt && onAddressChange && !addressValue.trim()) {
-      onAddressChange(pt.label);
+    if (pt && onAddressChange) {
+      const currentTrim = addressValue.trim();
+      const wasPresetLabel =
+        currentTrim === '' ||
+        currentTrim === lastAutoLabelRef.current ||
+        VIETNAM_AREA_POINTS.some((a) => a.label === currentTrim);
+      if (wasPresetLabel) {
+        lastAutoLabelRef.current = pt.label;
+        onAddressChange(pt.label);
+      }
     }
+
     setLoading(true);
     try {
       const res = await estimateDistanceByAddress({
@@ -86,9 +100,12 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
         orderSubtotal,
         config: cfg,
       });
+      if (requestIdRef.current !== reqId) return;
       updateEstimate(res);
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === reqId) {
+        setLoading(false);
+      }
     }
   };
 
@@ -99,6 +116,7 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
       return;
     }
     setErrorMsg(null);
+    const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
       const res = await estimateDistanceByAddress({
@@ -107,16 +125,18 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
         orderSubtotal,
         config: cfg,
       });
+      if (requestIdRef.current !== reqId) return;
       if (!res) {
         setErrorMsg(
           'Chưa nhận diện được địa chỉ trên bản đồ. Anh/chị chọn nhanh Quận/Huyện ở khung bên trên để tính ngay nhé!'
         );
-        updateEstimate(null);
       } else {
         updateEstimate(res);
       }
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === reqId) {
+        setLoading(false);
+      }
     }
   };
 
@@ -126,6 +146,7 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
       return;
     }
     setErrorMsg(null);
+    const reqId = ++requestIdRef.current;
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
@@ -133,6 +154,7 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng);
+          if (requestIdRef.current !== reqId) return;
           const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng) * 1.28;
           const res = calculateShippingFeeFromDistance({
             distanceKm: km,
@@ -144,16 +166,22 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
             customerLng: lng,
           });
           updateEstimate(res);
-          if (onAddressChange && !addressValue.trim()) {
-            onAddressChange(`Vị trí GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+          if (onAddressChange && (!addressValue.trim() || addressValue.trim() === lastAutoLabelRef.current)) {
+            const gpsLabel = `Vị trí GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+            lastAutoLabelRef.current = gpsLabel;
+            onAddressChange(gpsLabel);
           }
         } finally {
-          setGpsLoading(false);
+          if (requestIdRef.current === reqId) {
+            setGpsLoading(false);
+          }
         }
       },
       () => {
-        setGpsLoading(false);
-        setErrorMsg('Không lấy được vị trí GPS (cần cấp quyền vị trí) — anh/chị chọn Quận/Huyện giúp em nhé.');
+        if (requestIdRef.current === reqId) {
+          setGpsLoading(false);
+          setErrorMsg('Không lấy được vị trí GPS (cần cấp quyền vị trí) — anh/chị chọn Quận/Huyện giúp em nhé.');
+        }
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
@@ -251,7 +279,11 @@ export const ShippingEstimatorBox: React.FC<ShippingEstimatorBoxProps> = ({
       )}
 
       {estimate && (
-        <div className="rounded-xl bg-white border border-emerald-200 p-3 space-y-1.5 shadow-2xs">
+        <div
+          className={`rounded-xl bg-white border border-emerald-200 p-3 space-y-1.5 shadow-2xs transition-opacity ${
+            loading || gpsLoading ? 'opacity-60' : 'opacity-100'
+          }`}
+        >
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="text-xs text-neutral-700">
               Khoảng cách ước tính:{' '}

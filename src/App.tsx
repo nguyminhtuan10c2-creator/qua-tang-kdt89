@@ -45,7 +45,11 @@ import {
   SiteDecorSettings,
 } from './lib/firebase';
 import { resolveFlagshipDeals } from './lib/flagshipDeals';
-import { buildEffectiveCustomPrices, parseLivestreamEndMs } from './lib/flashSalePricing';
+import {
+  buildEffectiveCustomPrices,
+  getFlashSaleWindowStatus,
+  parseLivestreamEndMs,
+} from './lib/flashSalePricing';
 import { trackEvent } from './lib/tracking';
 
 export default function App() {
@@ -254,27 +258,40 @@ export default function App() {
   });
 
   // Real-time clock tick for automatic Flash Sale -> regular price reversion on expiry
+  // Only triggers a re-render when the Flash Sale window active state actually transitions
   const [flashSaleClockMs, setFlashSaleClockMs] = useState<number>(() => Date.now());
+  const flashSaleClockRef = React.useRef<number>(flashSaleClockMs);
+  flashSaleClockRef.current = flashSaleClockMs;
 
   useEffect(() => {
-    const syncClock = () => setFlashSaleClockMs(Date.now());
-    syncClock();
+    const syncClockIfWindowChanged = () => {
+      const now = Date.now();
+      const prevStatus = getFlashSaleWindowStatus(
+        decorSettings,
+        hiddenSections,
+        flashSaleClockRef.current
+      );
+      const nextStatus = getFlashSaleWindowStatus(decorSettings, hiddenSections, now);
+      if (prevStatus.isActive !== nextStatus.isActive || prevStatus.isExpired !== nextStatus.isExpired) {
+        setFlashSaleClockMs(now);
+      }
+    };
 
     const endMs = parseLivestreamEndMs(decorSettings?.livestreamEndTime);
     let exactTimeout: ReturnType<typeof setTimeout> | null = null;
     if (endMs !== null && endMs > Date.now()) {
       const waitMs = Math.min(endMs - Date.now() + 80, 2147483647);
-      exactTimeout = setTimeout(syncClock, waitMs);
+      exactTimeout = setTimeout(() => setFlashSaleClockMs(Date.now()), waitMs);
     }
 
-    const periodicInterval = setInterval(syncClock, 15000);
-    window.addEventListener('focus', syncClock);
+    const periodicInterval = setInterval(syncClockIfWindowChanged, 30000);
+    window.addEventListener('focus', syncClockIfWindowChanged);
     return () => {
       if (exactTimeout) clearTimeout(exactTimeout);
       clearInterval(periodicInterval);
-      window.removeEventListener('focus', syncClock);
+      window.removeEventListener('focus', syncClockIfWindowChanged);
     };
-  }, [decorSettings?.livestreamEndTime, decorSettings?.flashSalePricesEnabled]);
+  }, [decorSettings, hiddenSections]);
 
   // Dynamic vouchers configured by Admin (fallback to defaults)
   const activeVouchers = useMemo(
@@ -615,6 +632,14 @@ export default function App() {
     setIsOrderModalOpen(true);
   };
 
+  const orderModalSelectedProducts = useMemo(
+    () =>
+      orderSingleProduct || orderSelectedCombo
+        ? []
+        : allProducts.filter((p) => selectedProductIds.includes(p.id)),
+    [orderSingleProduct, orderSelectedCombo, allProducts, selectedProductIds]
+  );
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden flex flex-col bg-neutral-50 text-neutral-900">
       {/* Interactive Store Decorations (Confetti/Snow/Petals falling, Floating gift deal ribbon) */}
@@ -845,11 +870,7 @@ export default function App() {
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
         singleProduct={orderSingleProduct}
-        selectedProducts={
-          orderSingleProduct || orderSelectedCombo
-            ? []
-            : allProducts.filter((p) => selectedProductIds.includes(p.id))
-        }
+        selectedProducts={orderModalSelectedProducts}
         selectedCombo={orderSelectedCombo}
         customPrices={effectiveCustomPrices}
         customImages={customImages}

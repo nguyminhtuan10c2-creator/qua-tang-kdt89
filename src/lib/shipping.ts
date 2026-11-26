@@ -335,6 +335,9 @@ export function calculateShippingFeeFromDistance(params: {
   };
 }
 
+const osrmRouteCache = new Map<string, number>();
+const nominatimGeocodeCache = new Map<string, { lat: number; lng: number; label: string }>();
+
 /**
  * Free geocoding via OpenStreetMap Nominatim + OSRM driving route distance,
  * automatically falling back to Vietnam district/province estimation if unavailable.
@@ -367,52 +370,103 @@ export async function estimateDistanceByAddress(params: {
   const trimmed = params.address.trim();
   if (!trimmed) return null;
 
-  // 1. Try OpenStreetMap Nominatim free geocoder for exact street address
-  try {
-    const q = trimmed.toLowerCase().includes('viet') ? trimmed : `${trimmed}, Vietnam`;
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&countrycodes=vn&limit=1&q=${encodeURIComponent(q)}`,
-      {
-        headers: { Accept: 'application/json' },
-      }
-    );
-    if (geoRes.ok) {
-      const geoData = (await geoRes.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
-      if (Array.isArray(geoData) && geoData.length > 0) {
-        const lat = parseFloat(geoData[0].lat);
-        const lng = parseFloat(geoData[0].lon);
-        if (!isNaN(lat) && !isNaN(lng)) {
-          const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng);
-          const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng) * 1.28;
-          return calculateShippingFeeFromDistance({
-            distanceKm: km,
-            orderSubtotal: params.orderSubtotal,
-            config: cfg,
-            source: roadKm !== null ? 'road_osrm' : 'area_estimate',
-            matchedLabel: geoData[0].display_name?.split(',').slice(0, 3).join(', ') || trimmed,
-            customerLat: lat,
-            customerLng: lng,
-          });
-        }
-      }
-    }
-  } catch {
-    // Fallback to offline Vietnam area table below
+  const areaHint = matchAreaFromAddressText(trimmed);
+  const exactPreset = VIETNAM_AREA_POINTS.find(
+    (p) => stripVietnameseAccents(p.label) === stripVietnameseAccents(trimmed)
+  );
+  if (exactPreset) {
+    const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, exactPreset.lat, exactPreset.lng);
+    const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, exactPreset.lat, exactPreset.lng) * 1.28;
+    return calculateShippingFeeFromDistance({
+      distanceKm: km,
+      orderSubtotal: params.orderSubtotal,
+      config: cfg,
+      source: roadKm !== null ? 'road_osrm' : 'area_estimate',
+      matchedLabel: exactPreset.label,
+      customerLat: exactPreset.lat,
+      customerLng: exactPreset.lng,
+    });
   }
 
-  // 2. Reliable offline fallback via Vietnam District/Province matching
-  const matched = matchAreaFromAddressText(trimmed);
-  if (!matched) return null;
+  // If user typed a broad district/province name without street detail, use exact district center directly
+  const hasStreetDetail = /\d+/.test(trimmed.replace(/quận\s*\d+|q\.?\s*\d+|tp\.?hcm/gi, '')) || trimmed.includes(',');
 
-  const approxKm = haversineKm(cfg.warehouseLat, cfg.warehouseLng, matched.lat, matched.lng) * 1.28;
+  // 1. Try OpenStreetMap Nominatim (cached + sanity-checked against areaHint)
+  if (hasStreetDetail || !areaHint) {
+    const cacheKey = stripVietnameseAccents(trimmed);
+    const cachedGeo = nominatimGeocodeCache.get(cacheKey);
+    if (cachedGeo) {
+      const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, cachedGeo.lat, cachedGeo.lng);
+      const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, cachedGeo.lat, cachedGeo.lng) * 1.28;
+      return calculateShippingFeeFromDistance({
+        distanceKm: km,
+        orderSubtotal: params.orderSubtotal,
+        config: cfg,
+        source: roadKm !== null ? 'road_osrm' : 'area_estimate',
+        matchedLabel: cachedGeo.label,
+        customerLat: cachedGeo.lat,
+        customerLng: cachedGeo.lng,
+      });
+    }
+
+    try {
+      const q = trimmed.toLowerCase().includes('viet') ? trimmed : `${trimmed}, Vietnam`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4000);
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=vn&limit=1&q=${encodeURIComponent(q)}`,
+        {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal,
+        }
+      );
+      clearTimeout(timer);
+      if (geoRes.ok) {
+        const geoData = (await geoRes.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
+        if (Array.isArray(geoData) && geoData.length > 0) {
+          const lat = parseFloat(geoData[0].lat);
+          const lng = parseFloat(geoData[0].lon);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            // Sanity check: if user named a known district (e.g. "Quận 7"), discard Nominatim outlier > 25km away
+            const isOutlierFromHint =
+              areaHint !== null && haversineKm(areaHint.lat, areaHint.lng, lat, lng) > 25;
+            if (!isOutlierFromHint) {
+              const label =
+                geoData[0].display_name?.split(',').slice(0, 3).join(', ') || trimmed;
+              nominatimGeocodeCache.set(cacheKey, { lat, lng, label });
+              const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng);
+              const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, lat, lng) * 1.28;
+              return calculateShippingFeeFromDistance({
+                distanceKm: km,
+                orderSubtotal: params.orderSubtotal,
+                config: cfg,
+                source: roadKm !== null ? 'road_osrm' : 'area_estimate',
+                matchedLabel: label,
+                customerLat: lat,
+                customerLng: lng,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback cleanly to areaHint below
+    }
+  }
+
+  // 2. Reliable offline fallback via Vietnam District/Province matching (also uses cached OSRM road km)
+  if (!areaHint) return null;
+
+  const roadKm = await fetchOsrmRoadKm(cfg.warehouseLat, cfg.warehouseLng, areaHint.lat, areaHint.lng);
+  const km = roadKm ?? haversineKm(cfg.warehouseLat, cfg.warehouseLng, areaHint.lat, areaHint.lng) * 1.28;
   return calculateShippingFeeFromDistance({
-    distanceKm: approxKm,
+    distanceKm: km,
     orderSubtotal: params.orderSubtotal,
     config: cfg,
-    source: 'area_estimate',
-    matchedLabel: matched.label,
-    customerLat: matched.lat,
-    customerLng: matched.lng,
+    source: roadKm !== null ? 'road_osrm' : 'area_estimate',
+    matchedLabel: areaHint.label,
+    customerLat: areaHint.lat,
+    customerLng: areaHint.lng,
   });
 }
 
@@ -453,9 +507,15 @@ export async function fetchOsrmRoadKm(
   toLat: number,
   toLng: number
 ): Promise<number | null> {
+  const cacheKey = `${fromLat.toFixed(4)},${fromLng.toFixed(4)}->${toLat.toFixed(4)},${toLng.toFixed(4)}`;
+  const cached = osrmRouteCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3500);
+    const timer = setTimeout(() => controller.abort(), 4000);
     const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timer);
@@ -463,7 +523,9 @@ export async function fetchOsrmRoadKm(
     const data = (await res.json()) as { routes?: Array<{ distance?: number }> };
     const meters = data?.routes?.[0]?.distance;
     if (typeof meters === 'number' && meters >= 0) {
-      return meters / 1000;
+      const km = meters / 1000;
+      osrmRouteCache.set(cacheKey, km);
+      return km;
     }
     return null;
   } catch {
